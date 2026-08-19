@@ -1,7 +1,7 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Renders Dual-in-line Package (DIP-8 / TO-220 IC Chips: NE555, LM741, LM7805) straddling the trough.
+ * Renders Dual-in-line Package (DIP-8 / DIP-14 / DIP-16 IC Chips) VERTICALLY straddling the center trough.
  */
 
 import { getResistorColorBands } from '../components/ComponentModels.js';
@@ -707,43 +707,56 @@ export class BreadboardCanvas {
             }
 
         } else if (comp.type === 'IC') {
-            // DIP Dual-in-Line Integrated Circuit Package straddling trough
-            const icW = Math.abs(pB.x - pA.x) + 24;
-            const icH = 34;
+            // DIP Dual-in-Line Package rendered VERTICALLY along the center trough!
+            // Pin 1 at Top-Left (pA), Pin 8/14/16 across trough (pB)
+            const numPinsPerSide = (comp.pins || 8) / 2; // 4 pins per side for DIP-8
+            const pitchY = 11.2;
 
-            this.ctx.fillStyle = '#1e293b'; // Matte Black Epoxy Body
+            const chipWidth = Math.abs(pB.x - pA.x) + 20; // Width across trough (Cols E to F) ~34px
+            const chipHeight = (numPinsPerSide - 1) * pitchY + 26; // Height along rows ~58px
+
+            const topY = pA.y - 12;
+
+            // 1. Matte Black Epoxy Body (Vertical Box)
+            this.ctx.fillStyle = '#1e293b';
             this.ctx.beginPath();
-            this.ctx.roundRect(midX - icW / 2, midY - icH / 2, icW, icH, 4);
+            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
             this.ctx.strokeStyle = '#0f172a';
             this.ctx.lineWidth = 1.5;
             this.ctx.stroke();
 
-            // Orientation Semi-circle Notch on Top
+            // 2. Orientation Semi-circle Notch on TOP end (pointing North)
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
-            this.ctx.arc(midX - icW / 2, midY, 5, -Math.PI / 2, Math.PI / 2);
+            this.ctx.arc(midX, topY, 6, 0, Math.PI);
             this.ctx.fill();
 
-            // Pin 1 Dot Indicator
+            // 3. Pin 1 Dot Indicator (Top-Left)
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
-            this.ctx.arc(midX - icW / 2 + 8, midY - icH / 2 + 7, 2, 0, Math.PI * 2);
+            this.ctx.arc(midX - chipWidth / 2 + 7, topY + 9, 2.2, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Laser Etched IC Model Name
+            // 4. Laser-Etched Text Vertical inside chip
+            this.ctx.save();
+            this.ctx.translate(midX, topY + chipHeight / 2);
+            this.ctx.rotate(-Math.PI / 2); // Rotated 90 deg for vertical reading
             this.ctx.fillStyle = '#e2e8f0';
             this.ctx.font = 'bold 10px monospace';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(comp.icType || 'NE555P', midX, midY);
+            this.ctx.fillText(comp.icType || 'LF356', 0, 0);
+            this.ctx.restore();
 
-            // Silver Metallic IC Pins
+            // 5. Silver Metallic IC Pins (Left & Right legs)
             this.ctx.fillStyle = '#cbd5e1';
-            for (let p = 0; p < 4; p++) {
-                const pinOffsetX = -icW / 2 + 10 + p * 12;
-                this.ctx.fillRect(midX + pinOffsetX - 2, midY - icH / 2 - 3, 4, 3);
-                this.ctx.fillRect(midX + pinOffsetX - 2, midY + icH / 2, 4, 3);
+            for (let p = 0; p < numPinsPerSide; p++) {
+                const pinY = pA.y + p * pitchY;
+                // Left Pin leg
+                this.ctx.fillRect(midX - chipWidth / 2 - 3, pinY - 2, 4, 4);
+                // Right Pin leg
+                this.ctx.fillRect(midX + chipWidth / 2 - 1, pinY - 2, 4, 4);
             }
 
         } else if (comp.type === 'DIODE') {
@@ -865,11 +878,11 @@ export class BreadboardCanvas {
         // 10. Render Crisp Horizontal Floating Value Badge (IC, OHM Ω, µF, V, POT) if showValueBadges is TRUE!
         if (this.showValueBadges && comp.isConfigured && comp.type !== 'WIRE') {
             this.ctx.save();
-            this.ctx.translate(midX + 16, midY - 10);
+            this.ctx.translate(midX + 18, midY - 10);
 
             let text = '';
             if (comp.type === 'IC') {
-                text = `🔲 ${comp.icType || 'NE555'} DIP-8`;
+                text = `🔲 ${comp.icType || 'LF356'} DIP-${comp.pins || 8}`;
             } else if (comp.type === 'R') {
                 text = comp.resistance >= 1000 ? `${(comp.resistance / 1000)}kΩ` : `${comp.resistance}Ω`;
             } else if (comp.type === 'C') {
