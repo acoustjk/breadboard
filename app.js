@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports Korean National Qualification Practical Exams (KCA / Q-Net) Presets & Auto-Grading Sheet.
+ * Supports KCA Communication Equipment Master Craftsman PNM (Pulse Number Modulation) Circuit.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1020';
-import { MNASolver } from './src/engine/MNASolver.js?v=1020';
-import { FFT } from './src/engine/FFT.js?v=1020';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1020';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1020';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1020';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1020';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1020';
-import { AICopilot } from './src/components/AICopilot.js?v=1020';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1021';
+import { MNASolver } from './src/engine/MNASolver.js?v=1021';
+import { FFT } from './src/engine/FFT.js?v=1021';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1021';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1021';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1021';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1021';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1021';
+import { AICopilot } from './src/components/AICopilot.js?v=1021';
 
 class AppController {
     constructor() {
@@ -38,7 +38,7 @@ class AppController {
         this.animFrameId = null;
         this.fftTimer = 0;
         this.compCounter = 1;
-        this.selectedIcKey = 'NE555';
+        this.selectedIcKey = 'LF356';
         this.currentExamTitle = null;
 
         this.probeAPin = 'B1_A10';
@@ -84,8 +84,8 @@ class AppController {
                 newComp = new Capacitor(id, pinA, pinB, 0.1e-6, false, 'MYLAR');
                 labelMsg = '마일러 필름 콘덴서';
             } else if (toolType === 'IC_CATALOG') {
-                const icKey = this.selectedIcKey || 'NE555';
-                const meta = IC_CATALOG[icKey] || IC_CATALOG['NE555'];
+                const icKey = this.selectedIcKey || 'LF356';
+                const meta = IC_CATALOG[icKey] || IC_CATALOG['LF356'];
                 newComp = new DIPChip(id, icKey, pinA, pinB);
                 labelMsg = `🔲 ${meta.name} (DIP-${meta.pins})`;
             } else if (toolType === 'DIODE') {
@@ -204,8 +204,56 @@ class AppController {
     }
 
     // 🎓 Qualification Exam Presets
+    initPNMExam() {
+        this.currentExamTitle = '🏆 [KCA 통신설비기능장] PNM (Pulse Number Modulation) 펄스 수 변조 회로';
+        this.components = [
+            // Power Supply (+12V, -12V, GND)
+            new DCSource('V_POS', 'VCC_TOP1_1', 'GND_TOP1_1', 12.0, true),
+            new DCSource('V_NEG', 'VCC_TOP2_1', 'GND_TOP2_1', -12.0, true),
+            new Wire('JUMP_POS', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
+            new Wire('JUMP_NEG', 'VCC_TOP2_5', 'B2_VCC_1', '#00b894'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
+
+            // U1 (LF356 / DIP-8): Phase-Shift Oscillator with ZD 9.1V Clipper
+            new DIPChip('U1', 'LF356', 'B3_E15', 'B3_F15'),
+            new Capacitor('C1_1', 'B1_B15', 'B1_GND_15', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_1', 'B1_A15', 'B1_GND_15', 4700, true),
+            new Capacitor('C1_2', 'B1_C15', 'B1_B20', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_2', 'B1_A20', 'B1_GND_20', 4700, true),
+            new Capacitor('C1_3', 'B1_C20', 'B1_B25', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_3', 'B1_A25', 'B1_GND_25', 4700, true),
+            new Capacitor('C1_4', 'B1_C25', 'B3_A15', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_IN', 'B3_B15', 'B3_C15', 10000, true),
+            new Potentiometer('VR1', 'B3_D15', 'B3_E17', 1000000, 0.5), // 1M VR1
+            new ZenerDiode('ZD1', 'B3_F17', 'B3_GND_17', 9.1, 0.7),
+            new ZenerDiode('ZD2', 'B3_GND_17', 'B3_F17', 9.1, 0.7),
+
+            // U2 (LF356 / DIP-8): Zero-Crossing Comparator / Shaper
+            new DIPChip('U2', 'LF356', 'B4_E15', 'B4_F15'),
+            new Capacitor('C2_IN', 'B3_F17', 'B4_A15', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R2_BIAS1', 'B4_B15', 'B4_GND_15', 1000000, true),
+            new Resistor('R2_BIAS2', 'B4_C15', 'B4_GND_15', 1000000, true),
+
+            // U3 (LF356 / DIP-8): Sawtooth Generator
+            new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
+            new Potentiometer('VR2', 'B3_A40', 'B3_B42', 50000, 0.5), // 50K VR2
+            new Capacitor('C3', 'B3_C40', 'B3_GND_40', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R3_FB1', 'B3_D40', 'B3_E42', 10000, true),
+            new Resistor('R3_FB2', 'B3_E42', 'B3_GND_42', 10000, true),
+
+            // Q1 (C1815 NPN Switch) & Output Stage (TP3)
+            new Resistor('R_BASE', 'B3_F42', 'B4_A35', 1000, true),
+            new Resistor('R_PULLUP', 'B4_F17', 'B4_B35', 5100, true),
+            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7) // 1N4148
+        ];
+
+        this.breadboardCanvas.probeAPin = 'B3_F17'; // TP1
+        this.breadboardCanvas.probeBPin = 'B3_F42'; // TP2
+        this.breadboardCanvas.toastMsg = `🏆 [PNM 펄스 수 변조 회로]가 로드되었습니다! TP1, TP2, TP3 파형을 계측하세요!`;
+    }
+
     initMasterCommExam() {
-        this.currentExamTitle = '🏆 [KCA 통신설비기능장 1번] NE555 + LM741 복합 펄스/발진회로';
+        this.currentExamTitle = '🏆 [KCA 통신설비기능장 2번] NE555 + LM741 복합 펄스/발진회로';
         this.components = [
             new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
@@ -221,7 +269,7 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_C11';
         this.breadboardCanvas.probeBPin = 'B1_D25';
-        this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 1번 회로]가 로드되었습니다! (시뮬레이션 시작 후 답안지를 채점하세요)`;
+        this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로]가 로드되었습니다!`;
     }
 
     initCraftsmanElecExam() {
@@ -303,9 +351,9 @@ class AppController {
         const statsA = this.oscilloscopeCanvas.statsA || { vpp: 0, vMin: 0, vMax: 0, freq: 0 };
         const vpp = statsA.vpp || (statsA.vMax - statsA.vMin) || 4.95;
         const freq = statsA.freq || (this.spectrumCanvas.lastSpectrum ? this.spectrumCanvas.lastSpectrum.peakFreq : 98.5);
-        const duty = 50.2; // Duty ratio %
+        const duty = 50.2;
 
-        const isVppPass = vpp >= 3.0 && vpp <= 5.5;
+        const isVppPass = vpp >= 3.0 && vpp <= 14.0;
         const isFreqPass = freq >= 10 || freq > 0;
         const isOverallPass = isVppPass && isFreqPass;
 
@@ -317,7 +365,7 @@ class AppController {
         const html = `
             <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
                 <h4 style="color: #38bdf8; margin-bottom: 6px;">📌 수험 과제: ${this.currentExamTitle || '자격증 오실로스코프 파형 측정 실기 과제'}</h4>
-                <p style="font-size: 12px; color: #94a3b8;">시행기관: 한국산업인력공단(Q-Net) / 한국방송통신전파진흥원(KCA) 표준 채점 기준</p>
+                <p style="font-size: 12px; color: #94a3b8;">시행기관: KCA 한국방송통신전파진흥원 / Q-Net 한국산업인력공단 실기 수험자 채점표</p>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 16px; font-size: 13px;">
@@ -332,13 +380,13 @@ class AppController {
                 <tbody>
                     <tr>
                         <td style="padding: 8px; border: 1px solid #334155; text-align: left;">1. 피크-투-피크 전압 ($V_{p-p}$)</td>
-                        <td style="padding: 8px; border: 1px solid #334155;">4.5V ~ 5.2V</td>
+                        <td style="padding: 8px; border: 1px solid #334155;">3.0V ~ 14.0V</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${vpp.toFixed(2)} V</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isVppPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isVppPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
                     <tr>
                         <td style="padding: 8px; border: 1px solid #334155; text-align: left;">2. 발진 주파수 (Frequency $Hz$)</td>
-                        <td style="padding: 8px; border: 1px solid #334155;">10.0 Hz ~ 500.0 Hz</td>
+                        <td style="padding: 8px; border: 1px solid #334155;">10.0 Hz ~ 10.0 kHz</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${freq.toFixed(1)} Hz</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isFreqPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isFreqPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
@@ -353,7 +401,7 @@ class AppController {
 
             <div style="background: rgba(30, 41, 59, 0.9); padding: 12px; border-radius: 6px; text-align: center; border: 1px solid #475569;">
                 <div>${resultBadge}</div>
-                <p style="margin-top: 6px; font-size: 14px; color: #fbbf24;">🎯 획득 점수: <strong>${score} / 100점</strong> (감독위원 채점 완료)</p>
+                <p style="margin-top: 6px; font-size: 14px; color: #fbbf24;">🎯 획득 점수: <strong>${score} / 100점</strong> (감독위원 실기 채점 완료)</p>
             </div>
         `;
 
@@ -492,6 +540,8 @@ class AppController {
             if (val === 'empty') {
                 this.initEmptyBoard();
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
+            } else if (val === 'exam_pnm') {
+                this.initPNMExam();
             } else if (val === 'exam_master_comm') {
                 this.initMasterCommExam();
             } else if (val === 'exam_craftsman_elec') {
@@ -618,7 +668,7 @@ class AppController {
         );
 
         const chatBox = document.getElementById('copilotChat');
-        chatBox.innerHTML += `<p style="color: var(--accent-blue); margin-top: 8px;"><strong>🔍 Wanjie BB-4T7D 자격증 시험 회로 AI 분석 진행 중...</strong></p>`;
+        chatBox.innerHTML += `<p style="color: var(--accent-blue); margin-top: 8px;"><strong>🔍 Wanjie BB-4T7D PNM 회로 AI 분석 진행 중...</strong></p>`;
         chatBox.scrollTop = chatBox.scrollHeight;
 
         let report = await this.aiCopilot.analyzeCircuit(telemetry, queryType);

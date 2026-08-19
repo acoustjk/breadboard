@@ -1,6 +1,6 @@
 /**
  * ComponentModels.js
- * Extended Circuit Component Models with 15+ IC Catalog Library.
+ * Extended Circuit Component Models with LF356 JFET Op-Amp for PNM Circuit.
  */
 
 export function getResistorColorBands(resistance, isConfigured = true) {
@@ -48,6 +48,7 @@ export function getResistorColorBands(resistance, isConfigured = true) {
 }
 
 export const IC_CATALOG = {
+    'LF356': { name: 'LF356 JFET Op-Amp', pins: 8, desc: '통신설비기능장 PNM 회로 표준 고속 JFET 입력 연산증폭기' },
     'NE555': { name: 'NE555 Precision Timer', pins: 8, desc: '단일 정밀 타이머 / 아스타블 멀티바이브레이터' },
     'NE556': { name: 'NE556 Dual Timer', pins: 14, desc: '듀얼 555 듀얼 타이머 IC' },
     'LM358': { name: 'LM358 Dual Op-Amp', pins: 8, desc: '저전력 듀얼 연산 증폭기' },
@@ -157,12 +158,6 @@ export class Potentiometer {
 }
 
 export class DIPChip {
-    /**
-     * @param {string} id
-     * @param {string} icType - Key in IC_CATALOG (e.g. 'NE555', 'CD4017', '74HC595', etc.)
-     * @param {string} pinA - Anchor Pin 1 e.g. 'B1_E15'
-     * @param {string} pinB - Opposite Pin across trough
-     */
     constructor(id, icType = 'NE555', pinA = 'B1_E15', pinB = 'B1_F15') {
         this.id = id;
         this.type = 'IC';
