@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports KCA Communication Equipment Master Craftsman PNM (Pulse Number Modulation) Circuit.
+ * Supports KCA Communication Equipment Master Craftsman PNM (Pulse Number Modulation) Circuit (EIC-108 Standard Layout).
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1022';
-import { MNASolver } from './src/engine/MNASolver.js?v=1022';
-import { FFT } from './src/engine/FFT.js?v=1022';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1022';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1022';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1022';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1022';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1022';
-import { AICopilot } from './src/components/AICopilot.js?v=1022';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1023';
+import { MNASolver } from './src/engine/MNASolver.js?v=1023';
+import { FFT } from './src/engine/FFT.js?v=1023';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1023';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1023';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1023';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1023';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1023';
+import { AICopilot } from './src/components/AICopilot.js?v=1023';
 
 class AppController {
     constructor() {
@@ -41,8 +41,8 @@ class AppController {
         this.selectedIcKey = 'LF356';
         this.currentExamTitle = null;
 
-        this.probeAPin = 'B1_A10';
-        this.probeBPin = 'VCC_TOP1_1';
+        this.probeAPin = 'B3_F20';
+        this.probeBPin = 'B3_F42';
 
         this.initPlacementEngine();
         this.initEmptyBoard();
@@ -203,53 +203,85 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
-    // 🎓 Qualification Exam Presets
+    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout)
     initPNMExam() {
-        this.currentExamTitle = '🏆 [KCA 통신설비기능장] PNM (Pulse Number Modulation) 펄스 수 변조 회로';
+        this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 정밀 배치)';
         this.components = [
-            // Power Supply (+12V, -12V, GND)
+            // 1. Power Supply Rails (+12V, -12V, GND)
             new DCSource('V_POS', 'VCC_TOP1_1', 'GND_TOP1_1', 12.0, true),
             new DCSource('V_NEG', 'VCC_TOP2_1', 'GND_TOP2_1', -12.0, true),
-            new Wire('JUMP_POS', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_NEG', 'VCC_TOP2_5', 'B2_VCC_1', '#00b894'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
 
-            // U1 (LF356 / DIP-8): Phase-Shift Oscillator with ZD 9.1V Clipper
-            new DIPChip('U1', 'LF356', 'B3_E15', 'B3_F15'),
-            new Capacitor('C1_1', 'B1_B15', 'B1_GND_15', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_1', 'B1_A15', 'B1_GND_15', 4700, true),
-            new Capacitor('C1_2', 'B1_C15', 'B1_B20', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_2', 'B1_A20', 'B1_GND_20', 4700, true),
-            new Capacitor('C1_3', 'B1_C20', 'B1_B25', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_3', 'B1_A25', 'B1_GND_25', 4700, true),
-            new Capacitor('C1_4', 'B1_C25', 'B3_A15', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_IN', 'B3_B15', 'B3_C15', 10000, true),
-            new Potentiometer('VR1', 'B3_D15', 'B3_E17', 1000000, 0.5), // 1M VR1
-            new ZenerDiode('ZD1', 'B3_F17', 'B3_GND_17', 9.1, 0.7),
-            new ZenerDiode('ZD2', 'B3_GND_17', 'B3_F17', 9.1, 0.7),
+            // Power Jumpers connecting Top Bus to Vertical Rail Blocks
+            new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
+            new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
+            new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_1', '#ef4444'),
+            new Wire('JUMP_NEG3', 'VCC_TOP2_25', 'B3_GND_1', '#00b894'),
+            new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_1', '#ef4444'),
+            new Wire('JUMP_NEG4', 'VCC_TOP2_45', 'B4_GND_1', '#00b894'),
 
-            // U2 (LF356 / DIP-8): Zero-Crossing Comparator / Shaper
-            new DIPChip('U2', 'LF356', 'B4_E15', 'B4_F15'),
-            new Capacitor('C2_IN', 'B3_F17', 'B4_A15', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R2_BIAS1', 'B4_B15', 'B4_GND_15', 1000000, true),
-            new Resistor('R2_BIAS2', 'B4_C15', 'B4_GND_15', 1000000, true),
+            // 2. Phase-Shift CR Network (Block 1, 2, 3)
+            // Stage 1 (Block 1)
+            new Capacitor('C1_1', 'B1_C8', 'B1_D8', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_1', 'B1_E8', 'B1_GND_8', 4700, true),
+            new Wire('W_B1_B2', 'B1_E8', 'B2_A8', '#0984e3'),
 
-            // U3 (LF356 / DIP-8): Sawtooth Generator
+            // Stage 2 (Block 2)
+            new Capacitor('C1_2', 'B2_C8', 'B2_D8', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_2', 'B2_E8', 'B2_GND_8', 4700, true),
+            new Wire('W_B2_B3', 'B2_E8', 'B3_A8', '#0984e3'),
+
+            // Stage 3 (Block 3)
+            new Capacitor('C1_3', 'B3_C8', 'B3_D8', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R1_3', 'B3_E8', 'B3_GND_8', 4700, true),
+            new Capacitor('C1_4', 'B3_E8', 'B3_A19', 0.01e-6, true, 'MYLAR'), // Into U1 Pin 2
+
+            // 3. U1 (LF356 / DIP-8) Upper Op-Amp Oscillator & ZD 9.1V Clipper (Block 3, Rows 18-21)
+            new DIPChip('U1', 'LF356', 'B3_E18', 'B3_F18'),
+            new Resistor('R1_IN', 'B3_B19', 'B3_C19', 10000, true), // 10k to Pin 2
+            new Resistor('R1_GND', 'B3_B20', 'B3_GND_20', 10000, true), // 10k to Pin 3 GND
+            new Potentiometer('VR1', 'B3_A12', 'B3_C14', 1000000, 0.5), // VR1 1M
+            new Wire('W_VR1_FB', 'B3_C14', 'B3_D19', '#e67e22'),
+
+            // U1 Power Legs
+            new Wire('W_U1_VPOS', 'B3_VCC_19', 'B3_F19', '#ef4444'), // Pin 7 +12V
+            new Wire('W_U1_VNEG', 'B3_GND_21', 'B3_E21', '#00b894'), // Pin 4 -12V
+
+            // ZD 9.1V Back-to-Back Clipper on Output TP1 (Pin 6 = B3_F20)
+            new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
+            new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_24', 9.1, 0.7),
+
+            // 4. U3 (LF356 / DIP-8) Lower Op-Amp Sawtooth Generator (Block 3, Rows 40-43)
             new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
-            new Potentiometer('VR2', 'B3_A40', 'B3_B42', 50000, 0.5), // 50K VR2
-            new Capacitor('C3', 'B3_C40', 'B3_GND_40', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R3_FB1', 'B3_D40', 'B3_E42', 10000, true),
-            new Resistor('R3_FB2', 'B3_E42', 'B3_GND_42', 10000, true),
+            new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5), // VR2 50K
+            new Capacitor('C3', 'B3_C41', 'B3_GND_41', 0.1e-6, true, 'MYLAR'), // Pin 2 C
+            new Resistor('R3_FB1', 'B3_B42', 'B3_D42', 10000, true), // Pin 3 FB 10k
+            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_42', 10000, true), // Pin 3 GND 10k
 
-            // Q1 (C1815 NPN Switch) & Output Stage (TP3)
-            new Resistor('R_BASE', 'B3_F42', 'B4_A35', 1000, true),
-            new Resistor('R_PULLUP', 'B4_F17', 'B4_B35', 5100, true),
-            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7) // 1N4148
+            // U3 Power Legs
+            new Wire('W_U3_VPOS', 'B3_VCC_41', 'B3_F41', '#ef4444'), // Pin 7 +12V
+            new Wire('W_U3_VNEG', 'B3_GND_43', 'B3_E43', '#00b894'), // Pin 4 -12V
+
+            // 5. U2 (LF356 / DIP-8) Right Op-Amp Comparator (Block 4, Rows 18-21)
+            new DIPChip('U2', 'LF356', 'B4_E18', 'B4_F18'),
+            new Wire('W_TP1_U2', 'B3_F20', 'B4_A19', '#9b59b6'), // TP1 output to U2 Pin 2
+            new Capacitor('C2_IN', 'B4_A19', 'B4_B19', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_19', 1000000, true), // 1M Bias
+            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_20', 1000000, true), // 1M Bias
+
+            // U2 Power Legs
+            new Wire('W_U2_VPOS', 'B4_VCC_19', 'B4_F19', '#ef4444'), // Pin 7 +12V
+            new Wire('W_U2_VNEG', 'B4_GND_21', 'B4_E21', '#00b894'), // Pin 4 -12V
+
+            // 6. Q1 (C1815 NPN Switch) & Output Stage TP3 (Block 4, Rows 35-37)
+            new Wire('W_U3_Q1', 'B3_F42', 'B4_A35', '#e17055'), // U3 Pin 6 TP2 to Q1 Base
+            new Resistor('R_BASE', 'B4_A35', 'B4_B35', 1000, true), // 1k Base resistor
+            new Resistor('R_PULLUP', 'B4_F20', 'B4_C35', 5100, true), // 5.1k from U2 output to Collector (TP3)
+            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7) // 1N4148 Clamp
         ];
 
-        this.breadboardCanvas.probeAPin = 'B3_F17'; // TP1
+        this.breadboardCanvas.probeAPin = 'B3_F20'; // TP1
         this.breadboardCanvas.probeBPin = 'B3_F42'; // TP2
-        this.breadboardCanvas.toastMsg = `🏆 [PNM 펄스 수 변조 회로]가 로드되었습니다! TP1, TP2, TP3 파형을 계측하세요!`;
+        this.breadboardCanvas.toastMsg = `🏆 EIC-108 표준 규격 [PNM 펄스 수 변조 회로]가 빵판에 깔끔하게 재배치되었습니다!`;
     }
 
     initMasterCommExam() {
