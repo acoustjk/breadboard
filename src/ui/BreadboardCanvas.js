@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Renders Dual-in-line Package (DIP-8 / DIP-14 / DIP-16 IC Chips) VERTICALLY straddling the center trough.
+ * Supports 4-Channel (4CH) Interactive Oscilloscope Probe Placement (CH A, CH B, CH C, CH D).
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1022';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1024';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -36,8 +36,12 @@ export class BreadboardCanvas {
         this.selectedComponent = null;
         this.showValueBadges = true;
 
-        this.probeAPin = 'B1_A10';
-        this.probeBPin = 'VCC_TOP1_1';
+        // 4CH Oscilloscope Probes
+        this.probeAPin = 'B3_F20'; // TP1
+        this.probeBPin = 'B3_F42'; // TP2
+        this.probeCPin = 'B4_C35'; // TP3
+        this.probeDPin = 'VCC_TOP1_1'; // VCC/Input
+
         this.toastMsg = null;
 
         // Callbacks
@@ -282,6 +286,22 @@ export class BreadboardCanvas {
         if (this.activeTool === 'PROBE_B') {
             this.probeBPin = pinKey;
             if (this.onProbePlaced) this.onProbePlaced('B', pinKey);
+            this.activeTool = 'SELECT';
+            this.render();
+            return;
+        }
+
+        if (this.activeTool === 'PROBE_C') {
+            this.probeCPin = pinKey;
+            if (this.onProbePlaced) this.onProbePlaced('C', pinKey);
+            this.activeTool = 'SELECT';
+            this.render();
+            return;
+        }
+
+        if (this.activeTool === 'PROBE_D') {
+            this.probeDPin = pinKey;
+            if (this.onProbePlaced) this.onProbePlaced('D', pinKey);
             this.activeTool = 'SELECT';
             this.render();
             return;
@@ -544,8 +564,11 @@ export class BreadboardCanvas {
             this.renderComponent(comp, isSelected);
         });
 
-        this.renderProbe('CH A (Capacitor)', this.probeAPin, '#facc15');
-        this.renderProbe('CH B (Power 5V)', this.probeBPin, '#e879f9');
+        // 4CH Oscilloscope Probe Clips
+        this.renderProbe('CH A (TP1)', this.probeAPin, '#facc15');
+        this.renderProbe('CH B (TP2)', this.probeBPin, '#e879f9');
+        this.renderProbe('CH C (TP3)', this.probeCPin, '#38bdf8');
+        this.renderProbe('CH D (CLK)', this.probeDPin, '#22c55e');
 
         this.ctx.restore();
 
@@ -707,17 +730,14 @@ export class BreadboardCanvas {
             }
 
         } else if (comp.type === 'IC') {
-            // DIP Dual-in-Line Package rendered VERTICALLY along the center trough!
-            // Pin 1 at Top-Left (pA), Pin 8/14/16 across trough (pB)
-            const numPinsPerSide = (comp.pins || 8) / 2; // 4 pins per side for DIP-8
+            const numPinsPerSide = (comp.pins || 8) / 2;
             const pitchY = 11.2;
 
-            const chipWidth = Math.abs(pB.x - pA.x) + 22; // Width across trough (Cols E to F) ~34px
-            const chipHeight = (numPinsPerSide - 1) * pitchY + 28; // Height along rows ~58px
+            const chipWidth = Math.abs(pB.x - pA.x) + 22;
+            const chipHeight = (numPinsPerSide - 1) * pitchY + 28;
 
             const topY = pA.y - 12;
 
-            // 1. Matte Black Epoxy Body (Vertical Box)
             this.ctx.fillStyle = '#1e293b';
             this.ctx.beginPath();
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
@@ -726,22 +746,19 @@ export class BreadboardCanvas {
             this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
             this.ctx.stroke();
 
-            // 2. Orientation Semi-circle Notch on TOP end (pointing North)
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
             this.ctx.arc(midX, topY, 6, 0, Math.PI);
             this.ctx.fill();
 
-            // 3. Pin 1 Dot Indicator (Top-Left)
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
             this.ctx.arc(midX - chipWidth / 2 + 7, topY + 9, 2.2, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // 4. Laser-Etched Text Vertical inside chip
             this.ctx.save();
             this.ctx.translate(midX, topY + chipHeight / 2);
-            this.ctx.rotate(-Math.PI / 2); // Rotated 90 deg for vertical reading
+            this.ctx.rotate(-Math.PI / 2);
             this.ctx.fillStyle = '#e2e8f0';
             this.ctx.font = 'bold 10px monospace';
             this.ctx.textAlign = 'center';
@@ -749,13 +766,10 @@ export class BreadboardCanvas {
             this.ctx.fillText(comp.icType || 'LF356', 0, 0);
             this.ctx.restore();
 
-            // 5. Silver Metallic IC Pins (Left & Right legs)
             this.ctx.fillStyle = '#cbd5e1';
             for (let p = 0; p < numPinsPerSide; p++) {
                 const pinY = pA.y + p * pitchY;
-                // Left Pin leg
                 this.ctx.fillRect(midX - chipWidth / 2 - 3, pinY - 2, 4, 4);
-                // Right Pin leg
                 this.ctx.fillRect(midX + chipWidth / 2 - 1, pinY - 2, 4, 4);
             }
 
@@ -875,7 +889,6 @@ export class BreadboardCanvas {
 
         this.ctx.restore();
 
-        // 10. Render Crisp Horizontal Floating Value Badge (IC, OHM Ω, µF, V, POT) if showValueBadges is TRUE!
         if (this.showValueBadges && comp.isConfigured && comp.type !== 'WIRE') {
             this.ctx.save();
             this.ctx.translate(midX + 18, midY - 10);
@@ -935,12 +948,14 @@ export class BreadboardCanvas {
         this.ctx.stroke();
 
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(pos.x + 14, pos.y - 32, 48, 14);
+        this.ctx.beginPath();
+        this.ctx.roundRect(pos.x + 14, pos.y - 32, 54, 15, 3);
+        this.ctx.fill();
 
-        this.ctx.fillStyle = '#2d3436';
-        this.ctx.font = 'bold 8px sans-serif';
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.font = 'bold 9px monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(label.split(' ')[0], pos.x + 38, pos.y - 22);
+        this.ctx.fillText(label, pos.x + 41, pos.y - 21);
 
         this.ctx.restore();
     }

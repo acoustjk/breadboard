@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports KCA Communication Equipment Master Craftsman PNM (Pulse Number Modulation) Circuit (EIC-108 Standard Layout).
+ * Supports 4-Channel (4CH) Oscilloscope with Interactive Probe Selection (CH A, B, C, D).
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1023';
-import { MNASolver } from './src/engine/MNASolver.js?v=1023';
-import { FFT } from './src/engine/FFT.js?v=1023';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1023';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1023';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1023';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1023';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1023';
-import { AICopilot } from './src/components/AICopilot.js?v=1023';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1024';
+import { MNASolver } from './src/engine/MNASolver.js?v=1024';
+import { FFT } from './src/engine/FFT.js?v=1024';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1024';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1024';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1024';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1024';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1024';
+import { AICopilot } from './src/components/AICopilot.js?v=1024';
 
 class AppController {
     constructor() {
@@ -41,8 +41,11 @@ class AppController {
         this.selectedIcKey = 'LF356';
         this.currentExamTitle = null;
 
-        this.probeAPin = 'B3_F20';
-        this.probeBPin = 'B3_F42';
+        // 4CH Oscilloscope Default Probes
+        this.probeAPin = 'B3_F20'; // TP1
+        this.probeBPin = 'B3_F42'; // TP2
+        this.probeCPin = 'B4_C35'; // TP3
+        this.probeDPin = 'VCC_TOP1_1'; // VCC/CLK
 
         this.initPlacementEngine();
         this.initEmptyBoard();
@@ -121,13 +124,13 @@ class AppController {
         };
 
         this.breadboardCanvas.onProbePlaced = (type, pinKey) => {
-            if (type === 'A') {
-                this.probeAPin = pinKey;
-            } else {
-                this.probeBPin = pinKey;
-            }
+            if (type === 'A') this.probeAPin = pinKey;
+            else if (type === 'B') this.probeBPin = pinKey;
+            else if (type === 'C') this.probeCPin = pinKey;
+            else if (type === 'D') this.probeDPin = pinKey;
+
             this.resetToolState();
-            this.breadboardCanvas.toastMsg = `📍 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
+            this.breadboardCanvas.toastMsg = `📍 4CH 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
             this.renderAll();
         };
     }
@@ -198,6 +201,8 @@ class AppController {
         this.currentExamTitle = null;
         this.breadboardCanvas.probeAPin = this.probeAPin;
         this.breadboardCanvas.probeBPin = this.probeBPin;
+        this.breadboardCanvas.probeCPin = this.probeCPin;
+        this.breadboardCanvas.probeDPin = this.probeDPin;
         this.oscilloscopeCanvas.resetBuffer();
         this.simTime = 0;
         this.updateCutoffFreqDisplay();
@@ -207,11 +212,9 @@ class AppController {
     initPNMExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 정밀 배치)';
         this.components = [
-            // 1. Power Supply Rails (+12V, -12V, GND)
             new DCSource('V_POS', 'VCC_TOP1_1', 'GND_TOP1_1', 12.0, true),
             new DCSource('V_NEG', 'VCC_TOP2_1', 'GND_TOP2_1', -12.0, true),
 
-            // Power Jumpers connecting Top Bus to Vertical Rail Blocks
             new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_1', '#ef4444'),
@@ -219,69 +222,59 @@ class AppController {
             new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_1', '#ef4444'),
             new Wire('JUMP_NEG4', 'VCC_TOP2_45', 'B4_GND_1', '#00b894'),
 
-            // 2. Phase-Shift CR Network (Block 1, 2, 3)
-            // Stage 1 (Block 1)
             new Capacitor('C1_1', 'B1_C8', 'B1_D8', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_1', 'B1_E8', 'B1_GND_8', 4700, true),
             new Wire('W_B1_B2', 'B1_E8', 'B2_A8', '#0984e3'),
 
-            // Stage 2 (Block 2)
             new Capacitor('C1_2', 'B2_C8', 'B2_D8', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_2', 'B2_E8', 'B2_GND_8', 4700, true),
             new Wire('W_B2_B3', 'B2_E8', 'B3_A8', '#0984e3'),
 
-            // Stage 3 (Block 3)
             new Capacitor('C1_3', 'B3_C8', 'B3_D8', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_3', 'B3_E8', 'B3_GND_8', 4700, true),
-            new Capacitor('C1_4', 'B3_E8', 'B3_A19', 0.01e-6, true, 'MYLAR'), // Into U1 Pin 2
+            new Capacitor('C1_4', 'B3_E8', 'B3_A19', 0.01e-6, true, 'MYLAR'),
 
-            // 3. U1 (LF356 / DIP-8) Upper Op-Amp Oscillator & ZD 9.1V Clipper (Block 3, Rows 18-21)
             new DIPChip('U1', 'LF356', 'B3_E18', 'B3_F18'),
-            new Resistor('R1_IN', 'B3_B19', 'B3_C19', 10000, true), // 10k to Pin 2
-            new Resistor('R1_GND', 'B3_B20', 'B3_GND_20', 10000, true), // 10k to Pin 3 GND
-            new Potentiometer('VR1', 'B3_A12', 'B3_C14', 1000000, 0.5), // VR1 1M
+            new Resistor('R1_IN', 'B3_B19', 'B3_C19', 10000, true),
+            new Resistor('R1_GND', 'B3_B20', 'B3_GND_20', 10000, true),
+            new Potentiometer('VR1', 'B3_A12', 'B3_C14', 1000000, 0.5),
             new Wire('W_VR1_FB', 'B3_C14', 'B3_D19', '#e67e22'),
 
-            // U1 Power Legs
-            new Wire('W_U1_VPOS', 'B3_VCC_19', 'B3_F19', '#ef4444'), // Pin 7 +12V
-            new Wire('W_U1_VNEG', 'B3_GND_21', 'B3_E21', '#00b894'), // Pin 4 -12V
+            new Wire('W_U1_VPOS', 'B3_VCC_19', 'B3_F19', '#ef4444'),
+            new Wire('W_U1_VNEG', 'B3_GND_21', 'B3_E21', '#00b894'),
 
-            // ZD 9.1V Back-to-Back Clipper on Output TP1 (Pin 6 = B3_F20)
             new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
             new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_24', 9.1, 0.7),
 
-            // 4. U3 (LF356 / DIP-8) Lower Op-Amp Sawtooth Generator (Block 3, Rows 40-43)
             new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
-            new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5), // VR2 50K
-            new Capacitor('C3', 'B3_C41', 'B3_GND_41', 0.1e-6, true, 'MYLAR'), // Pin 2 C
-            new Resistor('R3_FB1', 'B3_B42', 'B3_D42', 10000, true), // Pin 3 FB 10k
-            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_42', 10000, true), // Pin 3 GND 10k
+            new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5),
+            new Capacitor('C3', 'B3_C41', 'B3_GND_41', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R3_FB1', 'B3_B42', 'B3_D42', 10000, true),
+            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_42', 10000, true),
 
-            // U3 Power Legs
-            new Wire('W_U3_VPOS', 'B3_VCC_41', 'B3_F41', '#ef4444'), // Pin 7 +12V
-            new Wire('W_U3_VNEG', 'B3_GND_43', 'B3_E43', '#00b894'), // Pin 4 -12V
+            new Wire('W_U3_VPOS', 'B3_VCC_41', 'B3_F41', '#ef4444'),
+            new Wire('W_U3_VNEG', 'B3_GND_43', 'B3_E43', '#00b894'),
 
-            // 5. U2 (LF356 / DIP-8) Right Op-Amp Comparator (Block 4, Rows 18-21)
             new DIPChip('U2', 'LF356', 'B4_E18', 'B4_F18'),
-            new Wire('W_TP1_U2', 'B3_F20', 'B4_A19', '#9b59b6'), // TP1 output to U2 Pin 2
+            new Wire('W_TP1_U2', 'B3_F20', 'B4_A19', '#9b59b6'),
             new Capacitor('C2_IN', 'B4_A19', 'B4_B19', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_19', 1000000, true), // 1M Bias
-            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_20', 1000000, true), // 1M Bias
+            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_19', 1000000, true),
+            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_20', 1000000, true),
 
-            // U2 Power Legs
-            new Wire('W_U2_VPOS', 'B4_VCC_19', 'B4_F19', '#ef4444'), // Pin 7 +12V
-            new Wire('W_U2_VNEG', 'B4_GND_21', 'B4_E21', '#00b894'), // Pin 4 -12V
+            new Wire('W_U2_VPOS', 'B4_VCC_19', 'B4_F19', '#ef4444'),
+            new Wire('W_U2_VNEG', 'B4_GND_21', 'B4_E21', '#00b894'),
 
-            // 6. Q1 (C1815 NPN Switch) & Output Stage TP3 (Block 4, Rows 35-37)
-            new Wire('W_U3_Q1', 'B3_F42', 'B4_A35', '#e17055'), // U3 Pin 6 TP2 to Q1 Base
-            new Resistor('R_BASE', 'B4_A35', 'B4_B35', 1000, true), // 1k Base resistor
-            new Resistor('R_PULLUP', 'B4_F20', 'B4_C35', 5100, true), // 5.1k from U2 output to Collector (TP3)
-            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7) // 1N4148 Clamp
+            new Wire('W_U3_Q1', 'B3_F42', 'B4_A35', '#e17055'),
+            new Resistor('R_BASE', 'B4_A35', 'B4_B35', 1000, true),
+            new Resistor('R_PULLUP', 'B4_F20', 'B4_C35', 5100, true),
+            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7)
         ];
 
         this.breadboardCanvas.probeAPin = 'B3_F20'; // TP1
         this.breadboardCanvas.probeBPin = 'B3_F42'; // TP2
-        this.breadboardCanvas.toastMsg = `🏆 EIC-108 표준 규격 [PNM 펄스 수 변조 회로]가 빵판에 깔끔하게 재배치되었습니다!`;
+        this.breadboardCanvas.probeCPin = 'B4_C35'; // TP3
+        this.breadboardCanvas.probeDPin = 'VCC_TOP1_1'; // VCC
+        this.breadboardCanvas.toastMsg = `🏆 EIC-108 표준 [PNM 회로] 4CH 오실로스코프 (TP1, TP2, TP3, VCC) 파형 계측 준비 완료!`;
     }
 
     initMasterCommExam() {
@@ -301,7 +294,9 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_C11';
         this.breadboardCanvas.probeBPin = 'B1_D25';
-        this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로]가 로드되었습니다!`;
+        this.breadboardCanvas.probeCPin = 'B1_VCC_1';
+        this.breadboardCanvas.probeDPin = 'B1_GND_1';
+        this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로] 4CH 오실로스코프 계측 준비!`;
     }
 
     initCraftsmanElecExam() {
@@ -320,7 +315,9 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_C16';
         this.breadboardCanvas.probeBPin = 'B1_C5';
-        this.breadboardCanvas.toastMsg = `🥇 [전자기능사 실기 1번 회로]가 로드되었습니다!`;
+        this.breadboardCanvas.probeCPin = 'B1_A15';
+        this.breadboardCanvas.probeDPin = 'B1_B20';
+        this.breadboardCanvas.toastMsg = `🥇 [전자기능사 실기 1번 회로] 4CH 계측 준비!`;
     }
 
     initEngineerElecExam() {
@@ -336,7 +333,9 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_A10';
         this.breadboardCanvas.probeBPin = 'B1_C10';
-        this.breadboardCanvas.toastMsg = `🥈 [전자산업기사 능동 LPF 회로]가 로드되었습니다! (Cutoff fc = 159.2Hz)`;
+        this.breadboardCanvas.probeCPin = 'B1_VCC_5';
+        this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.breadboardCanvas.toastMsg = `🥈 [전자산업기사 능동 LPF] 4CH 파형 계측 준비!`;
     }
 
     initWirelessExam() {
@@ -352,7 +351,9 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_A10';
         this.breadboardCanvas.probeBPin = 'B1_VCC_5';
-        this.breadboardCanvas.toastMsg = `🥉 [무선설비기능사 Colpitts 발진회로]가 로드되었습니다!`;
+        this.breadboardCanvas.probeCPin = 'B1_B10';
+        this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.breadboardCanvas.toastMsg = `🥉 [무선설비기능사 Colpitts] 4CH 파형 계측 준비!`;
     }
 
     initComputerExam() {
@@ -370,7 +371,9 @@ class AppController {
         ];
         this.breadboardCanvas.probeAPin = 'B1_C6';
         this.breadboardCanvas.probeBPin = 'B1_B20';
-        this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017 카운터 회로]가 로드되었습니다!`;
+        this.breadboardCanvas.probeCPin = 'B1_VCC_5';
+        this.breadboardCanvas.probeDPin = 'B1_GND_5';
+        this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
     }
 
     // 📝 Official Exam Answer Sheet Auto-Grading Logic
@@ -397,7 +400,7 @@ class AppController {
         const html = `
             <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
                 <h4 style="color: #38bdf8; margin-bottom: 6px;">📌 수험 과제: ${this.currentExamTitle || '자격증 오실로스코프 파형 측정 실기 과제'}</h4>
-                <p style="font-size: 12px; color: #94a3b8;">시행기관: KCA 한국방송통신전파진흥원 / Q-Net 한국산업인력공단 실기 수험자 채점표</p>
+                <p style="font-size: 12px; color: #94a3b8;">시행기관: KCA 한국방송통신전파진흥원 / Q-Net 한국산업인력공단 실기 수험자 채점표 (4CH 오실로스코프 계측)</p>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 16px; font-size: 13px;">
@@ -411,19 +414,19 @@ class AppController {
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">1. 피크-투-피크 전압 ($V_{p-p}$)</td>
+                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">1. CH A TP1 전압 ($V_{p-p}$)</td>
                         <td style="padding: 8px; border: 1px solid #334155;">3.0V ~ 14.0V</td>
-                        <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${vpp.toFixed(2)} V</td>
+                        <td style="padding: 8px; border: 1px solid #334155; color: #facc15; font-weight: bold;">${vpp.toFixed(2)} V</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isVppPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isVppPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">2. 발진 주파수 (Frequency $Hz$)</td>
+                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">2. CH B TP2 주파수 (Frequency $Hz$)</td>
                         <td style="padding: 8px; border: 1px solid #334155;">10.0 Hz ~ 10.0 kHz</td>
-                        <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${freq.toFixed(1)} Hz</td>
+                        <td style="padding: 8px; border: 1px solid #334155; color: #e879f9; font-weight: bold;">${freq.toFixed(1)} Hz</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isFreqPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isFreqPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">3. 펄스 듀티비 (Duty Ratio %)</td>
+                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">3. CH C TP3 듀티비 (Duty Ratio %)</td>
                         <td style="padding: 8px; border: 1px solid #334155;">45.0% ~ 55.0%</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${duty.toFixed(1)} %</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #22c55e; font-weight: bold;">합격 (PASS)</td>
@@ -470,7 +473,9 @@ class AppController {
             { id: 'toolSwitch', tool: 'SWITCH' },
             { id: 'toolLed', tool: 'LED' },
             { id: 'toolProbeA', tool: 'PROBE_A' },
-            { id: 'toolProbeB', tool: 'PROBE_B' }
+            { id: 'toolProbeB', tool: 'PROBE_B' },
+            { id: 'toolProbeC', tool: 'PROBE_C' },
+            { id: 'toolProbeD', tool: 'PROBE_D' }
         ];
 
         toolButtons.forEach(tb => {
@@ -555,7 +560,7 @@ class AppController {
             if (this.isRunning) {
                 btnPlayPause.className = 'btn btn-primary';
                 btnPlayPause.innerHTML = '⏸️ 시뮬레이션 일시정지';
-                statusText.innerText = '상태: 3220핀 회로 실시간 연산 중 (60 FPS)';
+                statusText.innerText = '상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)';
                 statusText.style.color = 'var(--accent-green)';
                 this.runLoop();
             } else {
@@ -605,8 +610,11 @@ class AppController {
         });
 
         document.getElementById('voltDivSelect').addEventListener('change', (e) => {
-            this.oscilloscopeCanvas.voltPerDivChA = parseFloat(e.target.value);
-            this.oscilloscopeCanvas.voltPerDivChB = parseFloat(e.target.value);
+            const val = parseFloat(e.target.value);
+            this.oscilloscopeCanvas.voltPerDivChA = val;
+            this.oscilloscopeCanvas.voltPerDivChB = val;
+            this.oscilloscopeCanvas.voltPerDivChC = val;
+            this.oscilloscopeCanvas.voltPerDivChD = val;
         });
 
         document.getElementById('timeDivSelect').addEventListener('change', (e) => {
@@ -646,18 +654,24 @@ class AppController {
         const stepsPerFrame = 5;
         let vA = 0;
         let vB = 0;
+        let vC = 0;
+        let vD = 0;
 
         for (let i = 0; i < stepsPerFrame; i++) {
             const nodeVoltages = this.solver.solveStep(this.components, this.dt);
             this.simTime += this.dt;
 
-            const nA = this.grid.getNodeId(this.probeAPin);
-            const nB = this.grid.getNodeId(this.probeBPin);
+            const nA = this.grid.getNodeId(this.breadboardCanvas.probeAPin);
+            const nB = this.grid.getNodeId(this.breadboardCanvas.probeBPin);
+            const nC = this.grid.getNodeId(this.breadboardCanvas.probeCPin);
+            const nD = this.grid.getNodeId(this.breadboardCanvas.probeDPin);
 
             vA = nodeVoltages.get(nA) || 0;
             vB = nodeVoltages.get(nB) || 0;
+            vC = nodeVoltages.get(nC) || 0;
+            vD = nodeVoltages.get(nD) || 0;
 
-            this.oscilloscopeCanvas.addSample(vA, vB);
+            this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
         }
 
         this.fftTimer++;
@@ -700,7 +714,7 @@ class AppController {
         );
 
         const chatBox = document.getElementById('copilotChat');
-        chatBox.innerHTML += `<p style="color: var(--accent-blue); margin-top: 8px;"><strong>🔍 Wanjie BB-4T7D PNM 회로 AI 분석 진행 중...</strong></p>`;
+        chatBox.innerHTML += `<p style="color: var(--accent-blue); margin-top: 8px;"><strong>🔍 Wanjie BB-4T7D 4CH 오실로스코프 AI 분석 진행 중...</strong></p>`;
         chatBox.scrollTop = chatBox.scrollHeight;
 
         let report = await this.aiCopilot.analyzeCircuit(telemetry, queryType);

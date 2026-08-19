@@ -21,7 +21,7 @@
             <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber);">
                 <option value="empty" selected>🧹 빈 브레드보드 (자유 조립 모드)</option>
                 <optgroup label="🎓 국가기술자격증 실기시험 기출 프리셋">
-                    <option value="exam_pnm">🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 정밀 배치)</option>
+                    <option value="exam_pnm">🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 4CH 계측)</option>
                     <option value="exam_master_comm">🏆 [통신설비기능장 2번] NE555 + LM741 복합 펄스/발진회로</option>
                     <option value="exam_craftsman_elec">🥇 [전자기능사/전자기기 1번] 7805 정전압 + NE555 LED 파형 클럭회로</option>
                     <option value="exam_engineer_elec">🥈 [전자산업기사/기사 1번] LM741 능동 LPF (Low Pass) 필터회로</option>
@@ -62,9 +62,9 @@
 
             <!-- Component Placement Palette Bar -->
             <div class="palette-bar">
-                <span class="palette-label">🧰 기본 부품:</span>
+                <span class="palette-label">🧰 부품:</span>
                 <button id="toolSelect" class="btn active">👆 선택</button>
-                <button id="toolWire" class="btn">🔌 점퍼 와이어</button>
+                <button id="toolWire" class="btn">🔌 점퍼선</button>
                 <button id="toolResistor" class="btn">⚡ 저항</button>
                 <button id="toolPot" class="btn">🎛️ 가변저항</button>
                 <button id="toolCapElec" class="btn">🔋 전해</button>
@@ -72,11 +72,14 @@
                 <button id="toolCapMylar" class="btn">🟢 마일러</button>
                 <button id="toolDiode" class="btn">🔻 다이오드</button>
                 <button id="toolZener" class="btn">⚡ 제너</button>
-                <button id="toolDcSource" class="btn">🔴 5V전원</button>
-                <button id="toolSwitch" class="btn">🔘 스위치</button>
-                <button id="toolLed" class="btn">💡 LED</button>
 
-                <span class="palette-label" style="margin-left: 10px;">🔲 IC 칩 카탈로그 (19종):</span>
+                <span class="palette-label" style="margin-left: 8px;">📊 4CH 오실로스코프 프로브:</span>
+                <button id="toolProbeA" class="btn" style="color: #facc15; border-color: #facc15;">📍 CH A</button>
+                <button id="toolProbeB" class="btn" style="color: #e879f9; border-color: #e879f9;">📍 CH B</button>
+                <button id="toolProbeC" class="btn" style="color: #38bdf8; border-color: #38bdf8;">📍 CH C</button>
+                <button id="toolProbeD" class="btn" style="color: #22c55e; border-color: #22c55e;">📍 CH D</button>
+
+                <span class="palette-label" style="margin-left: 8px;">🔲 IC 칩 카탈로그 (19종):</span>
                 <select id="icLibrarySelect" class="select-input" style="padding: 4px 6px;">
                     <optgroup label="⏱️ 통신기능장 & 아날로그 IC">
                         <option value="LF356" selected>LF356 (DIP-8) JFET Op-Amp (통신기능장 PNM)</option>
@@ -118,7 +121,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 EIC-108 통신설비기능장 PNM 실기 회로 정밀 배치 완료!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 팔레트의 [📍 CH A/B/C/D] 프로브 버튼을 클릭한 후 원하는 핀을 누르면 오실로스코프 프로브가 이동합니다!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 650px;">
@@ -134,8 +137,8 @@
             </div>
 
             <div id="copilotChat" class="copilot-chat" style="max-height: 600px;">
-                <p>안녕하세요! <strong>EIC-108 정밀 배치 통신설비기능장 PNM 회로 AI 코파일럿</strong>입니다.</p>
-                <p>상단 프리셋에서 <strong>[통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 정밀 배치)</strong>를 선택하고 <strong>TP1, TP2, TP3 파형 계측</strong>을 수행하세요!</p>
+                <p>안녕하세요! <strong>Wanjie BB-4T7D 4채널(4CH) 오실로스코프 회로 시뮬레이터 AI 코파일럿</strong>입니다.</p>
+                <p>팔레트의 <strong>[📍 CH A/B/C/D] 프로브 버튼</strong>을 눌러 빵판의 어느 핀에든 프로브를 꽂아 4개 채널 파형을 동시에 비교해 보세요!</p>
             </div>
 
             <div class="copilot-actions">
@@ -151,7 +154,7 @@
             <!-- Oscilloscope Instrument -->
             <section class="instrument-card">
                 <div class="card-title">
-                    <span style="color: var(--accent-amber);">📊 2D Real-Time Oscilloscope</span>
+                    <span style="color: var(--accent-amber);">📊 4-Channel (4CH) Real-Time Oscilloscope</span>
                     <span style="font-size: 11px; color: var(--accent-green);" id="scopeFps">60 FPS</span>
                 </div>
 
@@ -228,6 +231,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1023"></script>
+    <script type="module" src="./app.js?v=1024"></script>
 </body>
 </html>
