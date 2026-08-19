@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>하이브리드 전자 회로 시뮬레이터 (Wanjie BB-4T7D 3220-Pin Workbench)</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+    <!-- Header Toolbar -->
+    <header class="app-header">
+        <div class="logo-group">
+            <span class="logo-icon">⚡</span>
+            <h1 class="logo-title">Hybrid Circuit Simulator</h1>
+            <span class="logo-badge">Wanjie BB-4T7D Interactive Workbench</span>
+        </div>
+
+        <div class="header-controls">
+            <!-- Qualification Exam Preset Selector -->
+            <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber);">
+                <option value="empty" selected>🧹 빈 브레드보드 (자유 조립 모드)</option>
+                <optgroup label="🎓 국가기술자격증 실기시험 기출 프리셋">
+                    <option value="exam_master_comm">🏆 [통신설비기능장 1번] NE555 + LM741 복합 펄스/발진회로</option>
+                    <option value="exam_craftsman_elec">🥇 [전자기능사/전자기기 1번] 7805 정전압 + NE555 LED 파형 클럭회로</option>
+                    <option value="exam_engineer_elec">🥈 [전자산업기사/기사 1번] LM741 능동 LPF (Low Pass) 필터회로</option>
+                    <option value="exam_wireless">🥉 [무선설비기능사/기사 1번] Colpitts 정현파 고주파 발진회로</option>
+                    <option value="exam_computer">📊 [전자계산기기능사 1번] CD4017 10진 디케이드 LED 카운터 회로</option>
+                </optgroup>
+                <optgroup label="🧪 기초 샘플 회로">
+                    <option value="rc_filter">기초 RC 저역통과 필터</option>
+                    <option value="rc_switch">스위치 RC 충/방전 회로</option>
+                    <option value="led_circuit">기초 LED 점등 회로</option>
+                </optgroup>
+            </select>
+
+            <button id="btnPlayPause" class="btn btn-success">
+                <span id="playIcon">▶</span> 시뮬레이션 시작
+            </button>
+            <button id="btnGradeExam" class="btn btn-primary" style="background: #8b5cf6;">
+                📝 실기시험 답안지 자동 채점
+            </button>
+            <button id="btnClearBoard" class="btn">
+                🧹 빈 판으로 초기화
+            </button>
+            <button id="btnExportSpice" class="btn">
+                📜 SPICE Netlist
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Layout Grid -->
+    <main class="app-container">
+
+        <!-- Top-Left: Breadboard Panel -->
+        <section class="card breadboard-panel">
+            <div class="card-title">
+                <span>Wanjie BB-4T7D Interactive Breadboard (3220 Tie-Points Workbench)</span>
+                <span style="font-weight: normal; font-size: 12px; color: var(--accent-amber);" id="circuitStatusText">상태: 시뮬레이션 대기 중</span>
+            </div>
+
+            <!-- Component Placement Palette Bar -->
+            <div class="palette-bar">
+                <span class="palette-label">🧰 기본 부품:</span>
+                <button id="toolSelect" class="btn active">👆 선택</button>
+                <button id="toolWire" class="btn">🔌 점퍼 와이어</button>
+                <button id="toolResistor" class="btn">⚡ 저항</button>
+                <button id="toolPot" class="btn">🎛️ 가변저항</button>
+                <button id="toolCapElec" class="btn">🔋 전해</button>
+                <button id="toolCapCeramic" class="btn">🟡 세라믹</button>
+                <button id="toolCapMylar" class="btn">🟢 마일러</button>
+                <button id="toolDiode" class="btn">🔻 다이오드</button>
+                <button id="toolZener" class="btn">⚡ 제너</button>
+                <button id="toolDcSource" class="btn">🔴 5V전원</button>
+                <button id="toolSwitch" class="btn">🔘 스위치</button>
+                <button id="toolLed" class="btn">💡 LED</button>
+
+                <span class="palette-label" style="margin-left: 10px;">🔲 IC 칩 카탈로그 (18종):</span>
+                <select id="icLibrarySelect" class="select-input" style="padding: 4px 6px;">
+                    <optgroup label="⏱️ 타이머 & 아날로그 IC">
+                        <option value="NE555" selected>NE555 (DIP-8) 정밀 타이머</option>
+                        <option value="NE556">NE556 (DIP-14) 듀얼 타이머</option>
+                        <option value="LM358">LM358 (DIP-8) 듀얼 Op-Amp</option>
+                        <option value="LM741">LM741 (DIP-8) 싱글 Op-Amp</option>
+                        <option value="LM386">LM386 (DIP-8) 오디오 증폭기</option>
+                        <option value="LM393">LM393 (DIP-8) 듀얼 비교기</option>
+                    </optgroup>
+                    <optgroup label="⚡ 전원 레귤레이터 IC">
+                        <option value="LM7805">LM7805 (DIP-8) +5V 레귤레이터</option>
+                        <option value="LM7812">LM7812 (DIP-8) +12V 레귤레이터</option>
+                        <option value="LM317">LM317 (DIP-8) 가변 레귤레이터</option>
+                    </optgroup>
+                    <optgroup label="🔢 74HC 시리즈 논리 게이트 (DIP-14)">
+                        <option value="74HC00">74HC00 Quad NAND Gate</option>
+                        <option value="74HC02">74HC02 Quad NOR Gate</option>
+                        <option value="74HC04">74HC04 Hex Inverter (NOT)</option>
+                        <option value="74HC08">74HC08 Quad AND Gate</option>
+                        <option value="74HC32">74HC32 Quad OR Gate</option>
+                        <option value="74HC86">74HC86 Quad XOR Gate</option>
+                    </optgroup>
+                    <optgroup label="📊 카운터 & 시프트 레지스터 (DIP-16)">
+                        <option value="74HC595">74HC595 8-Bit Shift Register</option>
+                        <option value="CD4017">CD4017 Decade Counter / Sequencer</option>
+                        <option value="CD4026">CD4026 7-Seg Counter Driver</option>
+                    </optgroup>
+                </select>
+                <button id="toolIcCatalog" class="btn btn-primary">🔲 선택된 IC 배치</button>
+
+                <div style="margin-left: auto; display: flex; gap: 6px;">
+                    <button id="btnDeleteSelected" class="btn btn-danger">🗑️ 삭제</button>
+                </div>
+            </div>
+
+            <div class="breadboard-toolbar">
+                <button id="btnZoomIn" class="btn">🔍+ 확대</button>
+                <button id="btnZoomOut" class="btn">🔍- 축소</button>
+                <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
+                <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 통신설비기능장 / 전자기능사 실기 시험 회로를 불러오고 답안지를 실시간 채점하세요!</span>
+            </div>
+
+            <div class="canvas-wrapper scrollable-wrapper" style="max-height: 650px;">
+                <canvas id="breadboardCanvas" width="790" height="970"></canvas>
+            </div>
+        </section>
+
+        <!-- Right Sidebar: AI Copilot -->
+        <aside class="card copilot-panel">
+            <div class="card-title">
+                <span>🤖 AI Circuit Copilot</span>
+                <span class="logo-badge">LLM Engine</span>
+            </div>
+
+            <div id="copilotChat" class="copilot-chat" style="max-height: 600px;">
+                <p>안녕하세요! <strong>Wanjie BB-4T7D 인터랙티브 자격증 회로 시뮬레이터 AI 코파일럿</strong>입니다.</p>
+                <p>상단 프리셋에서 <strong>통신설비기능장, 전자기능사, 전자산업기사, 무선설비기능사</strong> 기출 문제 회로를 선택한 후 <strong>[📝 실기시험 답안지 자동 채점]</strong>을 클릭해 보세요!</p>
+            </div>
+
+            <div class="copilot-actions">
+                <button id="btnAiDiagnose" class="action-chip">🔍 배치된 회로 전체 진단</button>
+                <button id="btnAiCutoff" class="action-chip">📐 이론적 차단 주파수(fc) 계산</button>
+                <button id="btnAiTransient" class="action-chip">⏱️ RC 과도 응답 (충전 파형) 설명</button>
+            </div>
+        </aside>
+
+        <!-- Bottom Row: Instruments Split -->
+        <div class="instruments-row">
+
+            <!-- Oscilloscope Instrument -->
+            <section class="instrument-card">
+                <div class="card-title">
+                    <span style="color: var(--accent-amber);">📊 2D Real-Time Oscilloscope</span>
+                    <span style="font-size: 11px; color: var(--accent-green);" id="scopeFps">60 FPS</span>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="oscilloscopeCanvas" width="560" height="240"></canvas>
+                </div>
+
+                <div class="instrument-controls">
+                    <div class="control-group">
+                        <label for="voltDivSelect">Volt/Div:</label>
+                        <select id="voltDivSelect" class="select-input" style="padding: 4px 8px;">
+                            <option value="0.5">0.5 V</option>
+                            <option value="1.0" selected>1.0 V</option>
+                            <option value="2.0">2.0 V</option>
+                            <option value="5.0">5.0 V</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="timeDivSelect">Time/Div:</label>
+                        <select id="timeDivSelect" class="select-input" style="padding: 4px 8px;">
+                            <option value="0.001">1.0 ms</option>
+                            <option value="0.002" selected>2.0 ms</option>
+                            <option value="0.005">5.0 ms</option>
+                            <option value="0.010">10.0 ms</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Spectrum Analyzer Instrument -->
+            <section class="instrument-card">
+                <div class="card-title">
+                    <span style="color: var(--accent-blue);">📈 Spectrum Analyzer (FFT)</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Frequency Domain</span>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="spectrumCanvas" width="560" height="240"></canvas>
+                </div>
+
+                <div class="instrument-controls">
+                    <span id="fftPeakText" style="color: var(--accent-blue);">Peak Freq: 0.0 Hz</span>
+                    <span id="cutoffFreqText" style="color: var(--accent-amber); margin-left: auto;">Cutoff fc: N/A</span>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Qualification Exam Answer Sheet Grading Modal -->
+    <div id="examModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header" style="border-bottom: 2px solid #8b5cf6;">
+                <h3>📝 국가기술자격 실기시험 오실로스코프 파형 측정 답안지</h3>
+                <button id="btnCloseExamModal" class="btn">✖</button>
+            </div>
+            <div id="examGradingContent" style="padding: 16px; color: #f8fafc; line-height: 1.6;">
+                <!-- Dynamically Rendered Exam Grading Sheet -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SPICE Export Modal -->
+    <div id="spiceModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📜 SPICE Netlist Export (Interactive Grid)</h3>
+                <button id="btnCloseSpiceModal" class="btn">✖</button>
+            </div>
+            <textarea id="spiceNetlistText" class="netlist-box" readonly></textarea>
+        </div>
+    </div>
+
+    <!-- Application Script Entry Point with Cache Busting -->
+    <script type="module" src="./app.js?v=1020"></script>
+</body>
+</html>

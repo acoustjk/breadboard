@@ -1,0 +1,246 @@
+/**
+ * ComponentModels.js
+ * Extended Circuit Component Models with 15+ IC Catalog Library.
+ */
+
+export function getResistorColorBands(resistance, isConfigured = true) {
+    if (!isConfigured || !resistance || isNaN(resistance) || resistance <= 0) {
+        return ['#94a3b8', '#94a3b8', '#94a3b8', '#cbd5e1'];
+    }
+
+    const digitColors = [
+        '#2d3436', // 0 Black
+        '#795548', // 1 Brown
+        '#d63031', // 2 Red
+        '#e67e22', // 3 Orange
+        '#f1c40f', // 4 Yellow
+        '#2ecc71', // 5 Green
+        '#3498db', // 6 Blue
+        '#9b59b6', // 7 Violet
+        '#95a5a6', // 8 Gray
+        '#ffffff'  // 9 White
+    ];
+
+    const exp = Math.floor(Math.log10(resistance));
+    const normalized = resistance / Math.pow(10, exp - 1);
+    let d1 = Math.floor(normalized);
+    let d2 = Math.round((normalized - d1) * 10);
+    if (d2 >= 10) {
+        d1 += 1;
+        d2 = 0;
+    }
+
+    const multExp = exp - 1;
+    let multColor = '#2d3436';
+    if (multExp >= 0 && multExp < digitColors.length) {
+        multColor = digitColors[multExp];
+    } else if (multExp === -1) {
+        multColor = '#d4af37';
+    } else if (multExp === -2) {
+        multColor = '#c0c0c0';
+    }
+
+    const c1 = digitColors[Math.min(9, Math.max(0, d1))];
+    const c2 = digitColors[Math.min(9, Math.max(0, d2))];
+    const c4 = '#d4af37';
+
+    return [c1, c2, multColor, c4];
+}
+
+export const IC_CATALOG = {
+    'NE555': { name: 'NE555 Precision Timer', pins: 8, desc: '단일 정밀 타이머 / 아스타블 멀티바이브레이터' },
+    'NE556': { name: 'NE556 Dual Timer', pins: 14, desc: '듀얼 555 듀얼 타이머 IC' },
+    'LM358': { name: 'LM358 Dual Op-Amp', pins: 8, desc: '저전력 듀얼 연산 증폭기' },
+    'LM741': { name: 'LM741 Op-Amp', pins: 8, desc: '범용 단일 연산 증폭기' },
+    'LM386': { name: 'LM386 Audio Power Amp', pins: 8, desc: '저전압 오디오 파워 증폭기' },
+    'LM393': { name: 'LM393 Dual Comparator', pins: 8, desc: '듀얼 전압 비교기' },
+    'LM7805': { name: 'LM7805 +5V Regulator', pins: 8, desc: '+5V 정전압 레귤레이터' },
+    'LM7812': { name: 'LM7812 +12V Regulator', pins: 8, desc: '+12V 정전압 레귤레이터' },
+    'LM317': { name: 'LM317 Adjustable Regulator', pins: 8, desc: '가변 전압 레귤레이터' },
+    '74HC00': { name: '74HC00 Quad NAND Gate', pins: 14, desc: '4채널 2입력 NAND 논리 게이트' },
+    '74HC02': { name: '74HC02 Quad NOR Gate', pins: 14, desc: '4채널 2입력 NOR 논리 게이트' },
+    '74HC04': { name: '74HC04 Hex Inverter', pins: 14, desc: '6채널 NOT 반전 게이트' },
+    '74HC08': { name: '74HC08 Quad AND Gate', pins: 14, desc: '4채널 2입력 AND 논리 게이트' },
+    '74HC32': { name: '74HC32 Quad OR Gate', pins: 14, desc: '4채널 2입력 OR 논리 게이트' },
+    '74HC86': { name: '74HC86 Quad XOR Gate', pins: 14, desc: '4채널 2입력 XOR 논리 게이트' },
+    '74HC595': { name: '74HC595 8-Bit Shift Register', pins: 16, desc: '8비트 시리얼-인/패러렐-아웃 시프트 레지스터' },
+    'CD4017': { name: 'CD4017 Decade Counter', pins: 16, desc: '10진 디케이드 카운터 / 존슨 시퀀서' },
+    'CD4026': { name: 'CD4026 7-Seg Counter', pins: 16, desc: '7세그먼트 디스플레이 카운터 드라이버' }
+};
+
+export class Resistor {
+    constructor(id, pinA, pinB, resistance = 1000, isConfigured = false) {
+        this.id = id;
+        this.type = 'R';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.resistance = resistance;
+        this.isConfigured = isConfigured;
+    }
+
+    getConductance() {
+        return 1.0 / (this.resistance || 1e6);
+    }
+
+    getBands() {
+        return getResistorColorBands(this.resistance, this.isConfigured);
+    }
+}
+
+export class Capacitor {
+    constructor(id, pinA, pinB, capacitance = 10e-6, isConfigured = false, capType = 'ELEC') {
+        this.id = id;
+        this.type = 'C';
+        this.capType = capType;
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.capacitance = capacitance;
+        this.vCap = 0;
+        this.iCap = 0;
+        this.isConfigured = isConfigured;
+    }
+
+    reset() {
+        this.vCap = 0;
+        this.iCap = 0;
+    }
+
+    getCompanionModel(dt) {
+        const Req = dt / (this.capacitance || 1e-6);
+        const Geq = 1.0 / Req;
+        const Ieq = Geq * this.vCap;
+        return { Geq, Ieq, Req };
+    }
+
+    updateState(vNodeA, vNodeB) {
+        this.vCap = vNodeA - vNodeB;
+    }
+}
+
+export class Diode {
+    constructor(id, pinA, pinB, vForward = 0.7) {
+        this.id = id;
+        this.type = 'DIODE';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.vForward = vForward;
+        this.isConfigured = true;
+    }
+}
+
+export class ZenerDiode {
+    constructor(id, pinA, pinB, vZener = 5.1, vForward = 0.7) {
+        this.id = id;
+        this.type = 'ZENER';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.vZener = vZener;
+        this.vForward = vForward;
+        this.isConfigured = true;
+    }
+}
+
+export class Potentiometer {
+    constructor(id, pinA, pinB, totalResistance = 10000, ratio = 0.5) {
+        this.id = id;
+        this.type = 'POT';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.totalResistance = totalResistance;
+        this.ratio = Math.max(0.01, Math.min(0.99, ratio));
+        this.isConfigured = true;
+    }
+
+    getEffectiveResistance() {
+        return Math.max(1, this.totalResistance * this.ratio);
+    }
+}
+
+export class DIPChip {
+    /**
+     * @param {string} id
+     * @param {string} icType - Key in IC_CATALOG (e.g. 'NE555', 'CD4017', '74HC595', etc.)
+     * @param {string} pinA - Anchor Pin 1 e.g. 'B1_E15'
+     * @param {string} pinB - Opposite Pin across trough
+     */
+    constructor(id, icType = 'NE555', pinA = 'B1_E15', pinB = 'B1_F15') {
+        this.id = id;
+        this.type = 'IC';
+        this.icType = icType;
+        const catalogMeta = IC_CATALOG[icType] || IC_CATALOG['NE555'];
+        this.pins = catalogMeta.pins;
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.isConfigured = true;
+        this.vOut = 0;
+    }
+}
+
+export class DCSource {
+    constructor(id, pinA, pinB, voltage = 5.0, isConfigured = true) {
+        this.id = id;
+        this.type = 'VDC';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.voltage = voltage;
+        this.isConfigured = isConfigured;
+    }
+}
+
+export class SwitchComponent {
+    constructor(id, pinA, pinB, isOpen = false) {
+        this.id = id;
+        this.type = 'SWITCH';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.isOpen = isOpen;
+        this.rOn = 0.001;
+        this.rOff = 1e8;
+    }
+
+    getConductance() {
+        return 1.0 / (this.isOpen ? this.rOff : this.rOn);
+    }
+
+    toggle() {
+        this.isOpen = !this.isOpen;
+        return this.isOpen;
+    }
+}
+
+export class LEDComponent {
+    constructor(id, pinA, pinB, vForward = 2.0) {
+        this.id = id;
+        this.type = 'LED';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.vForward = vForward;
+        this.isOn = false;
+    }
+
+    getConductance(vAnode, vCathode) {
+        const vDiff = vAnode - vCathode;
+        if (vDiff >= this.vForward) {
+            this.isOn = true;
+            return 1.0 / 10.0;
+        } else {
+            this.isOn = false;
+            return 1.0 / 1e8;
+        }
+    }
+}
+
+export class Wire {
+    constructor(id, pinA, pinB, color = '#0984e3') {
+        this.id = id;
+        this.type = 'WIRE';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.color = color;
+        this.resistance = 0.0001;
+    }
+
+    getConductance() {
+        return 1.0 / this.resistance;
+    }
+}
