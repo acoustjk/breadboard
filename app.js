@@ -4,15 +4,15 @@
  * Supports KCA Communication Equipment Master Craftsman PNM (Pulse Number Modulation) Circuit.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1021';
-import { MNASolver } from './src/engine/MNASolver.js?v=1021';
-import { FFT } from './src/engine/FFT.js?v=1021';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1021';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1021';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1021';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1021';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1021';
-import { AICopilot } from './src/components/AICopilot.js?v=1021';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1022';
+import { MNASolver } from './src/engine/MNASolver.js?v=1022';
+import { FFT } from './src/engine/FFT.js?v=1022';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1022';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1022';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1022';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1022';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1022';
+import { AICopilot } from './src/components/AICopilot.js?v=1022';
 
 class AppController {
     constructor() {
@@ -158,7 +158,7 @@ class AppController {
             }
         } else if (comp.type === 'IC') {
             const meta = IC_CATALOG[comp.icType] || { name: comp.icType, pins: 8, desc: 'DIP Integrated Circuit' };
-            alert(`🔲 집적회로 (IC): ${meta.name}\n\n📌 핀 수: DIP-${meta.pins} 패키지\n📝 설명: ${meta.desc}\n\n📍 핀 1 위치: ${comp.pinA}\n📍 반대편 핀 위치: ${comp.pinB}\n\n중앙 홈(Center Trough)을 가로질러 숏트 없이 핀에 연결되었습니다.`);
+            alert(`🔲 집적회로 (IC): ${meta.name}\n\n📌 핀 수: DIP-${meta.pins} 패키지\n📝 설명: ${meta.desc}\n\n📍 핀 1 위치: ${comp.pinA}\n📍 반대편 핀 위치: ${comp.pinB}\n\n중앙 홈(Center Trough)을 가로질러 숏트 없이 세로 핀에 연결되었습니다.`);
         } else if (comp.type === 'ZENER') {
             const valStr = prompt(`⚡ 제너 다이오드 정전압 항복 전압(Vz)을 입력하세요 (예: 3.3, 5.1, 9.1, 12.0):`, comp.vZener || '5.1');
             const parsed = parseFloat(valStr);

@@ -4,7 +4,7 @@
  * Renders Dual-in-line Package (DIP-8 / DIP-14 / DIP-16 IC Chips) VERTICALLY straddling the center trough.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1022';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -712,8 +712,8 @@ export class BreadboardCanvas {
             const numPinsPerSide = (comp.pins || 8) / 2; // 4 pins per side for DIP-8
             const pitchY = 11.2;
 
-            const chipWidth = Math.abs(pB.x - pA.x) + 20; // Width across trough (Cols E to F) ~34px
-            const chipHeight = (numPinsPerSide - 1) * pitchY + 26; // Height along rows ~58px
+            const chipWidth = Math.abs(pB.x - pA.x) + 22; // Width across trough (Cols E to F) ~34px
+            const chipHeight = (numPinsPerSide - 1) * pitchY + 28; // Height along rows ~58px
 
             const topY = pA.y - 12;
 
@@ -722,8 +722,8 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
-            this.ctx.strokeStyle = '#0f172a';
-            this.ctx.lineWidth = 1.5;
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0f172a';
+            this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
             this.ctx.stroke();
 
             // 2. Orientation Semi-circle Notch on TOP end (pointing North)
