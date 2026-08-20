@@ -32,6 +32,13 @@
                 </optgroup>
             </select>
 
+            <button id="btnSaveCircuit" class="btn btn-success" style="background: #10b981;">
+                💾 회로 저장
+            </button>
+            <button id="btnLoadCircuit" class="btn btn-primary" style="background: #0284c7;">
+                📂 회로 불러오기
+            </button>
+
             <button id="btnPlayPause" class="btn btn-success">
                 <span id="playIcon">▶</span> 시뮬레이션 시작
             </button>
@@ -178,7 +185,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 LM358 듀얼 Op-Amp 직교 발진기 (Vref 4.5V + 적분기) 프리셋이 추가되었습니다!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">💾 회로 파일 저장(.json) 및 브라우저 임시 저장 기능이 추가되었습니다!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -194,8 +201,8 @@
             </div>
 
             <div id="copilotChat" class="copilot-chat">
-                <p>안녕하세요! <strong>LM358 듀얼 Op-Amp 직교 발진기 시뮬레이터</strong>입니다.</p>
-                <p><strong>[LM358 듀얼 Op-Amp 직교 발진기]</strong> 프리셋을 선택하시면, 노드A 4.5V 기준 전압 생성부터 OUT1 구형파, OUT2 삼각파/적분 파형을 계측하실 수 있습니다!</p>
+                <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
+                <p>제작하신 회로는 상단 <strong>[💾 회로 저장]</strong> 버튼으로 컴퓨터 파일(.json)이나 브라우저에 언제든지 저장하실 수 있습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -206,6 +213,52 @@
         </aside>
 
     </main>
+
+    <!-- Circuit Save Modal -->
+    <div id="saveModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header" style="border-bottom: 2px solid #10b981;">
+                <h3 style="color: #10b981;">💾 현재 회로 저장하기 (Save Circuit)</h3>
+                <button id="btnCloseSaveModal" class="btn">✖</button>
+            </div>
+            <div style="padding: 16px; color: #f8fafc;">
+                <div style="margin-bottom: 14px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: bold; color: #38bdf8;">회로 제목 (Circuit Title):</label>
+                    <input type="text" id="saveCircuitTitle" value="나만의 브레드보드 회로" class="select-input" style="width: 100%; box-sizing: border-box; background: #0f172a; color: #fff;">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px;">
+                    <button id="btnDownloadJson" class="btn btn-primary" style="background: #10b981; padding: 10px; font-size: 13px;">
+                        📥 내 컴퓨터에 파일로 저장 (.json 다운로드)
+                    </button>
+                    <button id="btnSaveBrowserStorage" class="btn btn-primary" style="background: #0284c7; padding: 10px; font-size: 13px;">
+                        💾 브라우저 저장소에 저장 (Quick Save)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Circuit Load Modal -->
+    <div id="loadModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header" style="border-bottom: 2px solid #0284c7;">
+                <h3 style="color: #38bdf8;">📂 회로 불러오기 (Load Circuit)</h3>
+                <button id="btnCloseLoadModal" class="btn">✖</button>
+            </div>
+            <div style="padding: 16px; color: #f8fafc;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button id="btnTriggerFileLoad" class="btn btn-primary" style="background: #0284c7; padding: 10px; font-size: 13px;">
+                        📂 내 컴퓨터에서 파일 불러오기 (.json / .bb)
+                    </button>
+                    <button id="btnLoadBrowserStorage" class="btn btn-primary" style="background: #8b5cf6; padding: 10px; font-size: 13px;">
+                        💾 브라우저에 임시 저장된 회로 불러오기
+                    </button>
+                </div>
+                <input type="file" id="fileInputCircuit" accept=".json,.bb" style="display: none;">
+            </div>
+        </div>
+    </div>
 
     <!-- Floating 4CH Oscilloscope Instrument Modal -->
     <div id="scopeModal" class="modal hidden">
@@ -405,6 +458,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1044"></script>
+    <script type="module" src="./app.js?v=1045"></script>
 </body>
 </html>

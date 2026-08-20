@@ -1,18 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power) Sample Preset v=1044.
+ * Circuit Save & Load (.json File Export/Import + localStorage Persistence) v=1045.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1044';
-import { MNASolver } from './src/engine/MNASolver.js?v=1044';
-import { FFT } from './src/engine/FFT.js?v=1044';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1044';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1044';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1044';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1044';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1044';
-import { AICopilot } from './src/components/AICopilot.js?v=1044';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1045';
+import { MNASolver } from './src/engine/MNASolver.js?v=1045';
+import { FFT } from './src/engine/FFT.js?v=1045';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1045';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1045';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1045';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1045';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1045';
+import { AICopilot } from './src/components/AICopilot.js?v=1045';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1045';
 
 class AppController {
     constructor() {
@@ -60,6 +61,7 @@ class AppController {
         this.initPlacementEngine();
         this.initPNMExam(); // Load PNM Exam by default with full oscillation feedback
         this.setupUIEventListeners();
+        this.setupSaveLoadHandlers();
         this.renderAll();
     }
 
@@ -628,6 +630,154 @@ class AppController {
         this.breadboardCanvas.probeDPin = 'B1_GND_5';
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
+    }
+
+    // 💾 Circuit Save & Load Functionality
+    setupSaveLoadHandlers() {
+        const btnSaveModal = document.getElementById('btnSaveCircuit');
+        const saveModal = document.getElementById('saveModal');
+        const btnCloseSaveModal = document.getElementById('btnCloseSaveModal');
+
+        const btnLoadModal = document.getElementById('btnLoadCircuit');
+        const loadModal = document.getElementById('loadModal');
+        const btnCloseLoadModal = document.getElementById('btnCloseLoadModal');
+
+        if (btnSaveModal && saveModal) {
+            btnSaveModal.addEventListener('click', () => {
+                saveModal.classList.remove('hidden');
+            });
+        }
+        if (btnCloseSaveModal && saveModal) {
+            btnCloseSaveModal.addEventListener('click', () => {
+                saveModal.classList.add('hidden');
+            });
+        }
+
+        if (btnLoadModal && loadModal) {
+            btnLoadModal.addEventListener('click', () => {
+                loadModal.classList.remove('hidden');
+            });
+        }
+        if (btnCloseLoadModal && loadModal) {
+            btnCloseLoadModal.addEventListener('click', () => {
+                loadModal.classList.add('hidden');
+            });
+        }
+
+        // 1. Save to File (.json)
+        const btnDownloadJson = document.getElementById('btnDownloadJson');
+        if (btnDownloadJson) {
+            btnDownloadJson.addEventListener('click', () => {
+                const titleInput = document.getElementById('saveCircuitTitle');
+                const title = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : 'My Breadboard Circuit';
+
+                const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
+                const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                const filename = `${title.replace(/[^a-zA-Z0-9가-힣_-]/g, '_')}.json`;
+                CircuitSerializer.saveToFile(dataObj, filename);
+
+                saveModal.classList.add('hidden');
+                this.breadboardCanvas.toastMsg = `📥 회로가 [${filename}] 파일로 내 컴퓨터에 저장되었습니다!`;
+            });
+        }
+
+        // 2. Save to Browser localStorage
+        const btnSaveBrowserStorage = document.getElementById('btnSaveBrowserStorage');
+        if (btnSaveBrowserStorage) {
+            btnSaveBrowserStorage.addEventListener('click', () => {
+                const titleInput = document.getElementById('saveCircuitTitle');
+                const title = (titleInput && titleInput.value.trim()) ? titleInput.value.trim() : 'My Breadboard Circuit';
+
+                const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
+                const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                CircuitSerializer.saveToLocalStorage(dataObj);
+
+                saveModal.classList.add('hidden');
+                this.breadboardCanvas.toastMsg = `💾 현재 회로가 웹 브라우저 내장 저장소에 저장되었습니다!`;
+            });
+        }
+
+        // 3. Load from File (.json / .bb)
+        const btnTriggerFileLoad = document.getElementById('btnTriggerFileLoad');
+        const fileInputCircuit = document.getElementById('fileInputCircuit');
+
+        if (btnTriggerFileLoad && fileInputCircuit) {
+            btnTriggerFileLoad.addEventListener('click', () => {
+                fileInputCircuit.value = '';
+                fileInputCircuit.click();
+            });
+
+            fileInputCircuit.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const restored = CircuitSerializer.deserialize(evt.target.result);
+                        this.applyLoadedCircuit(restored);
+                        loadModal.classList.add('hidden');
+                        this.breadboardCanvas.toastMsg = `📂 [${file.name}] 회로 파일을 성공적으로 불러왔습니다!`;
+                    } catch (err) {
+                        alert(`회로 파일 로드 실패: ${err.message}`);
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        // 4. Load from Browser localStorage
+        const btnLoadBrowserStorage = document.getElementById('btnLoadBrowserStorage');
+        if (btnLoadBrowserStorage) {
+            btnLoadBrowserStorage.addEventListener('click', () => {
+                try {
+                    const restored = CircuitSerializer.loadFromLocalStorage();
+                    if (!restored) {
+                        alert('브라우저 저장소에 저장된 회로 데이터가 없습니다. 먼저 [💾 회로 저장]을 실행해 주세요.');
+                        return;
+                    }
+                    this.applyLoadedCircuit(restored);
+                    loadModal.classList.add('hidden');
+                    this.breadboardCanvas.toastMsg = `💾 브라우저에 임시 저장된 [${restored.title}] 회로를 성공적으로 불러왔습니다!`;
+                } catch (err) {
+                    alert(`브라우저 저장 회로 로드 실패: ${err.message}`);
+                }
+            });
+        }
+    }
+
+    applyLoadedCircuit(restored) {
+        this.components = restored.components;
+
+        if (restored.power) {
+            this.voltageVa = restored.power.voltageVa ?? 12.0;
+            this.voltageVb = restored.power.voltageVb ?? 0.0;
+            this.voltageVc = restored.power.voltageVc ?? -12.0;
+            this.breadboardCanvas.voltageVa = this.voltageVa;
+            this.breadboardCanvas.voltageVb = this.voltageVb;
+            this.breadboardCanvas.voltageVc = this.voltageVc;
+        }
+
+        if (restored.probes) {
+            this.probeAPin = restored.probes.probeAPin || null;
+            this.probeBPin = restored.probes.probeBPin || null;
+            this.probeCPin = restored.probes.probeCPin || null;
+            this.probeDPin = restored.probes.probeDPin || null;
+
+            this.breadboardCanvas.probeAPin = this.probeAPin;
+            this.breadboardCanvas.probeBPin = this.probeBPin;
+            this.breadboardCanvas.probeCPin = this.probeCPin;
+            this.breadboardCanvas.probeDPin = this.probeDPin;
+        }
+
+        this.currentExamTitle = restored.title || '사용자 회로';
+        this.compCounter = this.components.length + 10;
+        this.warmupSimulationBuffer(400);
+        this.renderAll();
     }
 
     // 📝 Official Exam Answer Sheet Auto-Grading Logic
