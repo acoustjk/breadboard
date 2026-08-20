@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports Left Sidebar Component Palette, Resistor/Capacitor Dropdowns, and Popup Instruments.
+ * Supports Left Sidebar Component Palette, Resistor/Capacitor Family Dropdowns, and Double-Click Property Inspector.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1026';
-import { MNASolver } from './src/engine/MNASolver.js?v=1026';
-import { FFT } from './src/engine/FFT.js?v=1026';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1026';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1026';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1026';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1026';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1026';
-import { AICopilot } from './src/components/AICopilot.js?v=1026';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1027';
+import { MNASolver } from './src/engine/MNASolver.js?v=1027';
+import { FFT } from './src/engine/FFT.js?v=1027';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1027';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1027';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1027';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1027';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1027';
+import { AICopilot } from './src/components/AICopilot.js?v=1027';
 
 class AppController {
     constructor() {
@@ -39,9 +39,9 @@ class AppController {
         this.fftTimer = 0;
         this.compCounter = 1;
 
-        // Selected Library Dropdown Values
-        this.selectedResistorValue = 1000;
-        this.selectedCapacitorType = 'C_ELEC_10u';
+        // Selected Family Dropdown Values
+        this.selectedResistorType = 'R';
+        this.selectedCapacitorType = 'C_MYLAR';
         this.selectedIcKey = 'LF356';
 
         this.currentExamTitle = null;
@@ -79,33 +79,26 @@ class AppController {
                 const isPower = pinA.includes('VCC') || pinB.includes('VCC');
                 newComp = new Wire(id, pinA, pinB, isPower ? '#ef4444' : '#0984e3');
                 labelMsg = '점퍼 와이어';
-            } else if (toolType === 'R') {
-                const resVal = this.selectedResistorValue || 1000;
-                newComp = new Resistor(id, pinA, pinB, resVal, true);
-                const formatted = resVal >= 1000 ? (resVal / 1000) + 'kΩ' : resVal + 'Ω';
-                labelMsg = `⚡ 저항 (${formatted})`;
-            } else if (toolType === 'C_ELEC' || toolType === 'C' || toolType === 'C_CATALOG') {
-                const capKey = this.selectedCapacitorType || 'C_ELEC_10u';
-
-                if (capKey.startsWith('C_ELEC')) {
-                    const uFarad = parseFloat(capKey.replace('C_ELEC_', '').replace('u', '')) || 10;
-                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'ELEC');
-                    labelMsg = `🔋 전해 콘덴서 (${uFarad}µF)`;
-                } else if (capKey.startsWith('C_CERAMIC')) {
-                    let uFarad = 0.1;
-                    if (capKey.includes('101')) uFarad = 0.0001;
-                    else if (capKey.includes('102')) uFarad = 0.001;
-                    else if (capKey.includes('103')) uFarad = 0.01;
-                    else if (capKey.includes('104')) uFarad = 0.1;
-                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'CERAMIC');
-                    labelMsg = `🟡 세라믹 콘덴서 (${uFarad}µF)`;
-                } else if (capKey.startsWith('C_MYLAR')) {
-                    let uFarad = 0.1;
-                    if (capKey.includes('103')) uFarad = 0.01;
-                    else if (capKey.includes('104')) uFarad = 0.1;
-                    else if (capKey.includes('473')) uFarad = 0.047;
-                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'MYLAR');
-                    labelMsg = `🟢 마일러 콘덴서 (${uFarad}µF)`;
+            } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
+                const resType = this.selectedResistorType || 'R';
+                if (resType === 'POT') {
+                    newComp = new Potentiometer(id, pinA, pinB, 10000, 0.5);
+                    labelMsg = '가변저항 (Potentiometer)';
+                } else {
+                    newComp = new Resistor(id, pinA, pinB, 1000, false);
+                    labelMsg = '고정 저항 (더블클릭하여 Ω 수치 변경)';
+                }
+            } else if (toolType === 'CAPACITOR_CATALOG' || toolType === 'C') {
+                const capKind = this.selectedCapacitorType || 'C_MYLAR';
+                if (capKind === 'C_ELEC') {
+                    newComp = new Capacitor(id, pinA, pinB, 10e-6, false, 'ELEC');
+                    labelMsg = '전해 콘덴서 (더블클릭하여 µF 변경)';
+                } else if (capKind === 'C_CERAMIC') {
+                    newComp = new Capacitor(id, pinA, pinB, 0.1e-6, false, 'CERAMIC');
+                    labelMsg = '세라믹 콘덴서 (더블클릭하여 µF 변경)';
+                } else {
+                    newComp = new Capacitor(id, pinA, pinB, 0.1e-6, false, 'MYLAR');
+                    labelMsg = '마일러 필름 콘덴서 (더블클릭하여 µF 변경)';
                 }
             } else if (toolType === 'IC_CATALOG') {
                 const icKey = this.selectedIcKey || 'LF356';
@@ -135,7 +128,7 @@ class AppController {
             if (newComp) {
                 this.components.push(newComp);
                 this.resetToolState();
-                this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
+                this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다! (더블클릭으로 수치 변경 가능)`;
                 this.renderAll();
             }
         };
@@ -476,17 +469,17 @@ class AppController {
     }
 
     setupUIEventListeners() {
-        // Resistor & Capacitor & IC Library Dropdowns
-        const rSelect = document.getElementById('resistorLibrarySelect');
-        if (rSelect) {
-            rSelect.addEventListener('change', (e) => {
-                this.selectedResistorValue = parseFloat(e.target.value) || 1000;
+        // Resistor & Capacitor Family Dropdowns
+        const rTypeSelect = document.getElementById('resistorTypeSelect');
+        if (rTypeSelect) {
+            rTypeSelect.addEventListener('change', (e) => {
+                this.selectedResistorType = e.target.value;
             });
         }
 
-        const cSelect = document.getElementById('capacitorLibrarySelect');
-        if (cSelect) {
-            cSelect.addEventListener('change', (e) => {
+        const cTypeSelect = document.getElementById('capacitorTypeSelect');
+        if (cTypeSelect) {
+            cTypeSelect.addEventListener('change', (e) => {
                 this.selectedCapacitorType = e.target.value;
             });
         }
@@ -516,8 +509,8 @@ class AppController {
         const toolButtons = [
             { id: 'toolSelect', tool: 'SELECT' },
             { id: 'toolWire', tool: 'WIRE' },
-            { id: 'toolResistor', tool: 'R' },
-            { id: 'toolCapacitorCatalog', tool: 'C_CATALOG' },
+            { id: 'toolResistorCatalog', tool: 'RESISTOR_CATALOG' },
+            { id: 'toolCapacitorCatalog', tool: 'CAPACITOR_CATALOG' },
             { id: 'toolIcCatalog', tool: 'IC_CATALOG' },
             { id: 'toolDiode', tool: 'DIODE' },
             { id: 'toolZener', tool: 'ZENER' },
