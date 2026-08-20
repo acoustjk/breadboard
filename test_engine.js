@@ -9,12 +9,12 @@ const grid = new BreadboardGrid();
 const solver = new MNASolver(grid);
 
 const comps = [
-    new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0),
+    new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
     new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
     new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
     new SwitchComponent('SW1', 'B1_VCC_5', 'B1_A5', false),
-    new Resistor('R1', 'B1_B5', 'B1_A10', 1000),
-    new Capacitor('C1', 'B1_B10', 'B1_GND_10', 10e-6)
+    new Resistor('R1', 'B1_B5', 'B1_A10', 1000, true),
+    new Capacitor('C1', 'B1_B10', 'B1_GND_10', 10e-6, true)
 ];
 
 const dt = 0.0001;

@@ -1,11 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Supports 4-Channel (4CH) Interactive Oscilloscope Probe Placement (CH A, CH B, CH C, CH D).
- * Clean empty board mode (no default probes attached).
+ * Supports Interactive Va, Vb, Vc, GND Power Supply Binding Posts with Voltage Badges & Wire Bridging.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1025';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1029';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -37,6 +36,11 @@ export class BreadboardCanvas {
         this.selectedComponent = null;
         this.showValueBadges = true;
 
+        // Binding Post Voltage Values
+        this.voltageVa = 12.0;
+        this.voltageVb = -12.0;
+        this.voltageVc = 5.0;
+
         // 4CH Oscilloscope Probes (Start null for clean empty board)
         this.probeAPin = null;
         this.probeBPin = null;
@@ -50,6 +54,7 @@ export class BreadboardCanvas {
         this.onComponentSelected = null;
         this.onComponentDblClicked = null;
         this.onProbePlaced = null;
+        this.onBindingPostDblClicked = null;
 
         this.setupEventListeners();
     }
@@ -84,13 +89,13 @@ export class BreadboardCanvas {
     }
 
     computePinCoordinates() {
-        const blockWidth = 186;
-        const blockGap = 12;
-        const startX = 25;
-        const startY = 210;
-        const pitchY = 11.2;
+        // 1. Binding Posts (Va, Vb, Vc, GND)
+        this.pinCoords.set('BINDING_Va', { x: 440, y: 44 });
+        this.pinCoords.set('BINDING_Vb', { x: 500, y: 44 });
+        this.pinCoords.set('BINDING_Vc', { x: 560, y: 44 });
+        this.pinCoords.set('BINDING_GND', { x: 620, y: 44 });
 
-        // Top Horizontal Bus Rails
+        // 2. Top Horizontal Bus Rails
         for (let i = 1; i <= 60; i++) {
             const x = Math.round(45 + i * 11.5);
             this.pinCoords.set(`VCC_TOP1_${i}`, { x, y: 120 });
@@ -100,6 +105,13 @@ export class BreadboardCanvas {
             this.pinCoords.set(`VCC_TOP2_${i}`, { x, y: 150 });
             this.pinCoords.set(`GND_TOP2_${i}`, { x, y: 164 });
         }
+
+        // 3. 4 Vertical Terminal Strip Blocks (Block 1~4)
+        const blockWidth = 186;
+        const blockGap = 12;
+        const startX = 25;
+        const startY = 210;
+        const pitchY = 11.2;
 
         const leftCols = ['A', 'B', 'C', 'D', 'E'];
         const rightCols = ['F', 'G', 'H', 'I', 'J'];
@@ -177,7 +189,7 @@ export class BreadboardCanvas {
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
 
             let clickedPin = null;
-            let minDist = 18 / this.scale;
+            let minDist = 22 / this.scale;
 
             for (const [pinKey, pos] of this.pinCoords.entries()) {
                 const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
@@ -200,6 +212,18 @@ export class BreadboardCanvas {
             const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
             const worldX = (canvasMouseX - this.offsetX) / this.scale;
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
+
+            // Check Binding Posts Double Click
+            const bpKeys = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc'];
+            for (const key of bpKeys) {
+                const pos = this.pinCoords.get(key);
+                if (pos && Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
+                    if (this.onBindingPostDblClicked) {
+                        this.onBindingPostDblClicked(key);
+                    }
+                    return;
+                }
+            }
 
             const clickedComp = this.findComponentAt({ x: worldX, y: worldY });
             if (clickedComp && this.onComponentDblClicked) {
@@ -238,7 +262,7 @@ export class BreadboardCanvas {
             this.mouseWorldPos = { x: worldX, y: worldY };
 
             let closestPin = null;
-            let minDist = 18 / this.scale;
+            let minDist = 22 / this.scale;
 
             for (const [pinKey, pos] of this.pinCoords.entries()) {
                 const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
@@ -379,16 +403,18 @@ export class BreadboardCanvas {
         this.ctx.font = '12px monospace';
         this.ctx.fillText('BB-4T7D / GL-3220 (3220 Tie-Points)', 35, 82);
 
-        // 3. Binding Posts & Knobs
+        // 3. Interactive Binding Posts & Knobs (Va, Vb, Vc, GND)
         const bindingPosts = [
-            { label: 'Va', color: '#d63031', x: 440 },
-            { label: 'Vb', color: '#00b894', x: 500 },
-            { label: 'Vc', color: '#0984e3', x: 560 },
-            { label: 'GND ⏚', color: '#2d3436', x: 620 }
+            { key: 'BINDING_Va', label: 'Va', color: '#d63031', valText: `${this.voltageVa > 0 ? '+' : ''}${this.voltageVa}V`, x: 440 },
+            { key: 'BINDING_Vb', label: 'Vb', color: '#00b894', valText: `${this.voltageVb > 0 ? '+' : ''}${this.voltageVb}V`, x: 500 },
+            { key: 'BINDING_Vc', label: 'Vc', color: '#0984e3', valText: `${this.voltageVc > 0 ? '+' : ''}${this.voltageVc}V`, x: 560 },
+            { key: 'BINDING_GND', label: 'GND ⏚', color: '#2d3436', valText: '0V (GND)', x: 620 }
         ];
 
         bindingPosts.forEach(bp => {
-            this.ctx.fillStyle = '#dfe6e9';
+            const isHovered = (this.hoveredPin === bp.key);
+
+            this.ctx.fillStyle = isHovered ? '#fdcb6e' : '#dfe6e9';
             this.ctx.beginPath();
             this.ctx.arc(bp.x, 44, 16, 0, Math.PI * 2);
             this.ctx.fill();
@@ -401,10 +427,15 @@ export class BreadboardCanvas {
             this.ctx.lineWidth = 1.5;
             this.ctx.stroke();
 
+            // Label & Interactive Voltage Badge
             this.ctx.fillStyle = '#e17055';
             this.ctx.font = 'bold 12px sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bp.label, bp.x, 74);
+            this.ctx.fillText(bp.label, bp.x, 72);
+
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.font = 'bold 10px monospace';
+            this.ctx.fillText(bp.valText, bp.x, 86);
         });
 
         for (let k = 0; k < 4; k++) {
@@ -517,10 +548,12 @@ export class BreadboardCanvas {
             });
         }
 
-        // 6. Render All 3,220 Metallic Pin Holes
+        // 6. Render All Metallic Pin Holes
         let activeHoverNode = this.hoveredPin ? this.grid.getNodeId(this.hoveredPin) : null;
 
         for (const [pinKey, pos] of this.pinCoords.entries()) {
+            if (pinKey.startsWith('BINDING_')) continue; // Rendered separately above
+
             const pinNode = this.grid.getNodeId(pinKey);
             const isHovered = (this.hoveredPin === pinKey);
             const isPlacementStart = (this.placementPinA === pinKey);
@@ -578,21 +611,21 @@ export class BreadboardCanvas {
 
         if (this.activeTool !== 'SELECT') {
             this.ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
-            this.ctx.fillRect(15, 10, 380, 28);
+            this.ctx.fillRect(15, 10, 420, 28);
             this.ctx.fillStyle = '#0f172a';
             this.ctx.font = 'bold 12px sans-serif';
             this.ctx.textAlign = 'left';
             this.ctx.textBaseline = 'middle';
 
             const guideMsg = !this.placementPinA ?
-                `📍 [${this.activeTool}] 1번째 핀을 클릭하세요` :
+                `📍 [${this.activeTool}] 1번째 핀(또는 Va/Vb/Vc/GND 단자)을 클릭하세요` :
                 `📍 [${this.activeTool}] 2번째 핀을 클릭하여 배치를 완료하세요`;
             this.ctx.fillText(guideMsg, 25, 24);
         }
 
         if (this.toastMsg) {
             this.ctx.fillStyle = 'rgba(34, 197, 94, 0.92)';
-            this.ctx.fillRect(15, height - 40, 440, 28);
+            this.ctx.fillRect(15, height - 40, 460, 28);
             this.ctx.fillStyle = '#0f172a';
             this.ctx.font = 'bold 12px sans-serif';
             this.ctx.textAlign = 'left';
@@ -632,8 +665,11 @@ export class BreadboardCanvas {
             this.ctx.lineCap = 'round';
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
-            const midWireX = (pA.x + pB.x) / 2 + 10;
-            const midWireY = (pA.y + pB.y) / 2;
+
+            const isBindingWire = comp.pinA.startsWith('BINDING_') || comp.pinB.startsWith('BINDING_');
+            const midWireX = (pA.x + pB.x) / 2 + (isBindingWire ? 30 : 10);
+            const midWireY = (pA.y + pB.y) / 2 + (isBindingWire ? -15 : 0);
+
             this.ctx.quadraticCurveTo(midWireX, midWireY, pB.x, pB.y);
             this.ctx.stroke();
 

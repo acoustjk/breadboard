@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports Left Sidebar Component Palette with Vertical Placement Buttons and Double-Click Property Inspector.
+ * Supports Interactive Power Supply Binding Posts (Va, Vb, Vc, GND) with Manual Voltage Inspector & Jumper Wire Bridging.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1028';
-import { MNASolver } from './src/engine/MNASolver.js?v=1028';
-import { FFT } from './src/engine/FFT.js?v=1028';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1028';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1028';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1028';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1028';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1028';
-import { AICopilot } from './src/components/AICopilot.js?v=1028';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1029';
+import { MNASolver } from './src/engine/MNASolver.js?v=1029';
+import { FFT } from './src/engine/FFT.js?v=1029';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1029';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1029';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1029';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1029';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1029';
+import { AICopilot } from './src/components/AICopilot.js?v=1029';
 
 class AppController {
     constructor() {
@@ -38,6 +38,11 @@ class AppController {
         this.animFrameId = null;
         this.fftTimer = 0;
         this.compCounter = 1;
+
+        // Power Supply Binding Post Voltages
+        this.voltageVa = 12.0;
+        this.voltageVb = -12.0;
+        this.voltageVc = 5.0;
 
         // Selected Family Dropdown Values
         this.selectedResistorType = 'R';
@@ -76,7 +81,7 @@ class AppController {
             let labelMsg = '';
 
             if (toolType === 'WIRE') {
-                const isPower = pinA.includes('VCC') || pinB.includes('VCC');
+                const isPower = pinA.includes('VCC') || pinB.includes('VCC') || pinA.startsWith('BINDING_') || pinB.startsWith('BINDING_');
                 newComp = new Wire(id, pinA, pinB, isPower ? '#ef4444' : '#0984e3');
                 labelMsg = '점퍼 와이어';
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
@@ -128,13 +133,44 @@ class AppController {
             if (newComp) {
                 this.components.push(newComp);
                 this.resetToolState();
-                this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다! (더블클릭으로 수치 변경 가능)`;
+                this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
                 this.renderAll();
             }
         };
 
         this.breadboardCanvas.onComponentDblClicked = (comp) => {
             this.openPropertyInspector(comp);
+        };
+
+        this.breadboardCanvas.onBindingPostDblClicked = (bindingKey) => {
+            if (bindingKey === 'BINDING_Va') {
+                const valStr = prompt(`🔴 Va 바인딩 포스트 전압(V)을 입력하세요:`, this.voltageVa);
+                const parsed = parseFloat(valStr);
+                if (!isNaN(parsed)) {
+                    this.voltageVa = parsed;
+                    this.breadboardCanvas.voltageVa = parsed;
+                    this.breadboardCanvas.toastMsg = `🔴 Va 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
+                    this.renderAll();
+                }
+            } else if (bindingKey === 'BINDING_Vb') {
+                const valStr = prompt(`🟢 Vb 바인딩 포스트 전압(V)을 입력하세요:`, this.voltageVb);
+                const parsed = parseFloat(valStr);
+                if (!isNaN(parsed)) {
+                    this.voltageVb = parsed;
+                    this.breadboardCanvas.voltageVb = parsed;
+                    this.breadboardCanvas.toastMsg = `🟢 Vb 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
+                    this.renderAll();
+                }
+            } else if (bindingKey === 'BINDING_Vc') {
+                const valStr = prompt(`🔵 Vc 바인딩 포스트 전압(V)을 입력하세요:`, this.voltageVc);
+                const parsed = parseFloat(valStr);
+                if (!isNaN(parsed)) {
+                    this.voltageVc = parsed;
+                    this.breadboardCanvas.voltageVc = parsed;
+                    this.breadboardCanvas.toastMsg = `🔵 Vc 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
+                    this.renderAll();
+                }
+            }
         };
 
         this.breadboardCanvas.onProbePlaced = (type, pinKey) => {
@@ -229,9 +265,18 @@ class AppController {
     // 🎓 Qualification Exam Presets (EIC-108 Standard Layout)
     initPNMExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 정밀 배치)';
+        this.voltageVa = 12.0;
+        this.voltageVb = -12.0;
+        this.voltageVc = 5.0;
+        this.breadboardCanvas.voltageVa = 12.0;
+        this.breadboardCanvas.voltageVb = -12.0;
+        this.breadboardCanvas.voltageVc = 5.0;
+
         this.components = [
-            new DCSource('V_POS', 'VCC_TOP1_1', 'GND_TOP1_1', 12.0, true),
-            new DCSource('V_NEG', 'VCC_TOP2_1', 'GND_TOP2_1', -12.0, true),
+            // Banana Jack Binding Post to Breadboard Bus Jumper Wires
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_VB_BUS', 'BINDING_Vb', 'VCC_TOP2_1', '#00b894'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
 
             new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
@@ -298,7 +343,8 @@ class AppController {
     initMasterCommExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 2번] NE555 + LM741 복합 펄스/발진회로';
         this.components = [
-            new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
@@ -320,7 +366,8 @@ class AppController {
     initCraftsmanElecExam() {
         this.currentExamTitle = '🥇 [Q-Net 전자기능사/전자기기기능사 1번] 7805 정전압 + NE555 LED 클럭회로';
         this.components = [
-            new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 12.0, true),
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
             new DIPChip('REG1', 'LM7805', 'B1_E5', 'B1_F5'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_A5', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_B5', '#3b82f6'),
@@ -341,7 +388,8 @@ class AppController {
     initEngineerElecExam() {
         this.currentExamTitle = '🥈 [Q-Net 전자산업기사/기사 1번] LM741 능동 LPF (Low Pass Filter) 회로';
         this.components = [
-            new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new Resistor('R1', 'B1_VCC_5', 'B1_A10', 1000, true),
@@ -359,7 +407,8 @@ class AppController {
     initWirelessExam() {
         this.currentExamTitle = '🥉 [KCA 무선설비기능사/기사 1번] Colpitts 정현파 발진회로';
         this.components = [
-            new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new Resistor('R1', 'B1_VCC_5', 'B1_A5', 10000, true),
@@ -377,7 +426,8 @@ class AppController {
     initComputerExam() {
         this.currentExamTitle = '📊 [Q-Net 전자계산기기능사 1번] CD4017 10진 디케이드 LED 카운터 회로';
         this.components = [
-            new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new DIPChip('IC1', 'NE555', 'B1_E5', 'B1_F5'),
@@ -702,8 +752,16 @@ class AppController {
         let vC = 0;
         let vD = 0;
 
+        // Dynamic Voltage Sources for Va, Vb, Vc Binding Posts
+        const bindingSources = [
+            new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
+            new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
+            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
+        ];
+        const activeComps = [...this.components, ...bindingSources];
+
         for (let i = 0; i < stepsPerFrame; i++) {
-            const nodeVoltages = this.solver.solveStep(this.components, this.dt);
+            const nodeVoltages = this.solver.solveStep(activeComps, this.dt);
             this.simTime += this.dt;
 
             const nA = this.breadboardCanvas.probeAPin ? this.grid.getNodeId(this.breadboardCanvas.probeAPin) : null;
