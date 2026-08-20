@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power) Sample Preset v=1043.
+ * LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power) Sample Preset v=1044.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1043';
-import { MNASolver } from './src/engine/MNASolver.js?v=1043';
-import { FFT } from './src/engine/FFT.js?v=1043';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1043';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1043';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1043';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1043';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1043';
-import { AICopilot } from './src/components/AICopilot.js?v=1043';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1044';
+import { MNASolver } from './src/engine/MNASolver.js?v=1044';
+import { FFT } from './src/engine/FFT.js?v=1044';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1044';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1044';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1044';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1044';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1044';
+import { AICopilot } from './src/components/AICopilot.js?v=1044';
 
 class AppController {
     constructor() {
@@ -432,8 +432,8 @@ class AppController {
             // Pin 4 (GND): 0V Connection
             new Wire('W_LM358_GND', 'B1_E23', 'B1_GND_23', '#3b82f6'),
 
-            // Pin 3 (IN1+): Connected to Node A (Vref 4.5V)
-            new Wire('W_VREF_PIN3', 'B1_B15', 'B1_E22', '#f39c12'),
+            // Pin 2 (IN1-): Connected to Node A (Vref 4.5V)
+            new Wire('W_VREF_PIN2', 'B1_B15', 'B1_E21', '#f39c12'),
             // Pin 5 (IN2+): Connected to Node A (Vref 4.5V)
             new Wire('W_VREF_PIN5', 'B1_C15', 'B1_F23', '#f39c12'),
 
@@ -443,16 +443,11 @@ class AppController {
             new Resistor('R1', 'B1_A20', 'B1_A22', 10000, true),
             new Wire('W_R1_PIN3', 'B1_A22', 'B1_E22', '#0984e3'),
 
-            // Row 26: R3 (100kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 2 (IN1-, B1_E21)
-            new Wire('W_PIN1_R3', 'B1_E20', 'B1_B20', '#0984e3'),
-            new Resistor('R3', 'B1_B20', 'B1_B21', 100000, true),
-            new Wire('W_R3_PIN2', 'B1_B21', 'B1_E21', '#0984e3'),
-
-            // Row 27: R2 (10kΩ) connected between Pin 7 (OUT2, B1_F21) and Pin 2 (IN1-, B1_E21)
+            // Row 27: R2 (10kΩ) connected between Pin 7 (OUT2, B1_F21) and Pin 3 (IN1+, B1_E22)
             new Wire('W_PIN7_R2', 'B1_F21', 'B1_G21', '#9b59b6'),
-            new Wire('W_R2_CROSS', 'B1_G21', 'B1_C21', '#9b59b6'),
-            new Resistor('R2', 'B1_C21', 'B1_D21', 10000, true),
-            new Wire('W_R2_PIN2', 'B1_D21', 'B1_E21', '#9b59b6'),
+            new Wire('W_R2_CROSS', 'B1_G21', 'B1_B22', '#9b59b6'),
+            new Resistor('R2', 'B1_B22', 'B1_C22', 10000, true),
+            new Wire('W_R2_PIN3', 'B1_C22', 'B1_E22', '#9b59b6'),
 
             // Row 30: R4 (100kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 6 (IN2-, B1_F22)
             new Wire('W_PIN1_R4', 'B1_E20', 'B1_D20', '#e17055'),
