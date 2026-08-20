@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Complete Behavioral SPICE Simulation for All 19 IC Chips.
+ * Complete Behavioral SPICE Simulation for All 19 IC Chips & PNM Exam Circuit Fix.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1036';
-import { MNASolver } from './src/engine/MNASolver.js?v=1036';
-import { FFT } from './src/engine/FFT.js?v=1036';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1036';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1036';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1036';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1036';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1036';
-import { AICopilot } from './src/components/AICopilot.js?v=1036';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1037';
+import { MNASolver } from './src/engine/MNASolver.js?v=1037';
+import { FFT } from './src/engine/FFT.js?v=1037';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1037';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1037';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1037';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1037';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1037';
+import { AICopilot } from './src/components/AICopilot.js?v=1037';
 
 class AppController {
     constructor() {
@@ -40,9 +40,9 @@ class AppController {
         this.compCounter = 1;
 
         // Power Supply Binding Post Voltages
-        this.voltageVa = 5.0;
+        this.voltageVa = 12.0;
         this.voltageVb = 0.0;
-        this.voltageVc = -5.0;
+        this.voltageVc = -12.0;
 
         // Selected Family Dropdown Values
         this.selectedResistorType = 'R';
@@ -58,7 +58,7 @@ class AppController {
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initSquareOscillator(); // Load Square Wave Oscillator by default
+        this.initPNMExam(); // Load PNM Exam by default with full oscillation feedback
         this.setupUIEventListeners();
         this.renderAll();
     }
@@ -267,7 +267,7 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
-    warmupSimulationBuffer(steps = 250) {
+    warmupSimulationBuffer(steps = 300) {
         const bindingSources = [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
@@ -294,66 +294,7 @@ class AppController {
         }
     }
 
-    // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
-    initSquareOscillator() {
-        this.currentExamTitle = '⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator Sample)';
-        this.voltageVa = 5.0;
-        this.voltageVb = 0.0;
-        this.voltageVc = -5.0;
-        this.breadboardCanvas.voltageVa = 5.0;
-        this.breadboardCanvas.voltageVb = 0.0;
-        this.breadboardCanvas.voltageVc = -5.0;
-
-        this.components = [
-            // Power Supply Wires (Va = +5V, GND = 0V)
-            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_5', '#ef4444'),
-            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_5', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_10', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_10', '#3b82f6'),
-
-            // NE555 DIP-8 IC placed at Block 1 (Rows 10~13)
-            new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
-
-            // Pin 1 (GND): Connect to GND Rail
-            new Wire('W_GND', 'B1_E10', 'B1_GND_10', '#3b82f6'),
-
-            // Pin 8 (VCC) & Pin 4 (RESET): Connect to VCC Rail (+5V)
-            new Wire('W_VCC', 'B1_F10', 'B1_VCC_10', '#ef4444'),
-            new Wire('W_RESET', 'B1_E13', 'B1_VCC_13', '#ef4444'),
-
-            // Pin 7 (DISCHARGE): R1 (1kΩ) connected to VCC
-            new Resistor('R1', 'B1_VCC_11', 'B1_H11', 1000, true),
-
-            // R2 (10kΩ): Connected between Pin 7 (Discharge) and Pin 6 (Threshold)
-            new Resistor('R2', 'B1_H11', 'B1_J12', 10000, true),
-
-            // Pin 2 (TRIGGER) <-> Pin 6 (THRESHOLD) Bridge Wire
-            new Wire('W_TRIG_THRESH', 'B1_D11', 'B1_J12', '#0984e3'),
-
-            // C1 (0.1µF Timing Capacitor): Connected between Pin 2/6 and GND
-            new Capacitor('C1', 'B1_C11', 'B1_GND_11', 0.1e-6, true, 'MYLAR'),
-
-            // Pin 3 (OUTPUT): Current-limiting Resistor & LED
-            new Resistor('R_LED', 'B1_C12', 'B1_A16', 330, true),
-            new LEDComponent('LED1', 'B1_B16', 'B1_GND_16', 2.0)
-        ];
-
-        // 4CH Oscilloscope Probes Attached to Key Waveform Test Points
-        this.probeAPin = 'B1_E12'; // CH A (Yellow) -> Pin 3 Output (Square Wave)
-        this.probeBPin = 'B1_C11'; // CH B (Magenta) -> Pin 2/6 Capacitor C1 (Triangle/RC Wave)
-        this.probeCPin = 'B1_H11'; // CH C (Cyan) -> Pin 7 Discharge
-        this.probeDPin = 'B1_VCC_10'; // CH D (Green) -> VCC +5V Power
-
-        this.breadboardCanvas.probeAPin = 'B1_E12';
-        this.breadboardCanvas.probeBPin = 'B1_C11';
-        this.breadboardCanvas.probeCPin = 'B1_H11';
-        this.breadboardCanvas.probeDPin = 'B1_VCC_10';
-
-        this.warmupSimulationBuffer(300);
-        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 로드 완료! (CH A: 685Hz 구형파, CH B: 삼각 파형)`;
-    }
-
-    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
+    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment with Oscillating Feedback Loop)
     initPNMExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 100% 정밀 도면)';
         this.voltageVa = 12.0;
@@ -364,7 +305,7 @@ class AppController {
         this.breadboardCanvas.voltageVc = -12.0;
 
         this.components = [
-            // Banana Jack Power Supply Wires (Matching EIC-108 top wiring in media_1787186502359.png)
+            // Banana Jack Power Supply Wires (Matching EIC-108 top wiring)
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
             new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
@@ -373,7 +314,7 @@ class AppController {
             new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
             new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
             new Wire('JUMP_POS2', 'VCC_TOP1_15', 'B2_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND2', 'GND_TOP1_15', 'B2_GND_1', '#3b82f6'),
+            new Wire('JUMP_GND2', 'GND_TOP1_5', 'B2_GND_1', '#3b82f6'),
             new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_1', '#ef4444'),
             new Wire('JUMP_NEG3', 'VCC_TOP2_25', 'B3_GND_1', '#00b894'),
             new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_1', '#ef4444'),
@@ -405,6 +346,10 @@ class AppController {
             new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
             new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_24', 9.1, 0.7),
 
+            // Positive Feedback Loop Wires for Sustained Oscillation
+            new Wire('W_OSC_FB', 'B3_F20', 'B1_C18', '#e74c3c'), // U1 Out -> CR Stage 1 In
+            new Wire('W_VR1_OUT', 'B3_C14', 'B3_F20', '#f39c12'), // VR1 -> U1 Out
+
             // U3 Sawtooth Generator (Block 3 Rows 40~43)
             new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
             new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5),
@@ -414,6 +359,9 @@ class AppController {
 
             new Wire('W_U3_VPOS', 'B3_VCC_41', 'B3_F41', '#ef4444'),
             new Wire('W_U3_VNEG', 'B3_GND_43', 'B3_E43', '#00b894'),
+            new Wire('W_VR2_IN', 'B3_VCC_35', 'B3_A35', '#ef4444'),
+            new Wire('W_VR2_OUT', 'B3_C37', 'B3_B41', '#f39c12'),
+            new Wire('W_U3_FB', 'B3_C37', 'B3_F42', '#9b59b6'),
 
             // U2 Zero-crossing Comparator & Q1 NPN Switch (Block 4)
             new DIPChip('U2', 'LF356', 'B4_E18', 'B4_F18'),
@@ -436,13 +384,59 @@ class AppController {
         this.probeBPin = 'B3_F42'; // TP2 (U3 Pin 6 Output)
         this.probeCPin = 'B4_C35'; // TP3 (Q1 Collector Output)
         this.probeDPin = 'BINDING_Va'; // Va (+12V Power)
+
         this.breadboardCanvas.probeAPin = 'B3_F20';
         this.breadboardCanvas.probeBPin = 'B3_F42';
         this.breadboardCanvas.probeCPin = 'B4_C35';
         this.breadboardCanvas.probeDPin = 'BINDING_Va';
 
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(400);
         this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면 100% 정밀 반영 [PNM 회로] 4CH 파형 계측 준비 완료!`;
+    }
+
+    // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
+    initSquareOscillator() {
+        this.currentExamTitle = '⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator Sample)';
+        this.voltageVa = 5.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -5.0;
+        this.breadboardCanvas.voltageVa = 5.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = -5.0;
+
+        this.components = [
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_5', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_5', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_10', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_10', '#3b82f6'),
+
+            new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
+
+            new Wire('W_GND', 'B1_E10', 'B1_GND_10', '#3b82f6'),
+            new Wire('W_VCC', 'B1_F10', 'B1_VCC_10', '#ef4444'),
+            new Wire('W_RESET', 'B1_E13', 'B1_VCC_13', '#ef4444'),
+
+            new Resistor('R1', 'B1_VCC_11', 'B1_H11', 1000, true),
+            new Resistor('R2', 'B1_H11', 'B1_J12', 10000, true),
+            new Wire('W_TRIG_THRESH', 'B1_D11', 'B1_J12', '#0984e3'),
+            new Capacitor('C1', 'B1_C11', 'B1_GND_11', 0.1e-6, true, 'MYLAR'),
+
+            new Resistor('R_LED', 'B1_C12', 'B1_A16', 330, true),
+            new LEDComponent('LED1', 'B1_B16', 'B1_GND_16', 2.0)
+        ];
+
+        this.probeAPin = 'B1_E12';
+        this.probeBPin = 'B1_C11';
+        this.probeCPin = 'B1_H11';
+        this.probeDPin = 'B1_VCC_10';
+
+        this.breadboardCanvas.probeAPin = 'B1_E12';
+        this.breadboardCanvas.probeBPin = 'B1_C11';
+        this.breadboardCanvas.probeCPin = 'B1_H11';
+        this.breadboardCanvas.probeDPin = 'B1_VCC_10';
+
+        this.warmupSimulationBuffer(300);
+        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 로드 완료! (CH A: 685Hz 구형파, CH B: 삼각 파형)`;
     }
 
     initMasterCommExam() {
@@ -798,10 +792,10 @@ class AppController {
             if (val === 'empty') {
                 this.initEmptyBoard();
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
-            } else if (val === 'square_osc') {
-                this.initSquareOscillator();
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
+            } else if (val === 'square_osc') {
+                this.initSquareOscillator();
             } else if (val === 'exam_master_comm') {
                 this.initMasterCommExam();
             } else if (val === 'exam_craftsman_elec') {

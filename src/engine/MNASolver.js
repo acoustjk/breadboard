@@ -2,11 +2,7 @@
  * MNASolver.js
  * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
  * Complete Behavioral SPICE Simulation Models for 19 IC Chips:
- * - Timers: NE555 (DIP-8), NE556 (DIP-14)
- * - Op-Amps & Comparators: LF356, LM741, LM358, LM386, LM393
- * - Regulators: LM7805, LM7812, LM317
- * - 74HC Logic Gates: 74HC00, 74HC02, 74HC04, 74HC08, 74HC32, 74HC86
- * - Counters & Registers: CD4017, 74HC595, CD4026
+ * Op-Amp models updated with high-gain active voltage source outputs.
  */
 
 export class MNASolver {
@@ -19,7 +15,7 @@ export class MNASolver {
     }
 
     getDIPPins(comp) {
-        const pinA = comp.pinA; // e.g. "B1_E10"
+        const pinA = comp.pinA;
         const match = pinA ? pinA.match(/^(B\d+)_([A-E])(\d+)$/) : null;
         if (!match) return null;
         const block = match[1];
@@ -107,16 +103,13 @@ export class MNASolver {
 
         const getNode = (pinKey) => this.grid.getNodeId(pinKey);
 
-        // Helper to drive a digital pin (HIGH = 5.0V, LOW = 0.0V)
         const driveDigitalPin = (pinKey, isHigh, gDriver = 100.0) => {
             const n = getNode(pinKey);
             if (!n) return;
             if (isHigh) {
-                // Connect to VCC equivalent (5V source) via gDriver
                 addConductance(n, '0', gDriver);
                 addCurrentSource(n, '0', 5.0 * gDriver);
             } else {
-                // Connect to GND via gDriver
                 addConductance(n, '0', gDriver);
             }
         };
@@ -146,7 +139,7 @@ export class MNASolver {
                 addConductance(nA, nB, 20.0);
 
             // ==========================================
-            // 2. Behavioral Models for all 19 IC Chips
+            // 2. Behavioral Models for IC Chips
             // ==========================================
             } else if (comp.type === 'IC') {
                 const pins = this.getDIPPins(comp);
@@ -154,9 +147,6 @@ export class MNASolver {
 
                 const icType = comp.icType || 'LF356';
 
-                // ------------------------------------------
-                // A. Timers: NE555 (DIP-8) & NE556 (DIP-14)
-                // ------------------------------------------
                 if (icType === 'NE555') {
                     comp.state = comp.state || 'HIGH';
                     const vCap = comp.lastVCap || 0.0;
@@ -174,7 +164,6 @@ export class MNASolver {
                     addConductance(getNode(pins.pin5), '0', 0.001);
 
                 } else if (icType === 'NE556') {
-                    // Dual 555 Timer in DIP-14
                     comp.state1 = comp.state1 || 'HIGH';
                     comp.state2 = comp.state2 || 'HIGH';
 
@@ -187,7 +176,6 @@ export class MNASolver {
                     if (vCap2 >= 3.33) comp.state2 = 'LOW';
                     else if (vCap2 <= 1.67) comp.state2 = 'HIGH';
 
-                    // Timer 1: Pin 5 (OUT1), Pin 1 (DISCH1)
                     if (comp.state1 === 'HIGH') {
                         addConductance(getNode(pins.pin5), getNode(pins.pin14), 100.0);
                         addConductance(getNode(pins.pin1), '0', 1e-6);
@@ -196,7 +184,6 @@ export class MNASolver {
                         addConductance(getNode(pins.pin1), '0', 100.0);
                     }
 
-                    // Timer 2: Pin 9 (OUT2), Pin 13 (DISCH2)
                     if (comp.state2 === 'HIGH') {
                         addConductance(getNode(pins.pin9), getNode(pins.pin14), 100.0);
                         addConductance(getNode(pins.pin13), '0', 1e-6);
@@ -205,31 +192,44 @@ export class MNASolver {
                         addConductance(getNode(pins.pin13), '0', 100.0);
                     }
 
-                // ------------------------------------------
-                // B. Op-Amps & Comparators: LF356, LM741, LM358, LM386, LM393
-                // ------------------------------------------
                 } else if (icType === 'LF356' || icType === 'LM741') {
                     // Single Op-Amp: Pin 2 (-), Pin 3 (+), Pin 6 (OUT)
-                    const vMinus = comp.lastVMinus || 0;
-                    const vPlus = comp.lastVPlus || 0;
-                    const vDiff = vPlus - vMinus;
-                    const vOutIdeal = Math.max(-12.0, Math.min(12.0, vDiff * 100.0));
+                    const nOut = getNode(pins.pin6);
+                    if (nOut) {
+                        const vMinus = comp.lastVMinus || 0;
+                        const vPlus = comp.lastVPlus || 0;
+                        const vDiff = vPlus - vMinus;
+                        const gain = 500.0;
+                        const vPos = comp.vPin7 || 12.0;
+                        const vNeg = comp.vPin4 || -12.0;
+                        const vOutIdeal = Math.max(vNeg + 1.2, Math.min(vPos - 1.2, vDiff * gain));
 
-                    if (vOutIdeal >= 0) addConductance(getNode(pins.pin6), getNode(pins.pin7), 50.0);
-                    else addConductance(getNode(pins.pin6), getNode(pins.pin4), 50.0);
+                        addConductance(nOut, '0', 100.0);
+                        addCurrentSource(nOut, '0', vOutIdeal * 100.0);
+                    }
 
                 } else if (icType === 'LM358' || icType === 'LM393') {
                     // Dual Op-Amp / Comparator:
                     // Unit A: Pin 2 (-), Pin 3 (+), Pin 1 (OUT1)
                     // Unit B: Pin 6 (-), Pin 5 (+), Pin 7 (OUT2)
-                    const vDiffA = (comp.lastVPlusA || 0) - (comp.lastVMinusA || 0);
-                    const vDiffB = (comp.lastVPlusB || 0) - (comp.lastVMinusB || 0);
+                    const nOutA = getNode(pins.pin1);
+                    const nOutB = getNode(pins.pin7);
 
-                    driveDigitalPin(pins.pin1, vDiffA >= 0);
-                    driveDigitalPin(pins.pin7, vDiffB >= 0);
+                    if (nOutA) {
+                        const vDiffA = (comp.lastVPlusA || 0) - (comp.lastVMinusA || 0);
+                        const vOutA = Math.max(-12.0, Math.min(12.0, vDiffA * 500.0));
+                        addConductance(nOutA, '0', 100.0);
+                        addCurrentSource(nOutA, '0', vOutA * 100.0);
+                    }
+
+                    if (nOutB) {
+                        const vDiffB = (comp.lastVPlusB || 0) - (comp.lastVMinusB || 0);
+                        const vOutB = Math.max(-12.0, Math.min(12.0, vDiffB * 500.0));
+                        addConductance(nOutB, '0', 100.0);
+                        addCurrentSource(nOutB, '0', vOutB * 100.0);
+                    }
 
                 } else if (icType === 'LM386') {
-                    // Audio Amp: Pin 2 (-IN), Pin 3 (+IN), Pin 5 (OUT)
                     const vDiff = (comp.lastVPlus || 0) - (comp.lastVMinus || 0);
                     const vOut = Math.max(0.5, Math.min(4.5, 2.5 + vDiff * 20.0));
                     const nOut = getNode(pins.pin5);
@@ -238,9 +238,6 @@ export class MNASolver {
                         addCurrentSource(nOut, '0', vOut * 50.0);
                     }
 
-                // ------------------------------------------
-                // C. Regulators: LM7805, LM7812, LM317
-                // ------------------------------------------
                 } else if (icType === 'LM7805') {
                     const nOut = getNode(pins.pin3);
                     if (nOut) {
@@ -260,11 +257,7 @@ export class MNASolver {
                         addCurrentSource(nOut, '0', 5.0 * 100.0);
                     }
 
-                // ------------------------------------------
-                // D. 74HC Logic Gates (DIP-14)
-                // ------------------------------------------
                 } else if (icType === '74HC00') {
-                    // Quad 2-Input NAND Gate
                     const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
                     const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
                     const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
@@ -276,7 +269,6 @@ export class MNASolver {
                     driveDigitalPin(pins.pin11, !(inA4 && inB4));
 
                 } else if (icType === '74HC02') {
-                    // Quad 2-Input NOR Gate
                     const inA1 = (comp.vPin2 || 0) > 2.5, inB1 = (comp.vPin3 || 0) > 2.5;
                     const inA2 = (comp.vPin5 || 0) > 2.5, inB2 = (comp.vPin6 || 0) > 2.5;
                     const inA3 = (comp.vPin8 || 0) > 2.5, inB3 = (comp.vPin9 || 0) > 2.5;
@@ -288,7 +280,6 @@ export class MNASolver {
                     driveDigitalPin(pins.pin13, !(inA4 || inB4));
 
                 } else if (icType === '74HC04') {
-                    // Hex Inverter (NOT)
                     driveDigitalPin(pins.pin2, !((comp.vPin1 || 0) > 2.5));
                     driveDigitalPin(pins.pin4, !((comp.vPin3 || 0) > 2.5));
                     driveDigitalPin(pins.pin6, !((comp.vPin5 || 0) > 2.5));
@@ -297,7 +288,6 @@ export class MNASolver {
                     driveDigitalPin(pins.pin12, !((comp.vPin13 || 0) > 2.5));
 
                 } else if (icType === '74HC08') {
-                    // Quad 2-Input AND Gate
                     const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
                     const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
                     const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
@@ -309,7 +299,6 @@ export class MNASolver {
                     driveDigitalPin(pins.pin11, inA4 && inB4);
 
                 } else if (icType === '74HC32') {
-                    // Quad 2-Input OR Gate
                     const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
                     const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
                     const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
@@ -321,7 +310,6 @@ export class MNASolver {
                     driveDigitalPin(pins.pin11, inA4 || inB4);
 
                 } else if (icType === '74HC86') {
-                    // Quad 2-Input XOR Gate
                     const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
                     const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
                     const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
@@ -332,14 +320,7 @@ export class MNASolver {
                     driveDigitalPin(pins.pin8, (inA3 !== inB3));
                     driveDigitalPin(pins.pin11, (inA4 !== inB4));
 
-                // ------------------------------------------
-                // E. Counters & Shift Registers (DIP-16)
-                // ------------------------------------------
                 } else if (icType === 'CD4017') {
-                    // 10-Stage Decade Counter / Sequencer
-                    // Pin 14: CLOCK input
-                    // Pin 15: RESET input
-                    // Outputs Q0~Q9: Pin 3, 2, 4, 7, 10, 1, 5, 6, 9, 11
                     comp.counterState = comp.counterState || 0;
                     const vClk = comp.vPin14 || 0;
                     const vRst = comp.vPin15 || 0;
@@ -357,9 +338,6 @@ export class MNASolver {
                     });
 
                 } else if (icType === '74HC595') {
-                    // 8-Bit Shift Register with Latch
-                    // Pin 11: SRCLK, Pin 12: RCLK, Pin 14: SER (DS)
-                    // Outputs Q0~Q7: Pin 15, 1, 2, 3, 4, 5, 6, 7
                     comp.shiftReg = comp.shiftReg || 0;
                     comp.latchReg = comp.latchReg || 0;
 
@@ -383,9 +361,6 @@ export class MNASolver {
                     });
 
                 } else if (icType === 'CD4026') {
-                    // 7-Segment Decade Counter / Driver
-                    // Pin 1: CLOCK, Pin 15: RESET
-                    // 7-Seg Outputs: a(Pin 10), b(Pin 12), c(Pin 13), d(Pin 9), e(Pin 11), f(Pin 6), g(Pin 7)
                     comp.digitCount = comp.digitCount || 0;
                     const vClk = comp.vPin1 || 0;
                     const vRst = comp.vPin15 || 0;
@@ -397,7 +372,6 @@ export class MNASolver {
                     }
                     comp.lastVClk = vClk;
 
-                    // 7-Seg Segment Map (a, b, c, d, e, f, g)
                     const segMap = [
                         [1,1,1,1,1,1,0], // 0
                         [0,1,1,0,0,0,0], // 1
@@ -474,7 +448,6 @@ export class MNASolver {
                         comp[`vPin${p}`] = resultMap.get(nKey) || 0;
                     }
 
-                    // Store feedback voltages for NE555 & Op-Amps
                     if (comp.icType === 'NE555') {
                         comp.lastVCap = comp.vPin2 || 0;
                     } else if (comp.icType === 'NE556') {

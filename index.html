@@ -19,10 +19,10 @@
         <div class="header-controls">
             <!-- Qualification Exam & Sample Preset Selector -->
             <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber); width: auto;">
-                <option value="square_osc" selected>⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator)</option>
+                <option value="exam_pnm" selected>🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 100% 정밀 도면)</option>
+                <option value="square_osc">⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator)</option>
                 <option value="empty">🧹 빈 브레드보드 (자유 조립 모드)</option>
                 <optgroup label="🎓 국가기술자격증 실기시험 기출 프리셋">
-                    <option value="exam_pnm">🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 100% 정밀 도면)</option>
                     <option value="exam_master_comm">🏆 [통신설비기능장 2번] NE555 + LM741 복합 펄스/발진회로</option>
                     <option value="exam_craftsman_elec">🥇 [전자기능사/전자기기 1번] 7805 정전압 + NE555 LED 파형 클럭회로</option>
                     <option value="exam_engineer_elec">🥈 [전자산업기사/기사 1번] LM741 능동 LPF (Low Pass) 필터회로</option>
@@ -177,7 +177,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 19종 전 제품 IC (NE555, 74HC 게이트, CD4017 디케이드 등) 실시간 SPICE 동작 모델이 전면 구현되었습니다!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 EIC-108 PNM 회로 정귀환 및 4CH 오실로스코프 출력파형 연산이 보정되었습니다!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -193,8 +193,8 @@
             </div>
 
             <div id="copilotChat" class="copilot-chat">
-                <p>안녕하세요! <strong>19종 IC 칩 행동형 SPICE 회로 시뮬레이터 AI 코파일럿</strong>입니다.</p>
-                <p><strong>NE555, NE556 타이머, 74HC 로직 게이트 6종, CD4017/74HC595 디코더</strong> 등 카탈로그에 있는 19종 모든 IC의 내부 스위칭 및 카운터 연산 모델이 완비되었습니다!</p>
+                <p>안녕하세요! <strong>EIC-108 PNM 실기 회로 정밀 시뮬레이터 AI 코파일럿</strong>입니다.</p>
+                <p><strong>[▶ 시뮬레이션 시작]</strong> 또는 <strong>[📊 4CH 오실로스코프 팝업]</strong>을 여시면 TP1 정현파, TP2 삼각파, TP3 변조 펄스 파형을 즉시 계측하실 수 있습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -281,6 +281,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1036"></script>
+    <script type="module" src="./app.js?v=1037"></script>
 </body>
 </html>
