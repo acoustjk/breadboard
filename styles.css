@@ -72,11 +72,15 @@ body {
     background: #1e293b;
     color: var(--text-primary);
     border: 1px solid var(--card-border);
-    padding: 6px 12px;
+    padding: 7px 12px;
     border-radius: 6px;
     font-size: 13px;
     outline: none;
     cursor: pointer;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .select-input:focus {
@@ -87,7 +91,7 @@ body {
     background: #1e293b;
     color: var(--text-primary);
     border: 1px solid var(--card-border);
-    padding: 6px 12px;
+    padding: 7px 12px;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 600;
@@ -97,6 +101,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 4px;
+    white-space: nowrap;
 }
 
 .btn:hover {
@@ -175,7 +180,7 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .palette-section {
@@ -185,7 +190,7 @@ body {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .palette-section-title {
@@ -201,14 +206,11 @@ body {
     gap: 6px;
 }
 
-.palette-row {
+.palette-block-vertical {
     display: flex;
+    flex-direction: column;
     gap: 6px;
-    align-items: center;
-}
-
-.palette-row select {
-    flex: 1;
+    width: 100%;
 }
 
 /* Center Breadboard Panel */

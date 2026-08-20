@@ -18,7 +18,7 @@
 
         <div class="header-controls">
             <!-- Qualification Exam Preset Selector -->
-            <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber);">
+            <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber); width: auto;">
                 <option value="empty" selected>🧹 빈 브레드보드 (자유 조립 모드)</option>
                 <optgroup label="🎓 국가기술자격증 실기시험 기출 프리셋">
                     <option value="exam_pnm">🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 4CH 계측)</option>
@@ -71,32 +71,32 @@
             <!-- Resistor Family Dropdown (Resistor / Potentiometer) -->
             <div class="palette-section">
                 <div class="palette-section-title">⚡ 저항 소자 라이브러리:</div>
-                <div class="palette-row">
+                <div class="palette-block-vertical">
                     <select id="resistorTypeSelect" class="select-input">
                         <option value="R" selected>⚡ 고정 저항 (Resistor)</option>
                         <option value="POT">🎛️ 가변저항 (Potentiometer)</option>
                     </select>
-                    <button id="toolResistorCatalog" class="btn btn-primary">⚡ 저항 배치</button>
+                    <button id="toolResistorCatalog" class="btn btn-primary">⚡ 선택한 저항 소자 배치</button>
                 </div>
             </div>
 
             <!-- Capacitor Family Dropdown (Mylar / Elec / Ceramic) -->
             <div class="palette-section">
                 <div class="palette-section-title">🔋 콘덴서 소자 라이브러리:</div>
-                <div class="palette-row">
+                <div class="palette-block-vertical">
                     <select id="capacitorTypeSelect" class="select-input">
                         <option value="C_MYLAR" selected>🟢 마일러 필름 콘덴서</option>
                         <option value="C_ELEC">🔋 전해 콘덴서 (+/- 극성)</option>
                         <option value="C_CERAMIC">🟡 세라믹 콘덴서 (104)</option>
                     </select>
-                    <button id="toolCapacitorCatalog" class="btn btn-primary">🔋 콘덴서 배치</button>
+                    <button id="toolCapacitorCatalog" class="btn btn-primary">🔋 선택한 콘덴서 배치</button>
                 </div>
             </div>
 
             <!-- IC Catalog Dropdown (19 IC Chips) -->
             <div class="palette-section">
                 <div class="palette-section-title">🔲 IC 칩 카탈로그 (19종):</div>
-                <div class="palette-row">
+                <div class="palette-block-vertical">
                     <select id="icLibrarySelect" class="select-input">
                         <optgroup label="⏱️ 통신기능장 & 아날로그 IC">
                             <option value="LF356" selected>LF356 (DIP-8) JFET Op-Amp (PNM)</option>
@@ -126,7 +126,7 @@
                             <option value="CD4026">CD4026 7-Seg Counter Driver</option>
                         </optgroup>
                     </select>
-                    <button id="toolIcCatalog" class="btn btn-primary">🔲 IC 배치</button>
+                    <button id="toolIcCatalog" class="btn btn-primary">🔲 선택한 IC 칩 배치</button>
                 </div>
             </div>
 
@@ -149,8 +149,8 @@
                     <button id="toolZener" class="btn">⚡ 제너</button>
                     <button id="toolDcSource" class="btn">🔴 5V전원</button>
                     <button id="toolSwitch" class="btn">🔘 스위치</button>
-                    <button id="toolLed" class="btn">💡 LED</button>
                 </div>
+                <button id="toolLed" class="btn" style="width: 100%; margin-top: 2px;">💡 LED 점등 소자</button>
             </div>
 
             <!-- Instrument Popup Triggers -->
@@ -181,7 +181,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 배치된 소자를 더블클릭하면 저항 수치/색상띠 및 콘덴서 용량을 자유롭게 설정할 수 있습니다!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 드롭다운으로 원하는 소자를 선택 후 [배치] 버튼을 눌러 빵판에 꽂으세요!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -198,7 +198,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>Wanjie BB-4T7D 인터랙티브 회로 시뮬레이터 AI 코파일럿</strong>입니다.</p>
-                <p>좌측 부품 팔레트에서 소자를 배치하고, <strong>소자를 더블클릭하여 수치를 수정</strong>해 보세요!</p>
+                <p>좌측 부품 팔레트의 <strong>[선택한 소자 배치] 버튼</strong>을 눌러 빵판에 꽂은 후 더블클릭으로 수치를 수정해 보세요!</p>
             </div>
 
             <div class="copilot-actions">
@@ -223,7 +223,7 @@
             <div class="instrument-controls">
                 <div class="control-group">
                     <label for="voltDivSelect">Volt/Div:</label>
-                    <select id="voltDivSelect" class="select-input" style="padding: 4px 8px;">
+                    <select id="voltDivSelect" class="select-input" style="padding: 4px 8px; width: auto;">
                         <option value="0.5">0.5 V</option>
                         <option value="1.0" selected>1.0 V</option>
                         <option value="2.0">2.0 V</option>
@@ -232,7 +232,7 @@
                 </div>
                 <div class="control-group">
                     <label for="timeDivSelect">Time/Div:</label>
-                    <select id="timeDivSelect" class="select-input" style="padding: 4px 8px;">
+                    <select id="timeDivSelect" class="select-input" style="padding: 4px 8px; width: auto;">
                         <option value="0.001">1.0 ms</option>
                         <option value="0.002" selected>2.0 ms</option>
                         <option value="0.005">5.0 ms</option>
@@ -285,6 +285,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1027"></script>
+    <script type="module" src="./app.js?v=1028"></script>
 </body>
 </html>

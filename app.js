@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports Left Sidebar Component Palette, Resistor/Capacitor Family Dropdowns, and Double-Click Property Inspector.
+ * Supports Left Sidebar Component Palette with Vertical Placement Buttons and Double-Click Property Inspector.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1027';
-import { MNASolver } from './src/engine/MNASolver.js?v=1027';
-import { FFT } from './src/engine/FFT.js?v=1027';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1027';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1027';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1027';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1027';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1027';
-import { AICopilot } from './src/components/AICopilot.js?v=1027';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1028';
+import { MNASolver } from './src/engine/MNASolver.js?v=1028';
+import { FFT } from './src/engine/FFT.js?v=1028';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1028';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1028';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1028';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1028';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1028';
+import { AICopilot } from './src/components/AICopilot.js?v=1028';
 
 class AppController {
     constructor() {
@@ -469,7 +469,7 @@ class AppController {
     }
 
     setupUIEventListeners() {
-        // Resistor & Capacitor Family Dropdowns
+        // Resistor & Capacitor & IC Family Dropdowns
         const rTypeSelect = document.getElementById('resistorTypeSelect');
         if (rTypeSelect) {
             rTypeSelect.addEventListener('change', (e) => {
@@ -514,7 +514,6 @@ class AppController {
             { id: 'toolIcCatalog', tool: 'IC_CATALOG' },
             { id: 'toolDiode', tool: 'DIODE' },
             { id: 'toolZener', tool: 'ZENER' },
-            { id: 'toolPot', tool: 'POT' },
             { id: 'toolDcSource', tool: 'VDC' },
             { id: 'toolSwitch', tool: 'SWITCH' },
             { id: 'toolLed', tool: 'LED' },
