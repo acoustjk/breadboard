@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Fixed Empty Board Clear Bug & Enhanced Point-to-Segment Component Hit Detection for Deletion.
+ * Supports ESC Key Cancellation during 1st Pin Component/Wire Placement.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1032';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1033';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -55,8 +55,21 @@ export class BreadboardCanvas {
         this.onComponentDblClicked = null;
         this.onProbePlaced = null;
         this.onBindingPostDblClicked = null;
+        this.onPlacementCancelled = null;
 
         this.setupEventListeners();
+    }
+
+    cancelPlacement() {
+        if (this.placementPinA || this.activeTool !== 'SELECT') {
+            this.placementPinA = null;
+            this.activeTool = 'SELECT';
+            this.toastMsg = '❌ 소자 배치 / 배선 작업이 취소되었습니다.';
+            this.render();
+            if (this.onPlacementCancelled) {
+                this.onPlacementCancelled();
+            }
+        }
     }
 
     toggleValueBadges() {
@@ -161,6 +174,12 @@ export class BreadboardCanvas {
     }
 
     setupEventListeners() {
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                this.cancelPlacement();
+            }
+        });
+
         this.canvas.addEventListener('wheel', (e) => {
             if (!e.ctrlKey) return;
             e.preventDefault();
@@ -639,15 +658,15 @@ export class BreadboardCanvas {
 
         if (this.activeTool !== 'SELECT') {
             this.ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
-            this.ctx.fillRect(15, 10, 420, 28);
+            this.ctx.fillRect(15, 10, 480, 28);
             this.ctx.fillStyle = '#0f172a';
             this.ctx.font = 'bold 12px sans-serif';
             this.ctx.textAlign = 'left';
             this.ctx.textBaseline = 'middle';
 
             const guideMsg = !this.placementPinA ?
-                `📍 [${this.activeTool}] 1번째 핀(또는 Va/Vb/Vc/GND 단자)을 클릭하세요` :
-                `📍 [${this.activeTool}] 2번째 핀을 클릭하여 배치를 완료하세요`;
+                `📍 [${this.activeTool}] 1번째 핀 클릭하세요 (ESC: 배치 취소)` :
+                `📍 [${this.activeTool}] 2번째 핀을 클릭하여 완료하세요 (ESC: 취소)`;
             this.ctx.fillText(guideMsg, 25, 24);
         }
 

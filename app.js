@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Fixed Empty Board Clear Bug & Enhanced Component Deletion.
+ * ESC Key Cancellation during 1st Pin Component/Wire Placement.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1032';
-import { MNASolver } from './src/engine/MNASolver.js?v=1032';
-import { FFT } from './src/engine/FFT.js?v=1032';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1032';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1032';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1032';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1032';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1032';
-import { AICopilot } from './src/components/AICopilot.js?v=1032';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1033';
+import { MNASolver } from './src/engine/MNASolver.js?v=1033';
+import { FFT } from './src/engine/FFT.js?v=1033';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1033';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1033';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1033';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1033';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1033';
+import { AICopilot } from './src/components/AICopilot.js?v=1033';
 
 class AppController {
     constructor() {
@@ -75,6 +75,10 @@ class AppController {
     }
 
     initPlacementEngine() {
+        this.breadboardCanvas.onPlacementCancelled = () => {
+            this.resetToolState();
+        };
+
         this.breadboardCanvas.onComponentPlaced = (toolType, pinA, pinB) => {
             const id = `${toolType}_${this.compCounter++}`;
             let newComp = null;
@@ -638,7 +642,10 @@ class AppController {
         });
 
         window.addEventListener('keydown', (e) => {
-            if (e.key === 'Delete' || e.key === 'Backspace') {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                this.breadboardCanvas.cancelPlacement();
+                this.resetToolState();
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 const selected = this.breadboardCanvas.selectedComponent;
                 if (selected && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                     this.components = this.components.filter(c => c !== selected);

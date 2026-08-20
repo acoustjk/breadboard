@@ -181,7 +181,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 부품을 클릭하면 파란색 글로우로 선택되며, Delete 키나 [선택 부품 삭제] 버튼으로 삭제할 수 있습니다!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 배선/소자 배치 중 ESC 키를 누르면 1차 핀 선택 및 작업이 취소됩니다!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -198,7 +198,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>EIC-108 PNM 실기 정밀 회로 시뮬레이터 AI 코파일럿</strong>입니다.</p>
-                <p>상단 프리셋에서 <strong>[🏆 PNM 펄스 수 변조 회로]</strong>를 선택하면 EIC-108 실기도면과 100% 일치하는 배치가 로드됩니다!</p>
+                <p>배선(Wiring)이나 소자 배치 중 언제든지 <strong>ESC 키를 누르면 작업이 즉시 취소</strong>됩니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -285,6 +285,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1032"></script>
+    <script type="module" src="./app.js?v=1033"></script>
 </body>
 </html>
