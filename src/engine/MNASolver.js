@@ -1,8 +1,7 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
- * Complete Behavioral SPICE Simulation Models for 19 IC Chips:
- * Op-Amp models updated with high-gain active voltage source outputs.
+ * LM358 Dual Op-Amp high-gain active voltage driver update v=1041.
  */
 
 export class MNASolver {
@@ -215,16 +214,23 @@ export class MNASolver {
                     const nOutA = getNode(pins.pin1);
                     const nOutB = getNode(pins.pin7);
 
+                    const vPosA = comp.vPin8 || 9.0;
+                    const vNegA = comp.vPin4 || 0.0;
+
                     if (nOutA) {
                         const vDiffA = (comp.lastVPlusA || 0) - (comp.lastVMinusA || 0);
-                        const vOutA = Math.max(-12.0, Math.min(12.0, vDiffA * 500.0));
+                        const gain = 500.0;
+                        const vMid = (vPosA + vNegA) / 2.0;
+                        const vOutA = Math.max(vNegA + 0.2, Math.min(vPosA - 1.2, vMid + vDiffA * gain));
                         addConductance(nOutA, '0', 100.0);
                         addCurrentSource(nOutA, '0', vOutA * 100.0);
                     }
 
                     if (nOutB) {
                         const vDiffB = (comp.lastVPlusB || 0) - (comp.lastVMinusB || 0);
-                        const vOutB = Math.max(-12.0, Math.min(12.0, vDiffB * 500.0));
+                        const gain = 500.0;
+                        const vMid = (vPosA + vNegA) / 2.0;
+                        const vOutB = Math.max(vNegA + 0.2, Math.min(vPosA - 1.2, vMid + vDiffB * gain));
                         addConductance(nOutB, '0', 100.0);
                         addCurrentSource(nOutB, '0', vOutB * 100.0);
                     }

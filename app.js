@@ -1,19 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Precise Two-Way Sync Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset) Controls.
- * True Time/Div Horizontal Zoom Engine Integration.
+ * LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power) Sample Preset v=1041.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1040';
-import { MNASolver } from './src/engine/MNASolver.js?v=1040';
-import { FFT } from './src/engine/FFT.js?v=1040';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1040';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1040';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1040';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1040';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1040';
-import { AICopilot } from './src/components/AICopilot.js?v=1040';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1041';
+import { MNASolver } from './src/engine/MNASolver.js?v=1041';
+import { FFT } from './src/engine/FFT.js?v=1041';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1041';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1041';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1041';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1041';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1041';
+import { AICopilot } from './src/components/AICopilot.js?v=1041';
 
 class AppController {
     constructor() {
@@ -393,6 +392,85 @@ class AppController {
 
         this.warmupSimulationBuffer(400);
         this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면 100% 정밀 반영 [PNM 회로] 4CH 파형 계측 준비 완료!`;
+    }
+
+    // ⚡ Sample 2: LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power)
+    initLM358Oscillator() {
+        this.currentExamTitle = '⚡ LM358 듀얼 Op-Amp 이중 직교 발진기 (Quadrature Oscillator & Integrator Sample)';
+        this.voltageVa = 9.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = 0.0;
+        this.breadboardCanvas.voltageVa = 9.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = 0.0;
+
+        this.components = [
+            // Power Supply Wires (+9V to TOP VCC Rail, GND to TOP GND Rail)
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_15', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_15', '#3b82f6'),
+
+            // Power Rail to Block 1 Jumper Bridges
+            new Wire('JUMP_VCC', 'VCC_TOP1_15', 'B1_VCC_15', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_15', 'B1_GND_15', '#3b82f6'),
+
+            // --- Row 15~17: Vref (4.5V) Voltage Divider & Bypass Capacitor ---
+            new Resistor('Ra', 'B1_VCC_15', 'B1_A15', 10000, true),
+            new Resistor('Rb', 'B1_A15', 'B1_GND_16', 10000, true),
+            new Capacitor('C_bp', 'B1_A15', 'B1_GND_17', 10e-6, true, 'ELEC'),
+
+            // --- Row 20~23: LM358 Dual Op-Amp (DIP-8) ---
+            new DIPChip('IC1', 'LM358', 'B1_E20', 'B1_F20'),
+
+            // Pin 8 (VCC): +9V Connection
+            new Wire('W_LM358_VCC', 'B1_F20', 'B1_VCC_20', '#ef4444'),
+            // Pin 4 (GND): 0V Connection
+            new Wire('W_LM358_GND', 'B1_E23', 'B1_GND_23', '#3b82f6'),
+
+            // Pin 3 (IN1+): Connected to Node A (Vref 4.5V)
+            new Wire('W_VREF_PIN3', 'B1_B15', 'B1_D22', '#f39c12'),
+            // Pin 5 (IN2+): Connected to Node A (Vref 4.5V)
+            new Wire('W_VREF_PIN5', 'B1_C15', 'B1_D23', '#f39c12'),
+
+            // --- Feedback Network Wires & Resistors ---
+            // Row 25: R1 (10kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 3 (IN1+, B1_E22)
+            new Wire('W_PIN1_R1', 'B1_E20', 'B1_A20', '#0984e3'),
+            new Resistor('R1', 'B1_A20', 'B1_A22', 10000, true),
+            new Wire('W_R1_PIN3', 'B1_A22', 'B1_E22', '#0984e3'),
+
+            // Row 26: R3 (100kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 2 (IN1-, B1_E21)
+            new Wire('W_PIN1_R3', 'B1_E20', 'B1_B20', '#0984e3'),
+            new Resistor('R3', 'B1_B20', 'B1_B21', 100000, true),
+            new Wire('W_R3_PIN2', 'B1_B21', 'B1_E21', '#0984e3'),
+
+            // Row 27: R2 (10kΩ) connected between Pin 7 (OUT2, B1_F21) and Pin 2 (IN1-, B1_E21)
+            new Wire('W_PIN7_R2', 'B1_F21', 'B1_G21', '#9b59b6'),
+            new Resistor('R2', 'B1_G21', 'B1_C21', 10000, true),
+            new Wire('W_R2_PIN2', 'B1_C21', 'B1_E21', '#9b59b6'),
+
+            // Row 30: R4 (100kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 6 (IN2-, B1_F22)
+            new Wire('W_PIN1_R4', 'B1_E20', 'B1_C20', '#e17055'),
+            new Resistor('R4', 'B1_C20', 'B1_G22', 100000, true),
+            new Wire('W_R4_PIN6', 'B1_G22', 'B1_F22', '#e17055'),
+
+            // Row 31: C (0.1µF) connected between Pin 6 (IN2-, B1_F22) and Pin 7 (OUT2, B1_F21)
+            new Wire('W_PIN6_C', 'B1_F22', 'B1_H22', '#2ec4b6'),
+            new Capacitor('C_INT', 'B1_H22', 'B1_H21', 0.1e-6, true, 'MYLAR'),
+            new Wire('W_C_PIN7', 'B1_H21', 'B1_F21', '#2ec4b6')
+        ];
+
+        // 4CH Oscilloscope Probes directly attached to Key Waveform Test Points
+        this.probeAPin = 'B1_E20'; // CH A (Yellow) -> Pin 1 (OUT1: Square Wave 0~9V)
+        this.probeBPin = 'B1_F21'; // CH B (Magenta) -> Pin 7 (OUT2: Triangle/Sine Wave Integrator Out)
+        this.probeCPin = 'B1_A15'; // CH C (Cyan) -> Node A (Vref 4.5V DC Bias)
+        this.probeDPin = 'B1_F20'; // CH D (Green) -> Pin 8 (VCC +9V Power Rail)
+
+        this.breadboardCanvas.probeAPin = 'B1_E20';
+        this.breadboardCanvas.probeBPin = 'B1_F21';
+        this.breadboardCanvas.probeCPin = 'B1_A15';
+        this.breadboardCanvas.probeDPin = 'B1_F20';
+
+        this.warmupSimulationBuffer(400);
+        this.breadboardCanvas.toastMsg = `⚡ LM358 듀얼 Op-Amp 발진회로 로드 완료! (CH A: 구형파 OUT1, CH B: 삼각파/적분 OUT2, CH C: 4.5V Vref)`;
     }
 
     // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
@@ -948,6 +1026,8 @@ class AppController {
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
+            } else if (val === 'lm358_osc') {
+                this.initLM358Oscillator();
             } else if (val === 'square_osc') {
                 this.initSquareOscillator();
             } else if (val === 'exam_master_comm') {
