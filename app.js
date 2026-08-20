@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * ESC Key Cancellation during 1st Pin Component/Wire Placement.
+ * Includes NE555 Astable Square Wave Oscillator Sample Preset.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1033';
-import { MNASolver } from './src/engine/MNASolver.js?v=1033';
-import { FFT } from './src/engine/FFT.js?v=1033';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1033';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1033';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1033';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1033';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1033';
-import { AICopilot } from './src/components/AICopilot.js?v=1033';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1034';
+import { MNASolver } from './src/engine/MNASolver.js?v=1034';
+import { FFT } from './src/engine/FFT.js?v=1034';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1034';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1034';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1034';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1034';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1034';
+import { AICopilot } from './src/components/AICopilot.js?v=1034';
 
 class AppController {
     constructor() {
@@ -40,9 +40,9 @@ class AppController {
         this.compCounter = 1;
 
         // Power Supply Binding Post Voltages
-        this.voltageVa = 12.0;
+        this.voltageVa = 5.0;
         this.voltageVb = 0.0;
-        this.voltageVc = -12.0;
+        this.voltageVc = -5.0;
 
         // Selected Family Dropdown Values
         this.selectedResistorType = 'R';
@@ -51,14 +51,14 @@ class AppController {
 
         this.currentExamTitle = null;
 
-        // 4CH Oscilloscope Probes (Start null for clean empty board)
+        // 4CH Oscilloscope Probes
         this.probeAPin = null;
         this.probeBPin = null;
         this.probeCPin = null;
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initEmptyBoard();
+        this.initSquareOscillator(); // Load Square Wave Oscillator by default
         this.setupUIEventListeners();
         this.renderAll();
     }
@@ -265,6 +265,63 @@ class AppController {
         this.oscilloscopeCanvas.resetBuffer();
         this.simTime = 0;
         this.updateCutoffFreqDisplay();
+    }
+
+    // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
+    initSquareOscillator() {
+        this.currentExamTitle = '⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator Sample)';
+        this.voltageVa = 5.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -5.0;
+        this.breadboardCanvas.voltageVa = 5.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = -5.0;
+
+        this.components = [
+            // Power Supply Wires (Va = +5V, GND = 0V)
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_5', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_5', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_10', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_10', '#3b82f6'),
+
+            // NE555 DIP-8 IC placed at Block 1 (Rows 10~13)
+            new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
+
+            // Pin 1 (GND): Connect to GND Rail
+            new Wire('W_GND', 'B1_E10', 'B1_GND_10', '#3b82f6'),
+
+            // Pin 8 (VCC) & Pin 4 (RESET): Connect to VCC Rail (+5V)
+            new Wire('W_VCC', 'B1_F10', 'B1_VCC_10', '#ef4444'),
+            new Wire('W_RESET', 'B1_E13', 'B1_VCC_13', '#ef4444'),
+
+            // Pin 7 (DISCHARGE): R1 (1kΩ) connected to VCC
+            new Resistor('R1', 'B1_VCC_11', 'B1_H11', 1000, true),
+
+            // R2 (10kΩ): Connected between Pin 7 (Discharge) and Pin 6 (Threshold)
+            new Resistor('R2', 'B1_H11', 'B1_J12', 10000, true),
+
+            // Pin 2 (TRIGGER) <-> Pin 6 (THRESHOLD) Bridge Wire
+            new Wire('W_TRIG_THRESH', 'B1_D11', 'B1_J12', '#0984e3'),
+
+            // C1 (0.1µF Timing Capacitor): Connected between Pin 2/6 and GND
+            new Capacitor('C1', 'B1_C11', 'B1_GND_11', 0.1e-6, true, 'MYLAR'),
+
+            // Pin 3 (OUTPUT): Current-limiting Resistor & LED
+            new Resistor('R_LED', 'B1_C12', 'B1_A16', 330, true),
+            new LEDComponent('LED1', 'B1_B16', 'B1_GND_16', 2.0)
+        ];
+
+        // 4CH Oscilloscope Probes Attached to Key Waveform Test Points
+        this.probeAPin = 'B1_E12'; // CH A (Yellow) -> Pin 3 Output (Square Wave)
+        this.probeBPin = 'B1_C11'; // CH B (Magenta) -> Pin 2/6 Capacitor C1 (Triangle/RC Wave)
+        this.probeCPin = 'B1_H11'; // CH C (Cyan) -> Pin 7 Discharge
+        this.probeDPin = 'B1_VCC_10'; // CH D (Green) -> VCC +5V Power
+
+        this.breadboardCanvas.probeAPin = 'B1_E12';
+        this.breadboardCanvas.probeBPin = 'B1_C11';
+        this.breadboardCanvas.probeCPin = 'B1_H11';
+        this.breadboardCanvas.probeDPin = 'B1_VCC_10';
+        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 샘플 회로 로드 완료! (CH A: 구형파 출력, CH B: 삼각파 충방전)`;
     }
 
     // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
@@ -691,6 +748,8 @@ class AppController {
             if (val === 'empty') {
                 this.initEmptyBoard();
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
+            } else if (val === 'square_osc') {
+                this.initSquareOscillator();
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
             } else if (val === 'exam_master_comm') {
@@ -703,22 +762,6 @@ class AppController {
                 this.initWirelessExam();
             } else if (val === 'exam_computer') {
                 this.initComputerExam();
-            } else if (val === 'rc_filter') {
-                this.initSampleCircuit();
-            } else if (val === 'rc_switch') {
-                this.initSampleCircuit();
-                const sw = this.components.find(c => c.type === 'SWITCH');
-                if (sw) sw.isOpen = true;
-            } else if (val === 'led_circuit') {
-                this.components = [
-                    new DCSource('V1', 'VCC_TOP1_1', 'GND_TOP1_1', 5.0, true),
-                    new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-                    new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
-                    new SwitchComponent('SW1', 'B1_VCC_5', 'B1_A5', false),
-                    new Resistor('R1', 'B1_B5', 'B1_A10', 330, true),
-                    new LEDComponent('LED1', 'B1_B10', 'B1_GND_10', 2.0),
-                    new Wire('W1', 'B1_C10', 'B1_D10', '#00b894')
-                ];
             }
             this.renderAll();
         });
