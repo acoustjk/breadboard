@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Supports Interactive Va, Vb, Vc, GND Power Supply Binding Posts with Voltage Badges & Wire Bridging.
+ * Renders Explicit IC Pin Numbers (1~8, 1~14, 1~16) directly on IC package legs.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1029';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1031';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -36,7 +36,7 @@ export class BreadboardCanvas {
         this.selectedComponent = null;
         this.showValueBadges = true;
 
-        // Binding Post Voltage Values
+        // Power Supply Binding Post Voltages
         this.voltageVa = 12.0;
         this.voltageVb = -12.0;
         this.voltageVc = 5.0;
@@ -552,7 +552,7 @@ export class BreadboardCanvas {
         let activeHoverNode = this.hoveredPin ? this.grid.getNodeId(this.hoveredPin) : null;
 
         for (const [pinKey, pos] of this.pinCoords.entries()) {
-            if (pinKey.startsWith('BINDING_')) continue; // Rendered separately above
+            if (pinKey.startsWith('BINDING_')) continue;
 
             const pinNode = this.grid.getNodeId(pinKey);
             const isHovered = (this.hoveredPin === pinKey);
@@ -775,6 +775,7 @@ export class BreadboardCanvas {
 
             const topY = pA.y - 12;
 
+            // IC Chip Black DIP Body
             this.ctx.fillStyle = '#1e293b';
             this.ctx.beginPath();
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
@@ -783,16 +784,19 @@ export class BreadboardCanvas {
             this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
             this.ctx.stroke();
 
+            // Notch at Top (North)
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
             this.ctx.arc(midX, topY, 6, 0, Math.PI);
             this.ctx.fill();
 
+            // Pin 1 White Dot at Top-Left (Col E)
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
             this.ctx.arc(midX - chipWidth / 2 + 7, topY + 9, 2.2, 0, Math.PI * 2);
             this.ctx.fill();
 
+            // Laser-etched Part Name (Vertical 90-degree rotated)
             this.ctx.save();
             this.ctx.translate(midX, topY + chipHeight / 2);
             this.ctx.rotate(-Math.PI / 2);
@@ -803,11 +807,31 @@ export class BreadboardCanvas {
             this.ctx.fillText(comp.icType || 'LF356', 0, 0);
             this.ctx.restore();
 
-            this.ctx.fillStyle = '#cbd5e1';
+            // Silver Pin Legs & Explicit Pin Number Overlays (1~N)
             for (let p = 0; p < numPinsPerSide; p++) {
                 const pinY = pA.y + p * pitchY;
+                const pinNumLeft = p + 1;
+                const pinNumRight = comp.pins - p;
+
+                // Left Pin Leg & Label (Pin 1, 2, 3, 4...)
+                this.ctx.fillStyle = '#cbd5e1';
                 this.ctx.fillRect(midX - chipWidth / 2 - 3, pinY - 2, 4, 4);
+
+                this.ctx.fillStyle = '#38bdf8';
+                this.ctx.font = 'bold 9px monospace';
+                this.ctx.textAlign = 'right';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(`${pinNumLeft}`, midX - chipWidth / 2 - 5, pinY);
+
+                // Right Pin Leg & Label (Pin 8, 7, 6, 5...)
+                this.ctx.fillStyle = '#cbd5e1';
                 this.ctx.fillRect(midX + chipWidth / 2 - 1, pinY - 2, 4, 4);
+
+                this.ctx.fillStyle = '#38bdf8';
+                this.ctx.font = 'bold 9px monospace';
+                this.ctx.textAlign = 'left';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(`${pinNumRight}`, midX + chipWidth / 2 + 5, pinY);
             }
 
         } else if (comp.type === 'DIODE') {

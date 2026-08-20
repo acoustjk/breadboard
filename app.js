@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * EIC-108 PNM Practical Exam Diagram 100% Pin-by-Pin Alignment across 4 Blocks.
+ * Explicit IC Pin Number Labels Rendered on Chip Legs.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1030';
-import { MNASolver } from './src/engine/MNASolver.js?v=1030';
-import { FFT } from './src/engine/FFT.js?v=1030';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1030';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1030';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1030';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1030';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1030';
-import { AICopilot } from './src/components/AICopilot.js?v=1030';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1031';
+import { MNASolver } from './src/engine/MNASolver.js?v=1031';
+import { FFT } from './src/engine/FFT.js?v=1031';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1031';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1031';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1031';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1031';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1031';
+import { AICopilot } from './src/components/AICopilot.js?v=1031';
 
 class AppController {
     constructor() {
