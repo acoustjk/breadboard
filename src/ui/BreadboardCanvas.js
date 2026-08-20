@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Renders Explicit IC Pin Numbers (1~8, 1~14, 1~16) directly on IC package legs.
+ * Fixed Empty Board Clear Bug & Enhanced Point-to-Segment Component Hit Detection for Deletion.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1031';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1032';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -199,10 +199,13 @@ export class BreadboardCanvas {
                 }
             }
 
-            if (clickedPin) {
+            if (this.activeTool !== 'SELECT' && clickedPin) {
                 this.handlePinClick(clickedPin);
-            } else if (this.activeTool === 'SELECT') {
+            } else {
                 this.handleComponentClick({ x: worldX, y: worldY });
+                if (!this.selectedComponent && clickedPin && this.activeTool !== 'SELECT') {
+                    this.handlePinClick(clickedPin);
+                }
             }
         });
 
@@ -279,23 +282,45 @@ export class BreadboardCanvas {
         });
     }
 
-    findComponentAt(mousePos) {
-        if (!this.lastComponents) return null;
-        let selected = null;
-        let minDist = 25;
+    pointToSegmentDist(px, py, ax, ay, bx, by) {
+        const l2 = (bx - ax) ** 2 + (by - ay) ** 2;
+        if (l2 === 0) return Math.hypot(px - ax, py - ay);
+        let t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        const projX = ax + t * (bx - ax);
+        const projY = ay + t * (by - ay);
+        return Math.hypot(px - projX, py - projY);
+    }
 
-        this.lastComponents.forEach(comp => {
+    findComponentAt(mousePos) {
+        if (!this.lastComponents || this.lastComponents.length === 0) return null;
+        let selected = null;
+        let minHitDist = 20;
+
+        for (const comp of this.lastComponents) {
             const pA = this.getPinPos(comp.pinA);
             const pB = this.getPinPos(comp.pinB);
-            const midX = (pA.x + pB.x) / 2;
-            const midY = (pA.y + pB.y) / 2;
-            const dist = Math.hypot(midX - mousePos.x, midY - mousePos.y);
 
-            if (dist < minDist) {
-                minDist = dist;
-                selected = comp;
+            if (comp.type === 'IC') {
+                const midX = (pA.x + pB.x) / 2;
+                const numPinsPerSide = (comp.pins || 8) / 2;
+                const pitchY = 11.2;
+                const chipWidth = Math.abs(pB.x - pA.x) + 32;
+                const chipHeight = (numPinsPerSide - 1) * pitchY + 32;
+                const topY = pA.y - 16;
+
+                if (mousePos.x >= midX - chipWidth / 2 && mousePos.x <= midX + chipWidth / 2 &&
+                    mousePos.y >= topY && mousePos.y <= topY + chipHeight) {
+                    return comp;
+                }
+            } else {
+                const dist = this.pointToSegmentDist(mousePos.x, mousePos.y, pA.x, pA.y, pB.x, pB.y);
+                if (dist < minHitDist) {
+                    minHitDist = dist;
+                    selected = comp;
+                }
             }
-        });
+        }
         return selected;
     }
 
@@ -355,11 +380,14 @@ export class BreadboardCanvas {
         const selected = this.findComponentAt(mousePos);
         this.selectedComponent = selected;
         if (this.onComponentSelected) this.onComponentSelected(selected);
+        if (selected) {
+            this.toastMsg = `🎯 [${selected.type === 'IC' ? selected.icType : selected.type}] 부품이 선택되었습니다. ('선택 부품 삭제' 버튼 또는 Delete 키로 삭제 가능)`;
+        }
         this.render();
     }
 
-    render(components = []) {
-        if (components.length > 0) {
+    render(components = null) {
+        if (components !== null) {
             this.lastComponents = components;
         } else {
             components = this.lastComponents || [];
@@ -656,12 +684,12 @@ export class BreadboardCanvas {
 
         if (isSelected) {
             this.ctx.shadowColor = '#38bdf8';
-            this.ctx.shadowBlur = 10;
+            this.ctx.shadowBlur = 14;
         }
 
         if (comp.type === 'WIRE') {
-            this.ctx.strokeStyle = comp.color || '#0984e3';
-            this.ctx.lineWidth = isSelected ? 5 : 3.5;
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : (comp.color || '#0984e3');
+            this.ctx.lineWidth = isSelected ? 5.5 : 3.5;
             this.ctx.lineCap = 'round';
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
@@ -675,7 +703,7 @@ export class BreadboardCanvas {
 
         } else if (comp.type === 'R') {
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = isSelected ? 3 : 2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
@@ -692,6 +720,12 @@ export class BreadboardCanvas {
             this.ctx.roundRect(-14, -5, 28, 10, 2);
             this.ctx.fill();
 
+            if (isSelected) {
+                this.ctx.strokeStyle = '#38bdf8';
+                this.ctx.lineWidth = 1.5;
+                this.ctx.stroke();
+            }
+
             const bands = comp.getBands ? comp.getBands() : getResistorColorBands(comp.resistance, comp.isConfigured);
             bands.forEach((bColor, idx) => {
                 this.ctx.fillStyle = bColor;
@@ -700,7 +734,7 @@ export class BreadboardCanvas {
 
         } else if (comp.type === 'C') {
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = isSelected ? 3 : 2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
@@ -718,8 +752,8 @@ export class BreadboardCanvas {
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
                 this.ctx.fill();
-                this.ctx.strokeStyle = '#0f172a';
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0f172a';
+                this.ctx.lineWidth = isSelected ? 2 : 1;
                 this.ctx.stroke();
 
                 this.ctx.fillStyle = '#e2e8f0';
@@ -741,8 +775,8 @@ export class BreadboardCanvas {
                 this.ctx.beginPath();
                 this.ctx.arc(0, 0, 9, 0, Math.PI * 2);
                 this.ctx.fill();
-                this.ctx.strokeStyle = '#78350f';
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#78350f';
+                this.ctx.lineWidth = isSelected ? 2 : 1;
                 this.ctx.stroke();
 
                 this.ctx.fillStyle = '#ffffff';
@@ -756,8 +790,8 @@ export class BreadboardCanvas {
                 this.ctx.beginPath();
                 this.ctx.roundRect(-10, -6, 20, 12, 2);
                 this.ctx.fill();
-                this.ctx.strokeStyle = '#14532d';
-                this.ctx.lineWidth = 1;
+                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#14532d';
+                this.ctx.lineWidth = isSelected ? 2 : 1;
                 this.ctx.stroke();
 
                 this.ctx.fillStyle = '#ffffff';
@@ -781,7 +815,7 @@ export class BreadboardCanvas {
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0f172a';
-            this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
+            this.ctx.lineWidth = isSelected ? 3.0 : 1.5;
             this.ctx.stroke();
 
             // Notch at Top (North)
@@ -814,7 +848,7 @@ export class BreadboardCanvas {
                 const pinNumRight = comp.pins - p;
 
                 // Left Pin Leg & Label (Pin 1, 2, 3, 4...)
-                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillStyle = isSelected ? '#38bdf8' : '#cbd5e1';
                 this.ctx.fillRect(midX - chipWidth / 2 - 3, pinY - 2, 4, 4);
 
                 this.ctx.fillStyle = '#38bdf8';
@@ -824,7 +858,7 @@ export class BreadboardCanvas {
                 this.ctx.fillText(`${pinNumLeft}`, midX - chipWidth / 2 - 5, pinY);
 
                 // Right Pin Leg & Label (Pin 8, 7, 6, 5...)
-                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillStyle = isSelected ? '#38bdf8' : '#cbd5e1';
                 this.ctx.fillRect(midX + chipWidth / 2 - 1, pinY - 2, 4, 4);
 
                 this.ctx.fillStyle = '#38bdf8';
@@ -836,7 +870,7 @@ export class BreadboardCanvas {
 
         } else if (comp.type === 'DIODE') {
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = isSelected ? 3 : 2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
@@ -861,7 +895,7 @@ export class BreadboardCanvas {
 
         } else if (comp.type === 'ZENER') {
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = isSelected ? 3 : 2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
@@ -886,7 +920,7 @@ export class BreadboardCanvas {
 
         } else if (comp.type === 'POT') {
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = isSelected ? 3 : 2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
@@ -900,7 +934,7 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
             this.ctx.roundRect(-14, -14, 28, 28, 4);
             this.ctx.fill();
-            this.ctx.strokeStyle = '#0369a1';
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0369a1';
             this.ctx.lineWidth = 1.5;
             this.ctx.stroke();
 

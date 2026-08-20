@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Explicit IC Pin Number Labels Rendered on Chip Legs.
+ * Fixed Empty Board Clear Bug & Enhanced Component Deletion.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1031';
-import { MNASolver } from './src/engine/MNASolver.js?v=1031';
-import { FFT } from './src/engine/FFT.js?v=1031';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1031';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1031';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1031';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1031';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1031';
-import { AICopilot } from './src/components/AICopilot.js?v=1031';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1032';
+import { MNASolver } from './src/engine/MNASolver.js?v=1032';
+import { FFT } from './src/engine/FFT.js?v=1032';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1032';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1032';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1032';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1032';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1032';
+import { AICopilot } from './src/components/AICopilot.js?v=1032';
 
 class AppController {
     constructor() {
@@ -257,6 +257,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = null;
         this.breadboardCanvas.probeCPin = null;
         this.breadboardCanvas.probeDPin = null;
+        this.breadboardCanvas.selectedComponent = null;
         this.oscilloscopeCanvas.resetBuffer();
         this.simTime = 0;
         this.updateCutoffFreqDisplay();
@@ -619,7 +620,6 @@ class AppController {
 
         document.getElementById('btnClearBoard').addEventListener('click', () => {
             this.initEmptyBoard();
-            this.breadboardCanvas.selectedComponent = null;
             this.breadboardCanvas.toastMsg = '🧹 깨끗한 빈 브레드보드가 준비되었습니다. 부품을 새로 꽂아보세요!';
             document.getElementById('presetSelect').value = 'empty';
             this.renderAll();
