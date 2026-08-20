@@ -2,9 +2,10 @@
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
  * Supports 4-Channel (4CH) Interactive Oscilloscope Probe Placement (CH A, CH B, CH C, CH D).
+ * Clean empty board mode (no default probes attached).
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1024';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1025';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -36,11 +37,11 @@ export class BreadboardCanvas {
         this.selectedComponent = null;
         this.showValueBadges = true;
 
-        // 4CH Oscilloscope Probes
-        this.probeAPin = 'B3_F20'; // TP1
-        this.probeBPin = 'B3_F42'; // TP2
-        this.probeCPin = 'B4_C35'; // TP3
-        this.probeDPin = 'VCC_TOP1_1'; // VCC/Input
+        // 4CH Oscilloscope Probes (Start null for clean empty board)
+        this.probeAPin = null;
+        this.probeBPin = null;
+        this.probeCPin = null;
+        this.probeDPin = null;
 
         this.toastMsg = null;
 
@@ -564,11 +565,11 @@ export class BreadboardCanvas {
             this.renderComponent(comp, isSelected);
         });
 
-        // 4CH Oscilloscope Probe Clips
-        this.renderProbe('CH A (TP1)', this.probeAPin, '#facc15');
-        this.renderProbe('CH B (TP2)', this.probeBPin, '#e879f9');
-        this.renderProbe('CH C (TP3)', this.probeCPin, '#38bdf8');
-        this.renderProbe('CH D (CLK)', this.probeDPin, '#22c55e');
+        // Render 4CH Probes ONLY if pin is attached!
+        if (this.probeAPin) this.renderProbe('CH A', this.probeAPin, '#facc15');
+        if (this.probeBPin) this.renderProbe('CH B', this.probeBPin, '#e879f9');
+        if (this.probeCPin) this.renderProbe('CH C', this.probeCPin, '#38bdf8');
+        if (this.probeDPin) this.renderProbe('CH D', this.probeDPin, '#22c55e');
 
         this.ctx.restore();
 
@@ -937,6 +938,7 @@ export class BreadboardCanvas {
     }
 
     renderProbe(label, pinKey, color) {
+        if (!pinKey) return;
         const pos = this.getPinPos(pinKey);
         this.ctx.save();
 

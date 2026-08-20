@@ -2,17 +2,18 @@
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
  * Supports 4-Channel (4CH) Oscilloscope with Interactive Probe Selection (CH A, B, C, D).
+ * Clean empty board mode (no default probes attached).
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1024';
-import { MNASolver } from './src/engine/MNASolver.js?v=1024';
-import { FFT } from './src/engine/FFT.js?v=1024';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1024';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1024';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1024';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1024';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1024';
-import { AICopilot } from './src/components/AICopilot.js?v=1024';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1025';
+import { MNASolver } from './src/engine/MNASolver.js?v=1025';
+import { FFT } from './src/engine/FFT.js?v=1025';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1025';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1025';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1025';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1025';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1025';
+import { AICopilot } from './src/components/AICopilot.js?v=1025';
 
 class AppController {
     constructor() {
@@ -41,11 +42,11 @@ class AppController {
         this.selectedIcKey = 'LF356';
         this.currentExamTitle = null;
 
-        // 4CH Oscilloscope Default Probes
-        this.probeAPin = 'B3_F20'; // TP1
-        this.probeBPin = 'B3_F42'; // TP2
-        this.probeCPin = 'B4_C35'; // TP3
-        this.probeDPin = 'VCC_TOP1_1'; // VCC/CLK
+        // 4CH Oscilloscope Probes (Start null for clean empty board)
+        this.probeAPin = null;
+        this.probeBPin = null;
+        this.probeCPin = null;
+        this.probeDPin = null;
 
         this.initPlacementEngine();
         this.initEmptyBoard();
@@ -199,10 +200,14 @@ class AppController {
     initEmptyBoard() {
         this.components = [];
         this.currentExamTitle = null;
-        this.breadboardCanvas.probeAPin = this.probeAPin;
-        this.breadboardCanvas.probeBPin = this.probeBPin;
-        this.breadboardCanvas.probeCPin = this.probeCPin;
-        this.breadboardCanvas.probeDPin = this.probeDPin;
+        this.probeAPin = null;
+        this.probeBPin = null;
+        this.probeCPin = null;
+        this.probeDPin = null;
+        this.breadboardCanvas.probeAPin = null;
+        this.breadboardCanvas.probeBPin = null;
+        this.breadboardCanvas.probeCPin = null;
+        this.breadboardCanvas.probeDPin = null;
         this.oscilloscopeCanvas.resetBuffer();
         this.simTime = 0;
         this.updateCutoffFreqDisplay();
@@ -513,7 +518,7 @@ class AppController {
         document.getElementById('btnClearBoard').addEventListener('click', () => {
             this.initEmptyBoard();
             this.breadboardCanvas.selectedComponent = null;
-            this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드가 준비되었습니다. 부품을 새로 꽂아보세요!';
+            this.breadboardCanvas.toastMsg = '🧹 깨끗한 빈 브레드보드가 준비되었습니다. 부품을 새로 꽂아보세요!';
             document.getElementById('presetSelect').value = 'empty';
             this.renderAll();
         });
@@ -661,15 +666,15 @@ class AppController {
             const nodeVoltages = this.solver.solveStep(this.components, this.dt);
             this.simTime += this.dt;
 
-            const nA = this.grid.getNodeId(this.breadboardCanvas.probeAPin);
-            const nB = this.grid.getNodeId(this.breadboardCanvas.probeBPin);
-            const nC = this.grid.getNodeId(this.breadboardCanvas.probeCPin);
-            const nD = this.grid.getNodeId(this.breadboardCanvas.probeDPin);
+            const nA = this.breadboardCanvas.probeAPin ? this.grid.getNodeId(this.breadboardCanvas.probeAPin) : null;
+            const nB = this.breadboardCanvas.probeBPin ? this.grid.getNodeId(this.breadboardCanvas.probeBPin) : null;
+            const nC = this.breadboardCanvas.probeCPin ? this.grid.getNodeId(this.breadboardCanvas.probeCPin) : null;
+            const nD = this.breadboardCanvas.probeDPin ? this.grid.getNodeId(this.breadboardCanvas.probeDPin) : null;
 
-            vA = nodeVoltages.get(nA) || 0;
-            vB = nodeVoltages.get(nB) || 0;
-            vC = nodeVoltages.get(nC) || 0;
-            vD = nodeVoltages.get(nD) || 0;
+            vA = nA ? (nodeVoltages.get(nA) || 0) : 0;
+            vB = nB ? (nodeVoltages.get(nB) || 0) : 0;
+            vC = nC ? (nodeVoltages.get(nC) || 0) : 0;
+            vD = nD ? (nodeVoltages.get(nD) || 0) : 0;
 
             this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
         }
