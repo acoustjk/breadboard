@@ -1,19 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Supports 4-Channel (4CH) Oscilloscope with Interactive Probe Selection (CH A, B, C, D).
- * Clean empty board mode (no default probes attached).
+ * Supports Left Sidebar Component Palette, Resistor/Capacitor Dropdowns, and Popup Instruments.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1025';
-import { MNASolver } from './src/engine/MNASolver.js?v=1025';
-import { FFT } from './src/engine/FFT.js?v=1025';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1025';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1025';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1025';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1025';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1025';
-import { AICopilot } from './src/components/AICopilot.js?v=1025';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1026';
+import { MNASolver } from './src/engine/MNASolver.js?v=1026';
+import { FFT } from './src/engine/FFT.js?v=1026';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1026';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1026';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1026';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1026';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1026';
+import { AICopilot } from './src/components/AICopilot.js?v=1026';
 
 class AppController {
     constructor() {
@@ -39,7 +38,12 @@ class AppController {
         this.animFrameId = null;
         this.fftTimer = 0;
         this.compCounter = 1;
+
+        // Selected Library Dropdown Values
+        this.selectedResistorValue = 1000;
+        this.selectedCapacitorType = 'C_ELEC_10u';
         this.selectedIcKey = 'LF356';
+
         this.currentExamTitle = null;
 
         // 4CH Oscilloscope Probes (Start null for clean empty board)
@@ -76,17 +80,33 @@ class AppController {
                 newComp = new Wire(id, pinA, pinB, isPower ? '#ef4444' : '#0984e3');
                 labelMsg = '점퍼 와이어';
             } else if (toolType === 'R') {
-                newComp = new Resistor(id, pinA, pinB, 1000, false);
-                labelMsg = '저항';
-            } else if (toolType === 'C_ELEC' || toolType === 'C') {
-                newComp = new Capacitor(id, pinA, pinB, 10e-6, false, 'ELEC');
-                labelMsg = '전해 콘덴서 (+/- 극성)';
-            } else if (toolType === 'C_CERAMIC') {
-                newComp = new Capacitor(id, pinA, pinB, 0.1e-6, false, 'CERAMIC');
-                labelMsg = '세라믹 콘덴서 (104)';
-            } else if (toolType === 'C_MYLAR') {
-                newComp = new Capacitor(id, pinA, pinB, 0.1e-6, false, 'MYLAR');
-                labelMsg = '마일러 필름 콘덴서';
+                const resVal = this.selectedResistorValue || 1000;
+                newComp = new Resistor(id, pinA, pinB, resVal, true);
+                const formatted = resVal >= 1000 ? (resVal / 1000) + 'kΩ' : resVal + 'Ω';
+                labelMsg = `⚡ 저항 (${formatted})`;
+            } else if (toolType === 'C_ELEC' || toolType === 'C' || toolType === 'C_CATALOG') {
+                const capKey = this.selectedCapacitorType || 'C_ELEC_10u';
+
+                if (capKey.startsWith('C_ELEC')) {
+                    const uFarad = parseFloat(capKey.replace('C_ELEC_', '').replace('u', '')) || 10;
+                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'ELEC');
+                    labelMsg = `🔋 전해 콘덴서 (${uFarad}µF)`;
+                } else if (capKey.startsWith('C_CERAMIC')) {
+                    let uFarad = 0.1;
+                    if (capKey.includes('101')) uFarad = 0.0001;
+                    else if (capKey.includes('102')) uFarad = 0.001;
+                    else if (capKey.includes('103')) uFarad = 0.01;
+                    else if (capKey.includes('104')) uFarad = 0.1;
+                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'CERAMIC');
+                    labelMsg = `🟡 세라믹 콘덴서 (${uFarad}µF)`;
+                } else if (capKey.startsWith('C_MYLAR')) {
+                    let uFarad = 0.1;
+                    if (capKey.includes('103')) uFarad = 0.01;
+                    else if (capKey.includes('104')) uFarad = 0.1;
+                    else if (capKey.includes('473')) uFarad = 0.047;
+                    newComp = new Capacitor(id, pinA, pinB, uFarad * 1e-6, true, 'MYLAR');
+                    labelMsg = `🟢 마일러 콘덴서 (${uFarad}µF)`;
+                }
             } else if (toolType === 'IC_CATALOG') {
                 const icKey = this.selectedIcKey || 'LF356';
                 const meta = IC_CATALOG[icKey] || IC_CATALOG['LF356'];
@@ -450,12 +470,27 @@ class AppController {
     }
 
     resetToolState() {
-        document.querySelectorAll('.palette-bar .btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.palette-sidebar .btn').forEach(b => b.classList.remove('active'));
         document.getElementById('toolSelect').classList.add('active');
         this.breadboardCanvas.setActiveTool('SELECT');
     }
 
     setupUIEventListeners() {
+        // Resistor & Capacitor & IC Library Dropdowns
+        const rSelect = document.getElementById('resistorLibrarySelect');
+        if (rSelect) {
+            rSelect.addEventListener('change', (e) => {
+                this.selectedResistorValue = parseFloat(e.target.value) || 1000;
+            });
+        }
+
+        const cSelect = document.getElementById('capacitorLibrarySelect');
+        if (cSelect) {
+            cSelect.addEventListener('change', (e) => {
+                this.selectedCapacitorType = e.target.value;
+            });
+        }
+
         const icSelect = document.getElementById('icLibrarySelect');
         if (icSelect) {
             icSelect.addEventListener('change', (e) => {
@@ -463,13 +498,26 @@ class AppController {
             });
         }
 
+        // Instrument Floating Modal Window Triggers
+        document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
+            document.getElementById('scopeModal').classList.remove('hidden');
+        });
+        document.getElementById('btnCloseScopeModal').addEventListener('click', () => {
+            document.getElementById('scopeModal').classList.add('hidden');
+        });
+
+        document.getElementById('btnOpenFftModal').addEventListener('click', () => {
+            document.getElementById('fftModal').classList.remove('hidden');
+        });
+        document.getElementById('btnCloseFftModal').addEventListener('click', () => {
+            document.getElementById('fftModal').classList.add('hidden');
+        });
+
         const toolButtons = [
             { id: 'toolSelect', tool: 'SELECT' },
             { id: 'toolWire', tool: 'WIRE' },
             { id: 'toolResistor', tool: 'R' },
-            { id: 'toolCapElec', tool: 'C_ELEC' },
-            { id: 'toolCapCeramic', tool: 'C_CERAMIC' },
-            { id: 'toolCapMylar', tool: 'C_MYLAR' },
+            { id: 'toolCapacitorCatalog', tool: 'C_CATALOG' },
             { id: 'toolIcCatalog', tool: 'IC_CATALOG' },
             { id: 'toolDiode', tool: 'DIODE' },
             { id: 'toolZener', tool: 'ZENER' },
@@ -487,7 +535,7 @@ class AppController {
             const btn = document.getElementById(tb.id);
             if (btn) {
                 btn.addEventListener('click', () => {
-                    document.querySelectorAll('.palette-bar .btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.palette-sidebar .btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     this.breadboardCanvas.setActiveTool(tb.tool);
                 });
