@@ -2,17 +2,18 @@
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
  * Precise Two-Way Sync Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset) Controls.
+ * True Time/Div Horizontal Zoom Engine Integration.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1039';
-import { MNASolver } from './src/engine/MNASolver.js?v=1039';
-import { FFT } from './src/engine/FFT.js?v=1039';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1039';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1039';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1039';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1039';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1039';
-import { AICopilot } from './src/components/AICopilot.js?v=1039';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1040';
+import { MNASolver } from './src/engine/MNASolver.js?v=1040';
+import { FFT } from './src/engine/FFT.js?v=1040';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1040';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1040';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1040';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1040';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1040';
+import { AICopilot } from './src/components/AICopilot.js?v=1040';
 
 class AppController {
     constructor() {
@@ -267,7 +268,7 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
-    warmupSimulationBuffer(steps = 300) {
+    warmupSimulationBuffer(steps = 400) {
         const bindingSources = [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
@@ -733,7 +734,7 @@ class AppController {
             if (selectEl && numEl) {
                 selectEl.addEventListener('change', (e) => {
                     const secVal = parseFloat(e.target.value);
-                    numEl.value = (secVal * 1000).toFixed(1);
+                    numEl.value = (secVal * 1000).toFixed(2);
                     this.oscilloscopeCanvas[propName] = secVal;
                     this.oscilloscopeCanvas.render();
                 });
@@ -801,8 +802,8 @@ class AppController {
                 document.getElementById('chkChC').checked = true;
                 document.getElementById('chkChD').checked = true;
 
-                document.getElementById('timeDivSelect').value = '0.002';
-                document.getElementById('numTimeDivMs').value = '2.0';
+                document.getElementById('timeDivSelect').value = '0.0002';
+                document.getElementById('numTimeDivMs').value = '0.20';
                 document.getElementById('posXTime').value = '0';
                 document.getElementById('numPosXTime').value = '0';
 

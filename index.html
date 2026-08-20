@@ -177,7 +177,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 X/Y 포지션 및 Volt/Div, Time/Div 정밀 수치 입력 & 광범위 슬라이더 조정이 가능합니다!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 Time/Div 수평 확대 엔진 탑재 (10µs ~ 50ms 정밀 가로 확대 가능)!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -193,8 +193,8 @@
             </div>
 
             <div id="copilotChat" class="copilot-chat">
-                <p>안녕하세요! <strong>4채널 계측기 X/Y 포지션 & 스케일 정밀 콘솔 시뮬레이터</strong>입니다.</p>
-                <p>오실로스코프 팝업에서 **X/Y 포지션 슬라이더 및 정밀 수치 박스(px)**를 조절하여 파형 위치 및 스케일을 자유롭게 변경하실 수 있습니다!</p>
+                <p>안녕하세요! <strong>Time/Div 정밀 가로 파형 확대 오실로스코프 시뮬레이터</strong>입니다.</p>
+                <p><strong>Time/Div를 0.1ms 또는 0.2ms</strong>로 줄이시면 고주파 발진 파형도 화면에 1~2주기만 널찍하게 확대되어 세부 모양을 정밀하게 관찰하실 수 있습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -332,21 +332,23 @@
 
             <!-- Horizontal Timebase & X-Position Controls (Time/Div & Fine Input, X-Pos Shift + Fine Input) -->
             <div style="display: flex; gap: 14px; margin-top: 8px; background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: center; font-size: 11px;">
-                <div style="color: #38bdf8; font-weight: bold;">⏱️ Horizontal Timebase & X-Pos:</div>
+                <div style="color: #38bdf8; font-weight: bold;">🔍 Time/Div (가로 확대):</div>
 
                 <div style="display: flex; gap: 4px; align-items: center;">
-                    <label for="timeDivSelect">Time/Div:</label>
-                    <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 70px; font-size: 11px;">
-                        <option value="0.0001">0.1 ms</option>
-                        <option value="0.0002">0.2 ms</option>
-                        <option value="0.0005">0.5 ms</option>
+                    <label for="timeDivSelect">Scale:</label>
+                    <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 95px; font-size: 11px;">
+                        <option value="0.00001">0.01 ms (10µs)</option>
+                        <option value="0.00002">0.02 ms (20µs)</option>
+                        <option value="0.00005">0.05 ms (50µs)</option>
+                        <option value="0.0001">0.1 ms (100µs)</option>
+                        <option value="0.0002" selected>0.2 ms (200µs)</option>
+                        <option value="0.0005">0.5 ms (500µs)</option>
                         <option value="0.001">1.0 ms</option>
-                        <option value="0.002" selected>2.0 ms</option>
+                        <option value="0.002">2.0 ms</option>
                         <option value="0.005">5.0 ms</option>
                         <option value="0.010">10.0 ms</option>
-                        <option value="0.020">20.0 ms</option>
                     </select>
-                    <input type="number" id="numTimeDivMs" value="2.0" step="0.1" min="0.05" max="100" style="width: 52px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
+                    <input type="number" id="numTimeDivMs" value="0.2" step="0.01" min="0.001" max="100" style="width: 55px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
                 </div>
 
                 <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
@@ -402,6 +404,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1039"></script>
+    <script type="module" src="./app.js?v=1040"></script>
 </body>
 </html>

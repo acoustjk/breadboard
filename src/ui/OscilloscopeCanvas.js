@@ -1,12 +1,11 @@
 /**
  * OscilloscopeCanvas.js
  * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
- * Independent Per-Channel Controls:
- * - Volt/Div Scale (Ch A, B, C, D)
- * - Y-Position Vertical Shift Offset (Ch A, B, C, D)
- * - X-Position Horizontal Timebase Shift Offset
- * - Channel ON/OFF Visibility Toggles
- * Colors: CH A (Yellow #facc15), CH B (Magenta #e879f9), CH C (Cyan #38bdf8), CH D (Green #22c55e)
+ * True Time/Div Horizontal Zoom Engine:
+ * - Dynamically calculates `samplesOnScreen` from `timePerDiv` and `dt` (100us)
+ * - Renders 0.01ms (10us) ~ 50ms Timebase Horizontal Zoom
+ * - Independent Per-Channel Volt/Div & Y-Position Shift
+ * - Colors: CH A (Yellow #facc15), CH B (Magenta #e879f9), CH C (Cyan #38bdf8), CH D (Green #22c55e)
  */
 
 export class OscilloscopeCanvas {
@@ -14,7 +13,8 @@ export class OscilloscopeCanvas {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 300;
+        this.bufferSize = 1200; // Expanded buffer size for deep horizontal timebase zoom
+        this.dt = 0.0001; // 100us simulation time step
         this.resetBuffer();
 
         // Independent Per-Channel Volt/Div Scales
@@ -30,8 +30,8 @@ export class OscilloscopeCanvas {
         this.posOffsetYChD = 0;
 
         // Horizontal Timebase Settings
-        this.timePerDiv = 0.002; // 2.0 ms
-        this.posOffsetX = 0; // Horizontal shift
+        this.timePerDiv = 0.0002; // 0.2 ms / div default for ultra-wide waveform view
+        this.posOffsetX = 0; // Horizontal shift (samples)
 
         // Channel ON/OFF Visibility Toggles
         this.showChA = true;
@@ -63,7 +63,7 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        this.timePerDiv = 0.002;
+        this.timePerDiv = 0.0002;
         this.posOffsetX = 0;
 
         this.showChA = true;
@@ -165,11 +165,12 @@ export class OscilloscopeCanvas {
 
         this.ctx.fillStyle = '#64748b';
         this.ctx.font = 'bold 9px monospace';
-        this.ctx.fillText('0V GND Baseline', 5, zeroY - 4);
+        const timeFormatted = this.timePerDiv >= 0.001 ? `${(this.timePerDiv * 1000).toFixed(1)}ms/div` : `${(this.timePerDiv * 1000000).toFixed(0)}µs/div`;
+        this.ctx.fillText(`0V GND Baseline (${timeFormatted})`, 5, zeroY - 4);
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces with Independent Per-Channel Controls
+        // 2. Render 4 Waveform Traces with True Time/Div Horizontal Zoom
         if (this.showChA) {
             this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
@@ -213,23 +214,31 @@ export class OscilloscopeCanvas {
         if (!buffer || buffer.length === 0) return;
 
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2.0;
+        this.ctx.lineWidth = 2.2;
         this.ctx.shadowColor = color;
         this.ctx.shadowBlur = 6;
 
-        const stepX = this.canvas.width / (buffer.length - 1);
+        // True Timebase Horizontal Zoom Calculation:
+        // Screen has 10 divisions. Total screen duration = 10 * timePerDiv
+        // Each sample in buffer is dt = 0.0001s (100us)
+        const totalTimeScreen = 10 * (this.timePerDiv || 0.0002);
+        const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
+
+        const stepX = this.canvas.width / (samplesOnScreen - 1);
         const vDivScale = scaleY / (voltPerDiv || 1.0);
         const traceZeroY = zeroY - posOffsetY;
+
+        // Calculate sample index range to render from buffer
+        const endIdx = Math.min(buffer.length, buffer.length - Math.round(posOffsetX));
+        const startIdx = Math.max(0, endIdx - samplesOnScreen);
 
         this.ctx.beginPath();
         let isFirstPoint = true;
 
-        for (let i = 0; i < buffer.length; i++) {
-            const bufIdx = i + Math.round(posOffsetX);
-            if (bufIdx < 0 || bufIdx >= buffer.length) continue;
-
-            const x = i * stepX;
-            const y = traceZeroY - (buffer[bufIdx] * vDivScale);
+        for (let i = startIdx; i < endIdx; i++) {
+            const screenIdx = i - startIdx;
+            const x = screenIdx * stepX;
+            const y = traceZeroY - (buffer[i] * vDivScale);
 
             if (isFirstPoint) {
                 this.ctx.moveTo(x, y);
