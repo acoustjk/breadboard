@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset) Controls.
+ * Precise Two-Way Sync Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset) Controls.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1038';
-import { MNASolver } from './src/engine/MNASolver.js?v=1038';
-import { FFT } from './src/engine/FFT.js?v=1038';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1038';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1038';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1038';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1038';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1038';
-import { AICopilot } from './src/components/AICopilot.js?v=1038';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1039';
+import { MNASolver } from './src/engine/MNASolver.js?v=1039';
+import { FFT } from './src/engine/FFT.js?v=1039';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1039';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1039';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1039';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1039';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1039';
+import { AICopilot } from './src/components/AICopilot.js?v=1039';
 
 class AppController {
     constructor() {
@@ -657,17 +657,94 @@ class AppController {
             });
         }
 
-        // Oscilloscope Controls Event Listeners (Per-Channel Volt/Div, Y-Position, Channel Toggle, Timebase)
-        const bindScopeControl = (id, propName, isFloat = true) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', (e) => {
-                    this.oscilloscopeCanvas[propName] = isFloat ? parseFloat(e.target.value) : e.target.value;
+        // Two-Way Sync Bindings for Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset)
+        const bindVoltDivSync = (selectId, numId, propName) => {
+            const selectEl = document.getElementById(selectId);
+            const numEl = document.getElementById(numId);
+            if (selectEl && numEl) {
+                selectEl.addEventListener('change', (e) => {
+                    const val = parseFloat(e.target.value);
+                    numEl.value = val;
+                    this.oscilloscopeCanvas[propName] = val;
                     this.oscilloscopeCanvas.render();
                 });
-                el.addEventListener('input', (e) => {
-                    this.oscilloscopeCanvas[propName] = isFloat ? parseFloat(e.target.value) : e.target.value;
+                numEl.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val) && val > 0) {
+                        selectEl.value = val.toString();
+                        this.oscilloscopeCanvas[propName] = val;
+                        this.oscilloscopeCanvas.render();
+                    }
+                });
+            }
+        };
+
+        const bindPosYSync = (sliderId, numId, txtId, propName) => {
+            const sliderEl = document.getElementById(sliderId);
+            const numEl = document.getElementById(numId);
+            const txtEl = document.getElementById(txtId);
+
+            const updateVal = (val) => {
+                this.oscilloscopeCanvas[propName] = val;
+                if (txtEl) txtEl.innerText = `Y: ${val > 0 ? '+' : ''}${val}px`;
+                this.oscilloscopeCanvas.render();
+            };
+
+            if (sliderEl && numEl) {
+                sliderEl.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value, 10);
+                    numEl.value = val;
+                    updateVal(val);
+                });
+                numEl.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    sliderEl.value = val;
+                    updateVal(val);
+                });
+            }
+        };
+
+        const bindPosXSync = (sliderId, numId, propName) => {
+            const sliderEl = document.getElementById(sliderId);
+            const numEl = document.getElementById(numId);
+
+            const updateVal = (val) => {
+                this.oscilloscopeCanvas[propName] = val;
+                this.oscilloscopeCanvas.render();
+            };
+
+            if (sliderEl && numEl) {
+                sliderEl.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value, 10);
+                    numEl.value = val;
+                    updateVal(val);
+                });
+                numEl.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    sliderEl.value = val;
+                    updateVal(val);
+                });
+            }
+        };
+
+        const bindTimeDivSync = (selectId, numId, propName) => {
+            const selectEl = document.getElementById(selectId);
+            const numEl = document.getElementById(numId);
+            if (selectEl && numEl) {
+                selectEl.addEventListener('change', (e) => {
+                    const secVal = parseFloat(e.target.value);
+                    numEl.value = (secVal * 1000).toFixed(1);
+                    this.oscilloscopeCanvas[propName] = secVal;
                     this.oscilloscopeCanvas.render();
+                });
+                numEl.addEventListener('input', (e) => {
+                    const msVal = parseFloat(e.target.value);
+                    if (!isNaN(msVal) && msVal > 0) {
+                        const secVal = msVal / 1000.0;
+                        selectEl.value = secVal.toString();
+                        this.oscilloscopeCanvas[propName] = secVal;
+                        this.oscilloscopeCanvas.render();
+                    }
                 });
             }
         };
@@ -682,35 +759,42 @@ class AppController {
             }
         };
 
-        bindScopeControl('voltDivChA', 'voltPerDivChA');
-        bindScopeControl('voltDivChB', 'voltPerDivChB');
-        bindScopeControl('voltDivChC', 'voltPerDivChC');
-        bindScopeControl('voltDivChD', 'voltPerDivChD');
+        // Wire up all 4 channels Volt/Div and Y-Pos Sync
+        bindVoltDivSync('voltDivChA', 'numVoltDivChA', 'voltPerDivChA');
+        bindVoltDivSync('voltDivChB', 'numVoltDivChB', 'voltPerDivChB');
+        bindVoltDivSync('voltDivChC', 'numVoltDivChC', 'voltPerDivChC');
+        bindVoltDivSync('voltDivChD', 'numVoltDivChD', 'voltPerDivChD');
 
-        bindScopeControl('posYChA', 'posOffsetYChA');
-        bindScopeControl('posYChB', 'posOffsetYChB');
-        bindScopeControl('posYChC', 'posOffsetYChC');
-        bindScopeControl('posYChD', 'posOffsetYChD');
+        bindPosYSync('posYChA', 'numPosYChA', 'txtValChA', 'posOffsetYChA');
+        bindPosYSync('posYChB', 'numPosYChB', 'txtValChB', 'posOffsetYChB');
+        bindPosYSync('posYChC', 'numPosYChC', 'txtValChC', 'posOffsetYChC');
+        bindPosYSync('posYChD', 'numPosYChD', 'txtValChD', 'posOffsetYChD');
 
         bindScopeCheckbox('chkChA', 'showChA');
         bindScopeCheckbox('chkChB', 'showChB');
         bindScopeCheckbox('chkChC', 'showChC');
         bindScopeCheckbox('chkChD', 'showChD');
 
-        bindScopeControl('posXTime', 'posOffsetX');
+        bindTimeDivSync('timeDivSelect', 'numTimeDivMs', 'timePerDiv');
+        bindPosXSync('posXTime', 'numPosXTime', 'posOffsetX');
 
         const btnResetScope = document.getElementById('btnResetScopeControls');
         if (btnResetScope) {
             btnResetScope.addEventListener('click', () => {
-                document.getElementById('voltDivChA').value = '2.0';
-                document.getElementById('voltDivChB').value = '2.0';
-                document.getElementById('voltDivChC').value = '2.0';
-                document.getElementById('voltDivChD').value = '5.0';
+                document.getElementById('voltDivChA').value = '2.0'; document.getElementById('numVoltDivChA').value = '2.0';
+                document.getElementById('voltDivChB').value = '2.0'; document.getElementById('numVoltDivChB').value = '2.0';
+                document.getElementById('voltDivChC').value = '2.0'; document.getElementById('numVoltDivChC').value = '2.0';
+                document.getElementById('voltDivChD').value = '5.0'; document.getElementById('numVoltDivChD').value = '5.0';
 
-                document.getElementById('posYChA').value = '0';
-                document.getElementById('posYChB').value = '0';
-                document.getElementById('posYChC').value = '0';
-                document.getElementById('posYChD').value = '0';
+                document.getElementById('posYChA').value = '0'; document.getElementById('numPosYChA').value = '0';
+                document.getElementById('posYChB').value = '0'; document.getElementById('numPosYChB').value = '0';
+                document.getElementById('posYChC').value = '0'; document.getElementById('numPosYChC').value = '0';
+                document.getElementById('posYChD').value = '0'; document.getElementById('numPosYChD').value = '0';
+
+                document.getElementById('txtValChA').innerText = 'Y: 0px';
+                document.getElementById('txtValChB').innerText = 'Y: 0px';
+                document.getElementById('txtValChC').innerText = 'Y: 0px';
+                document.getElementById('txtValChD').innerText = 'Y: 0px';
 
                 document.getElementById('chkChA').checked = true;
                 document.getElementById('chkChB').checked = true;
@@ -718,13 +802,15 @@ class AppController {
                 document.getElementById('chkChD').checked = true;
 
                 document.getElementById('timeDivSelect').value = '0.002';
+                document.getElementById('numTimeDivMs').value = '2.0';
                 document.getElementById('posXTime').value = '0';
+                document.getElementById('numPosXTime').value = '0';
 
                 this.oscilloscopeCanvas.resetControls();
             });
         }
 
-        // Instrument Floating Modal Window Triggers (Auto Start Simulation when opened!)
+        // Instrument Floating Modal Window Triggers
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
             this.startSimulation();
             document.getElementById('scopeModal').classList.remove('hidden');
@@ -875,11 +961,6 @@ class AppController {
                 this.initComputerExam();
             }
             this.renderAll();
-        });
-
-        document.getElementById('timeDivSelect').addEventListener('change', (e) => {
-            this.oscilloscopeCanvas.timePerDiv = parseFloat(e.target.value);
-            this.oscilloscopeCanvas.render();
         });
 
         document.getElementById('btnExportSpice').addEventListener('click', () => {
