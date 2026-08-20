@@ -1,7 +1,7 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
- * LM358 Dual Op-Amp high-gain active voltage driver update v=1041.
+ * LM358 Dual Op-Amp Schmitt Trigger + Linear Integrator Driver v=1043.
  */
 
 export class MNASolver {
@@ -214,25 +214,29 @@ export class MNASolver {
                     const nOutA = getNode(pins.pin1);
                     const nOutB = getNode(pins.pin7);
 
-                    const vPosA = comp.vPin8 || 9.0;
-                    const vNegA = comp.vPin4 || 0.0;
+                    const vPos = comp.vPin8 || 9.0;
+                    const vNeg = comp.vPin4 || 0.0;
 
+                    // Unit A: Bistable Schmitt Trigger / Switching Driver
                     if (nOutA) {
+                        comp.stateA = comp.stateA || 'HIGH';
                         const vDiffA = (comp.lastVPlusA || 0) - (comp.lastVMinusA || 0);
-                        const gain = 500.0;
-                        const vMid = (vPosA + vNegA) / 2.0;
-                        const vOutA = Math.max(vNegA + 0.2, Math.min(vPosA - 1.2, vMid + vDiffA * gain));
+                        if (vDiffA > 0.001) comp.stateA = 'HIGH';
+                        else if (vDiffA < -0.001) comp.stateA = 'LOW';
+
+                        const vOutA = (comp.stateA === 'HIGH') ? (vPos - 1.2) : (vNeg + 0.2);
                         addConductance(nOutA, '0', 100.0);
                         addCurrentSource(nOutA, '0', vOutA * 100.0);
                     }
 
+                    // Unit B: Linear Active Integrator / Amplifier Driver
                     if (nOutB) {
                         const vDiffB = (comp.lastVPlusB || 0) - (comp.lastVMinusB || 0);
-                        const gain = 500.0;
-                        const vMid = (vPosA + vNegA) / 2.0;
-                        const vOutB = Math.max(vNegA + 0.2, Math.min(vPosA - 1.2, vMid + vDiffB * gain));
-                        addConductance(nOutB, '0', 100.0);
-                        addCurrentSource(nOutB, '0', vOutB * 100.0);
+                        const vMid = (vPos + vNeg) / 2.0;
+                        const gainB = 20.0;
+                        const vOutB = Math.max(vNeg + 0.2, Math.min(vPos - 1.2, vMid + vDiffB * gainB));
+                        addConductance(nOutB, '0', 50.0);
+                        addCurrentSource(nOutB, '0', vOutB * 50.0);
                     }
 
                 } else if (icType === 'LM386') {
