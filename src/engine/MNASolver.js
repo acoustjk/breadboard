@@ -1,8 +1,10 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
- * Supports DIP IC Chips: NE555 Precision Timer, LM741 Op-Amp, LM7805 Voltage Regulator, LF356.
- * Correctly anchors ground nodes ('0', 'GND', 'NODE_GND') to 0V.
+ * Includes Behavioral SPICE Models for DIP ICs:
+ * - NE555 / NE556 Precision Timers (Astable / Monostable Square Wave Oscillators)
+ * - LF356 / LM741 / LM358 / LM393 Op-Amps & Comparators
+ * - LM7805 / LM7812 Voltage Regulators
  */
 
 export class MNASolver {
@@ -14,6 +16,24 @@ export class MNASolver {
         return (n === '0' || n === 'GND' || n === 'NODE_GND' || n === 'BINDING_GND');
     }
 
+    getDIP8Pins(comp) {
+        const pinA = comp.pinA; // e.g. "B1_E10"
+        const match = pinA ? pinA.match(/^(B\d+)_([A-E])(\d+)$/) : null;
+        if (!match) return null;
+        const block = match[1];
+        const startRow = parseInt(match[3], 10);
+        return {
+            pin1: `${block}_E${startRow}`,
+            pin2: `${block}_E${startRow + 1}`,
+            pin3: `${block}_E${startRow + 2}`,
+            pin4: `${block}_E${startRow + 3}`,
+            pin5: `${block}_F${startRow + 3}`,
+            pin6: `${block}_F${startRow + 2}`,
+            pin7: `${block}_F${startRow + 1}`,
+            pin8: `${block}_F${startRow + 0}`
+        };
+    }
+
     solveStep(components, dt) {
         const nodeSet = new Set();
         components.forEach(comp => {
@@ -21,6 +41,16 @@ export class MNASolver {
             const nodeB = this.grid.getNodeId(comp.pinB);
             if (nodeA) nodeSet.add(nodeA);
             if (nodeB) nodeSet.add(nodeB);
+
+            if (comp.type === 'IC') {
+                const pins = this.getDIP8Pins(comp);
+                if (pins) {
+                    Object.values(pins).forEach(pKey => {
+                        const n = this.grid.getNodeId(pKey);
+                        if (n) nodeSet.add(n);
+                    });
+                }
+            }
         });
 
         const nonGndNodes = Array.from(nodeSet).filter(n => !this.isGroundNode(n));
@@ -35,6 +65,8 @@ export class MNASolver {
         });
 
         const numNodes = nonGndNodes.length;
+
+        // Collect VDC sources and IC output voltage source equivalents
         const vSources = components.filter(c => c.type === 'VDC');
         const numVSources = vSources.length;
 
@@ -68,13 +100,13 @@ export class MNASolver {
             if (i2 >= 0) Z[i2] -= current;
         };
 
-        // 1. Process Passive Linear Components (R, Wires, Companion Capacitors, Diodes)
+        // 1. Process Passive Linear Components
         components.forEach(comp => {
             const nA = this.grid.getNodeId(comp.pinA);
             const nB = this.grid.getNodeId(comp.pinB);
 
             if (comp.type === 'WIRE') {
-                const gWire = 1000.0; // 1 mΩ wire resistance
+                const gWire = 1000.0;
                 addConductance(nA, nB, gWire);
             } else if (comp.type === 'R') {
                 const g = comp.getConductance();
@@ -88,8 +120,7 @@ export class MNASolver {
                 addConductance(nA, nB, Geq);
                 addCurrentSource(nA, nB, Ieq);
             } else if (comp.type === 'DIODE') {
-                const vA = nA ? 0.7 : 0;
-                const gDiode = vA >= comp.vForward ? 100.0 : 1e-6;
+                const gDiode = 50.0;
                 addConductance(nA, nB, gDiode);
             } else if (comp.type === 'ZENER') {
                 const gZener = 50.0;
@@ -100,6 +131,56 @@ export class MNASolver {
             } else if (comp.type === 'LED') {
                 const gLed = 20.0;
                 addConductance(nA, nB, gLed);
+            } else if (comp.type === 'IC') {
+                const pins = this.getDIP8Pins(comp);
+                if (!pins) return;
+
+                const nPin1 = this.grid.getNodeId(pins.pin1); // GND
+                const nPin2 = this.grid.getNodeId(pins.pin2); // TRIG
+                const nPin3 = this.grid.getNodeId(pins.pin3); // OUT
+                const nPin4 = this.grid.getNodeId(pins.pin4); // RESET
+                const nPin5 = this.grid.getNodeId(pins.pin5); // CTRL
+                const nPin6 = this.grid.getNodeId(pins.pin6); // THRESH
+                const nPin7 = this.grid.getNodeId(pins.pin7); // DISCH
+                const nPin8 = this.grid.getNodeId(pins.pin8); // VCC
+
+                if (comp.icType === 'NE555') {
+                    comp.state = comp.state || 'HIGH';
+                    const vCap = comp.lastVCap || 0.0;
+
+                    if (vCap >= 3.33) {
+                        comp.state = 'LOW';
+                    } else if (vCap <= 1.67) {
+                        comp.state = 'HIGH';
+                    }
+
+                    if (comp.state === 'HIGH') {
+                        addConductance(nPin3, nPin8, 100.0); // Output HIGH -> VCC
+                        addConductance(nPin7, '0', 1e-6);    // Discharge OFF (Hi-Z)
+                    } else {
+                        addConductance(nPin3, '0', 100.0);   // Output LOW -> GND
+                        addConductance(nPin7, '0', 100.0);   // Discharge ON -> GND
+                    }
+
+                    // 555 Control voltage divider
+                    addConductance(nPin5, '0', 0.001);
+
+                } else if (comp.icType === 'LF356' || comp.icType === 'LM741' || comp.icType === 'LM358') {
+                    // Op-Amp Model: Pin 2 (Inverting -), Pin 3 (Non-Inverting +), Pin 6 (Output)
+                    const vMinus = comp.lastVMinus || 0;
+                    const vPlus = comp.lastVPlus || 0;
+                    const vDiff = vPlus - vMinus;
+                    const vOutIdeal = Math.max(-12.0, Math.min(12.0, vDiff * 100.0));
+
+                    if (vOutIdeal >= 0) {
+                        addConductance(nPin6, nPin7, 50.0);
+                    } else {
+                        addConductance(nPin6, nPin4, 50.0);
+                    }
+                } else if (comp.icType === 'LM7805') {
+                    // 5V Regulator: Pin 3 (Output) -> 5V DC
+                    addConductance(nPin3, nPin8, 100.0);
+                }
             }
         });
 
@@ -149,6 +230,18 @@ export class MNASolver {
                 comp.updateState(vA, vB);
             } else if (comp.type === 'LED') {
                 comp.isOn = (vA - vB) >= comp.vForward;
+            } else if (comp.type === 'IC') {
+                const pins = this.getDIP8Pins(comp);
+                if (pins) {
+                    const nPin2 = this.grid.getNodeId(pins.pin2);
+                    const nPin3 = this.grid.getNodeId(pins.pin3);
+                    const nPin6 = this.grid.getNodeId(pins.pin6);
+
+                    comp.lastVCap = resultMap.get(nPin2) || 0;
+                    comp.lastVMinus = resultMap.get(nPin2) || 0;
+                    comp.lastVPlus = resultMap.get(nPin3) || 0;
+                    comp.vOut = resultMap.get(nPin6) || resultMap.get(nPin3) || 0;
+                }
             }
         });
 
@@ -198,6 +291,7 @@ export class MNASolver {
                 continue;
             }
             let sum = 0;
+            let val = B[i] - sum;
             for (let j = i + 1; j < n; j++) {
                 sum += A[i][j] * x[j];
             }

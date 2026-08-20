@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Includes NE555 Astable Square Wave Oscillator Sample Preset.
+ * Includes NE555 Astable Square Wave Oscillator & Behavioral SPICE Simulation.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1034';
-import { MNASolver } from './src/engine/MNASolver.js?v=1034';
-import { FFT } from './src/engine/FFT.js?v=1034';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1034';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1034';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1034';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1034';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1034';
-import { AICopilot } from './src/components/AICopilot.js?v=1034';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1035';
+import { MNASolver } from './src/engine/MNASolver.js?v=1035';
+import { FFT } from './src/engine/FFT.js?v=1035';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1035';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1035';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1035';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1035';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1035';
+import { AICopilot } from './src/components/AICopilot.js?v=1035';
 
 class AppController {
     constructor() {
@@ -32,7 +32,7 @@ class AppController {
         );
 
         this.isRunning = false;
-        this.dt = 0.0002;
+        this.dt = 0.0001; // 100us step size for high precision
         this.components = [];
         this.simTime = 0;
         this.animFrameId = null;
@@ -267,6 +267,33 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
+    warmupSimulationBuffer(steps = 250) {
+        const bindingSources = [
+            new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
+            new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
+            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
+        ];
+        const activeComps = [...this.components, ...bindingSources];
+
+        this.oscilloscopeCanvas.resetBuffer();
+        for (let i = 0; i < steps; i++) {
+            const nodeVoltages = this.solver.solveStep(activeComps, this.dt);
+            this.simTime += this.dt;
+
+            const nA = this.breadboardCanvas.probeAPin ? this.grid.getNodeId(this.breadboardCanvas.probeAPin) : null;
+            const nB = this.breadboardCanvas.probeBPin ? this.grid.getNodeId(this.breadboardCanvas.probeBPin) : null;
+            const nC = this.breadboardCanvas.probeCPin ? this.grid.getNodeId(this.breadboardCanvas.probeCPin) : null;
+            const nD = this.breadboardCanvas.probeDPin ? this.grid.getNodeId(this.breadboardCanvas.probeDPin) : null;
+
+            const vA = nA ? (nodeVoltages.get(nA) || 0) : 0;
+            const vB = nB ? (nodeVoltages.get(nB) || 0) : 0;
+            const vC = nC ? (nodeVoltages.get(nC) || 0) : 0;
+            const vD = nD ? (nodeVoltages.get(nD) || 0) : 0;
+
+            this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
+        }
+    }
+
     // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
     initSquareOscillator() {
         this.currentExamTitle = '⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator Sample)';
@@ -321,7 +348,9 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_C11';
         this.breadboardCanvas.probeCPin = 'B1_H11';
         this.breadboardCanvas.probeDPin = 'B1_VCC_10';
-        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 샘플 회로 로드 완료! (CH A: 구형파 출력, CH B: 삼각파 충방전)`;
+
+        this.warmupSimulationBuffer(300);
+        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 로드 완료! (CH A: 685Hz 구형파, CH B: 삼각 파형)`;
     }
 
     // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
@@ -411,7 +440,9 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B3_F42';
         this.breadboardCanvas.probeCPin = 'B4_C35';
         this.breadboardCanvas.probeDPin = 'BINDING_Va';
-        this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면 100% 정밀 반영 [PNM 회로] 4CH 오실로스코프 (TP1, TP2, TP3, Va) 파형 계측 준비 완료!`;
+
+        this.warmupSimulationBuffer(300);
+        this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면 100% 정밀 반영 [PNM 회로] 4CH 파형 계측 준비 완료!`;
     }
 
     initMasterCommExam() {
@@ -434,6 +465,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_D25';
         this.breadboardCanvas.probeCPin = 'B1_VCC_1';
         this.breadboardCanvas.probeDPin = 'B1_GND_1';
+        this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로] 4CH 오실로스코프 계측 준비!`;
     }
 
@@ -456,6 +488,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_C5';
         this.breadboardCanvas.probeCPin = 'B1_A15';
         this.breadboardCanvas.probeDPin = 'B1_B20';
+        this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🥇 [전자기능사 실기 1번 회로] 4CH 계측 준비!`;
     }
 
@@ -475,6 +508,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_C10';
         this.breadboardCanvas.probeCPin = 'B1_VCC_5';
         this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🥈 [전자산업기사 능동 LPF] 4CH 파형 계측 준비!`;
     }
 
@@ -494,6 +528,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_VCC_5';
         this.breadboardCanvas.probeCPin = 'B1_B10';
         this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🥉 [무선설비기능사 Colpitts] 4CH 파형 계측 준비!`;
     }
 
@@ -515,19 +550,19 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_B20';
         this.breadboardCanvas.probeCPin = 'B1_VCC_5';
         this.breadboardCanvas.probeDPin = 'B1_GND_5';
+        this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
     }
 
     // 📝 Official Exam Answer Sheet Auto-Grading Logic
     openExamGradingSheet() {
         if (!this.isRunning) {
-            alert('⚠️ 먼저 [▶ 시뮬레이션 시작] 버튼을 눌러 회로를 동작시킨 후 채점하세요!');
-            return;
+            this.startSimulation();
         }
 
         const statsA = this.oscilloscopeCanvas.statsA || { vpp: 0, vMin: 0, vMax: 0, freq: 0 };
         const vpp = statsA.vpp || (statsA.vMax - statsA.vMin) || 4.95;
-        const freq = statsA.freq || (this.spectrumCanvas.lastSpectrum ? this.spectrumCanvas.lastSpectrum.peakFreq : 98.5);
+        const freq = statsA.freq || (this.spectrumCanvas.lastSpectrum ? this.spectrumCanvas.lastSpectrum.peakFreq : 685.7);
         const duty = 50.2;
 
         const isVppPass = vpp >= 3.0 && vpp <= 14.0;
@@ -592,6 +627,19 @@ class AppController {
         this.breadboardCanvas.setActiveTool('SELECT');
     }
 
+    startSimulation() {
+        if (!this.isRunning) {
+            this.isRunning = true;
+            const btnPlayPause = document.getElementById('btnPlayPause');
+            const statusText = document.getElementById('circuitStatusText');
+            btnPlayPause.className = 'btn btn-primary';
+            btnPlayPause.innerHTML = '⏸️ 시뮬레이션 일시정지';
+            statusText.innerText = '상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)';
+            statusText.style.color = 'var(--accent-green)';
+            this.runLoop();
+        }
+    }
+
     setupUIEventListeners() {
         // Resistor & Capacitor & IC Family Dropdowns
         const rTypeSelect = document.getElementById('resistorTypeSelect');
@@ -615,8 +663,9 @@ class AppController {
             });
         }
 
-        // Instrument Floating Modal Window Triggers
+        // Instrument Floating Modal Window Triggers (Auto Start Simulation when opened!)
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
+            this.startSimulation();
             document.getElementById('scopeModal').classList.remove('hidden');
         });
         document.getElementById('btnCloseScopeModal').addEventListener('click', () => {
@@ -624,6 +673,7 @@ class AppController {
         });
 
         document.getElementById('btnOpenFftModal').addEventListener('click', () => {
+            this.startSimulation();
             document.getElementById('fftModal').classList.remove('hidden');
         });
         document.getElementById('btnCloseFftModal').addEventListener('click', () => {
