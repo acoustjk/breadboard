@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Includes NE555 Astable Square Wave Oscillator & Behavioral SPICE Simulation.
+ * Complete Behavioral SPICE Simulation for All 19 IC Chips.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1035';
-import { MNASolver } from './src/engine/MNASolver.js?v=1035';
-import { FFT } from './src/engine/FFT.js?v=1035';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1035';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1035';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1035';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1035';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1035';
-import { AICopilot } from './src/components/AICopilot.js?v=1035';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1036';
+import { MNASolver } from './src/engine/MNASolver.js?v=1036';
+import { FFT } from './src/engine/FFT.js?v=1036';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1036';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1036';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1036';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1036';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1036';
+import { AICopilot } from './src/components/AICopilot.js?v=1036';
 
 class AppController {
     constructor() {
