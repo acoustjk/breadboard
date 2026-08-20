@@ -177,7 +177,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 EIC-108 PNM 회로 정귀환 및 4CH 오실로스코프 출력파형 연산이 보정되었습니다!</span>
+                <span style="font-size: 11px; color: var(--accent-blue); margin-left: 6px; align-self: center;">💡 오실로스코프 팝업에서 채널별 Volt/Div, Y-Position, Time/Div, X-Shift 노브를 조절할 수 있습니다!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -193,8 +193,8 @@
             </div>
 
             <div id="copilotChat" class="copilot-chat">
-                <p>안녕하세요! <strong>EIC-108 PNM 실기 회로 정밀 시뮬레이터 AI 코파일럿</strong>입니다.</p>
-                <p><strong>[▶ 시뮬레이션 시작]</strong> 또는 <strong>[📊 4CH 오실로스코프 팝업]</strong>을 여시면 TP1 정현파, TP2 삼각파, TP3 변조 펄스 파형을 즉시 계측하실 수 있습니다!</p>
+                <p>안녕하세요! <strong>4채널 계측기 스케일 & 포지션 콘솔 탑재 시뮬레이터</strong>입니다.</p>
+                <p><strong>[📊 4CH 오실로스코프 팝업]</strong>을 열면 채널별 <strong>Volt/Div 수직 스케일</strong>, <strong>Y-Position 위치 슬라이더</strong>, <strong>Time/Div 및 X-Position 파형 이동</strong>을 자유롭게 조작하실 수 있습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -208,33 +208,129 @@
 
     <!-- Floating 4CH Oscilloscope Instrument Modal -->
     <div id="scopeModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-content" style="max-width: 760px;">
             <div class="modal-header">
-                <h3 style="color: var(--accent-amber);">📊 4-Channel (4CH) Real-Time Oscilloscope</h3>
+                <h3 style="color: var(--accent-amber);">📊 4-Channel (4CH) Real-Time Oscilloscope Control Panel</h3>
                 <button id="btnCloseScopeModal" class="btn">✖</button>
             </div>
             <div class="canvas-wrapper">
-                <canvas id="oscilloscopeCanvas" width="560" height="240"></canvas>
+                <canvas id="oscilloscopeCanvas" width="710" height="270"></canvas>
             </div>
-            <div class="instrument-controls">
-                <div class="control-group">
-                    <label for="voltDivSelect">Volt/Div:</label>
-                    <select id="voltDivSelect" class="select-input" style="padding: 4px 8px; width: auto;">
-                        <option value="0.5">0.5 V</option>
-                        <option value="1.0" selected>1.0 V</option>
-                        <option value="2.0">2.0 V</option>
-                        <option value="5.0">5.0 V</option>
-                    </select>
+
+            <!-- Oscilloscope Control Panel (Per-Channel Volt/Div, Y-Position, Channel Toggle) -->
+            <div class="instrument-controls-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; font-size: 11px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #1e293b;">
+
+                <!-- CH A Controls (Yellow) -->
+                <div class="channel-control-card" style="border-left: 3px solid #facc15; padding-left: 6px;">
+                    <div style="color: #facc15; font-weight: bold; margin-bottom: 4px;">
+                        <input type="checkbox" id="chkChA" checked> 📍 CH A (TP1)
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <label>V/Div:</label>
+                        <select id="voltDivChA" class="select-input-sm" style="padding: 2px 4px; width: auto; font-size: 11px;">
+                            <option value="0.2">0.2 V</option>
+                            <option value="0.5">0.5 V</option>
+                            <option value="1.0">1.0 V</option>
+                            <option value="2.0" selected>2.0 V</option>
+                            <option value="5.0">5.0 V</option>
+                            <option value="10.0">10.0 V</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Y-Pos:</label>
+                        <input type="range" id="posYChA" min="-100" max="100" value="0" style="width: 65px; vertical-align: middle;">
+                    </div>
                 </div>
-                <div class="control-group">
+
+                <!-- CH B Controls (Magenta) -->
+                <div class="channel-control-card" style="border-left: 3px solid #e879f9; padding-left: 6px;">
+                    <div style="color: #e879f9; font-weight: bold; margin-bottom: 4px;">
+                        <input type="checkbox" id="chkChB" checked> 📍 CH B (TP2)
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <label>V/Div:</label>
+                        <select id="voltDivChB" class="select-input-sm" style="padding: 2px 4px; width: auto; font-size: 11px;">
+                            <option value="0.2">0.2 V</option>
+                            <option value="0.5">0.5 V</option>
+                            <option value="1.0">1.0 V</option>
+                            <option value="2.0" selected>2.0 V</option>
+                            <option value="5.0">5.0 V</option>
+                            <option value="10.0">10.0 V</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Y-Pos:</label>
+                        <input type="range" id="posYChB" min="-100" max="100" value="0" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+
+                <!-- CH C Controls (Cyan) -->
+                <div class="channel-control-card" style="border-left: 3px solid #38bdf8; padding-left: 6px;">
+                    <div style="color: #38bdf8; font-weight: bold; margin-bottom: 4px;">
+                        <input type="checkbox" id="chkChC" checked> 📍 CH C (TP3)
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <label>V/Div:</label>
+                        <select id="voltDivChC" class="select-input-sm" style="padding: 2px 4px; width: auto; font-size: 11px;">
+                            <option value="0.2">0.2 V</option>
+                            <option value="0.5">0.5 V</option>
+                            <option value="1.0">1.0 V</option>
+                            <option value="2.0" selected>2.0 V</option>
+                            <option value="5.0">5.0 V</option>
+                            <option value="10.0">10.0 V</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Y-Pos:</label>
+                        <input type="range" id="posYChC" min="-100" max="100" value="0" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+
+                <!-- CH D Controls (Green) -->
+                <div class="channel-control-card" style="border-left: 3px solid #22c55e; padding-left: 6px;">
+                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">
+                        <input type="checkbox" id="chkChD" checked> 📍 CH D (Va)
+                    </div>
+                    <div style="margin-bottom: 4px;">
+                        <label>V/Div:</label>
+                        <select id="voltDivChD" class="select-input-sm" style="padding: 2px 4px; width: auto; font-size: 11px;">
+                            <option value="0.2">0.2 V</option>
+                            <option value="0.5">0.5 V</option>
+                            <option value="1.0">1.0 V</option>
+                            <option value="2.0">2.0 V</option>
+                            <option value="5.0" selected>5.0 V</option>
+                            <option value="10.0">10.0 V</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Y-Pos:</label>
+                        <input type="range" id="posYChD" min="-100" max="100" value="0" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Horizontal Timebase Controls (Time/Div & X-Pos Shift) -->
+            <div style="display: flex; gap: 14px; margin-top: 8px; background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: center; font-size: 11px;">
+                <div style="color: #38bdf8; font-weight: bold;">⏱️ Horizontal Timebase:</div>
+
+                <div>
                     <label for="timeDivSelect">Time/Div:</label>
-                    <select id="timeDivSelect" class="select-input" style="padding: 4px 8px; width: auto;">
+                    <select id="timeDivSelect" class="select-input-sm" style="padding: 2px 6px; width: auto; font-size: 11px;">
+                        <option value="0.0005">0.5 ms</option>
                         <option value="0.001">1.0 ms</option>
                         <option value="0.002" selected>2.0 ms</option>
                         <option value="0.005">5.0 ms</option>
                         <option value="0.010">10.0 ms</option>
                     </select>
                 </div>
+
+                <div style="margin-left: auto;">
+                    <label for="posXTime">X-Pos Shift:</label>
+                    <input type="range" id="posXTime" min="-100" max="100" value="0" style="width: 100px; vertical-align: middle;">
+                </div>
+
+                <button id="btnResetScopeControls" class="btn" style="padding: 3px 8px; font-size: 11px; background: #334155;">🎯 스케일/포지션 리셋</button>
             </div>
         </div>
     </div>
@@ -281,6 +377,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1037"></script>
+    <script type="module" src="./app.js?v=1038"></script>
 </body>
 </html>

@@ -1,18 +1,18 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Complete Behavioral SPICE Simulation for All 19 IC Chips & PNM Exam Circuit Fix.
+ * Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset) Controls.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1037';
-import { MNASolver } from './src/engine/MNASolver.js?v=1037';
-import { FFT } from './src/engine/FFT.js?v=1037';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1037';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1037';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1037';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1037';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1037';
-import { AICopilot } from './src/components/AICopilot.js?v=1037';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1038';
+import { MNASolver } from './src/engine/MNASolver.js?v=1038';
+import { FFT } from './src/engine/FFT.js?v=1038';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1038';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1038';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1038';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1038';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1038';
+import { AICopilot } from './src/components/AICopilot.js?v=1038';
 
 class AppController {
     constructor() {
@@ -294,7 +294,7 @@ class AppController {
         }
     }
 
-    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment with Oscillating Feedback Loop)
+    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
     initPNMExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 100% 정밀 도면)';
         this.voltageVa = 12.0;
@@ -305,7 +305,7 @@ class AppController {
         this.breadboardCanvas.voltageVc = -12.0;
 
         this.components = [
-            // Banana Jack Power Supply Wires (Matching EIC-108 top wiring)
+            // Banana Jack Power Supply Wires
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
             new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
@@ -346,9 +346,9 @@ class AppController {
             new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
             new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_24', 9.1, 0.7),
 
-            // Positive Feedback Loop Wires for Sustained Oscillation
-            new Wire('W_OSC_FB', 'B3_F20', 'B1_C18', '#e74c3c'), // U1 Out -> CR Stage 1 In
-            new Wire('W_VR1_OUT', 'B3_C14', 'B3_F20', '#f39c12'), // VR1 -> U1 Out
+            // Positive Feedback Loop Wires
+            new Wire('W_OSC_FB', 'B3_F20', 'B1_C18', '#e74c3c'),
+            new Wire('W_VR1_OUT', 'B3_C14', 'B3_F20', '#f39c12'),
 
             // U3 Sawtooth Generator (Block 3 Rows 40~43)
             new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
@@ -380,10 +380,10 @@ class AppController {
         ];
 
         // 4CH Oscilloscope Probes directly attached to TP1, TP2, TP3, Va!
-        this.probeAPin = 'B3_F20'; // TP1 (U1 Pin 6 Output)
-        this.probeBPin = 'B3_F42'; // TP2 (U3 Pin 6 Output)
-        this.probeCPin = 'B4_C35'; // TP3 (Q1 Collector Output)
-        this.probeDPin = 'BINDING_Va'; // Va (+12V Power)
+        this.probeAPin = 'B3_F20';
+        this.probeBPin = 'B3_F42';
+        this.probeCPin = 'B4_C35';
+        this.probeDPin = 'BINDING_Va';
 
         this.breadboardCanvas.probeAPin = 'B3_F20';
         this.breadboardCanvas.probeBPin = 'B3_F42';
@@ -657,6 +657,73 @@ class AppController {
             });
         }
 
+        // Oscilloscope Controls Event Listeners (Per-Channel Volt/Div, Y-Position, Channel Toggle, Timebase)
+        const bindScopeControl = (id, propName, isFloat = true) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', (e) => {
+                    this.oscilloscopeCanvas[propName] = isFloat ? parseFloat(e.target.value) : e.target.value;
+                    this.oscilloscopeCanvas.render();
+                });
+                el.addEventListener('input', (e) => {
+                    this.oscilloscopeCanvas[propName] = isFloat ? parseFloat(e.target.value) : e.target.value;
+                    this.oscilloscopeCanvas.render();
+                });
+            }
+        };
+
+        const bindScopeCheckbox = (id, propName) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('change', (e) => {
+                    this.oscilloscopeCanvas[propName] = e.target.checked;
+                    this.oscilloscopeCanvas.render();
+                });
+            }
+        };
+
+        bindScopeControl('voltDivChA', 'voltPerDivChA');
+        bindScopeControl('voltDivChB', 'voltPerDivChB');
+        bindScopeControl('voltDivChC', 'voltPerDivChC');
+        bindScopeControl('voltDivChD', 'voltPerDivChD');
+
+        bindScopeControl('posYChA', 'posOffsetYChA');
+        bindScopeControl('posYChB', 'posOffsetYChB');
+        bindScopeControl('posYChC', 'posOffsetYChC');
+        bindScopeControl('posYChD', 'posOffsetYChD');
+
+        bindScopeCheckbox('chkChA', 'showChA');
+        bindScopeCheckbox('chkChB', 'showChB');
+        bindScopeCheckbox('chkChC', 'showChC');
+        bindScopeCheckbox('chkChD', 'showChD');
+
+        bindScopeControl('posXTime', 'posOffsetX');
+
+        const btnResetScope = document.getElementById('btnResetScopeControls');
+        if (btnResetScope) {
+            btnResetScope.addEventListener('click', () => {
+                document.getElementById('voltDivChA').value = '2.0';
+                document.getElementById('voltDivChB').value = '2.0';
+                document.getElementById('voltDivChC').value = '2.0';
+                document.getElementById('voltDivChD').value = '5.0';
+
+                document.getElementById('posYChA').value = '0';
+                document.getElementById('posYChB').value = '0';
+                document.getElementById('posYChC').value = '0';
+                document.getElementById('posYChD').value = '0';
+
+                document.getElementById('chkChA').checked = true;
+                document.getElementById('chkChB').checked = true;
+                document.getElementById('chkChC').checked = true;
+                document.getElementById('chkChD').checked = true;
+
+                document.getElementById('timeDivSelect').value = '0.002';
+                document.getElementById('posXTime').value = '0';
+
+                this.oscilloscopeCanvas.resetControls();
+            });
+        }
+
         // Instrument Floating Modal Window Triggers (Auto Start Simulation when opened!)
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
             this.startSimulation();
@@ -810,16 +877,9 @@ class AppController {
             this.renderAll();
         });
 
-        document.getElementById('voltDivSelect').addEventListener('change', (e) => {
-            const val = parseFloat(e.target.value);
-            this.oscilloscopeCanvas.voltPerDivChA = val;
-            this.oscilloscopeCanvas.voltPerDivChB = val;
-            this.oscilloscopeCanvas.voltPerDivChC = val;
-            this.oscilloscopeCanvas.voltPerDivChD = val;
-        });
-
         document.getElementById('timeDivSelect').addEventListener('change', (e) => {
             this.oscilloscopeCanvas.timePerDiv = parseFloat(e.target.value);
+            this.oscilloscopeCanvas.render();
         });
 
         document.getElementById('btnExportSpice').addEventListener('click', () => {

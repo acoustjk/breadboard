@@ -1,8 +1,12 @@
 /**
  * OscilloscopeCanvas.js
- * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer with Independent Traces & Statistics.
+ * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
+ * Independent Per-Channel Controls:
+ * - Volt/Div Scale (Ch A, B, C, D)
+ * - Y-Position Vertical Shift Offset (Ch A, B, C, D)
+ * - X-Position Horizontal Timebase Shift Offset
+ * - Channel ON/OFF Visibility Toggles
  * Colors: CH A (Yellow #facc15), CH B (Magenta #e879f9), CH C (Cyan #38bdf8), CH D (Green #22c55e)
- * Fixed Y-Offset to display 0V~12V signals in screen bounds cleanly.
  */
 
 export class OscilloscopeCanvas {
@@ -13,13 +17,23 @@ export class OscilloscopeCanvas {
         this.bufferSize = 300;
         this.resetBuffer();
 
-        this.voltPerDivChA = 1.0;
-        this.voltPerDivChB = 1.0;
-        this.voltPerDivChC = 1.0;
-        this.voltPerDivChD = 1.0;
+        // Independent Per-Channel Volt/Div Scales
+        this.voltPerDivChA = 2.0;
+        this.voltPerDivChB = 2.0;
+        this.voltPerDivChC = 2.0;
+        this.voltPerDivChD = 5.0;
 
-        this.timePerDiv = 0.002; // 2ms per division
+        // Independent Per-Channel Y-Position Vertical Offsets (pixels)
+        this.posOffsetYChA = 0;
+        this.posOffsetYChB = 0;
+        this.posOffsetYChC = 0;
+        this.posOffsetYChD = 0;
 
+        // Horizontal Timebase Settings
+        this.timePerDiv = 0.002; // 2.0 ms
+        this.posOffsetX = 0; // Horizontal shift
+
+        // Channel ON/OFF Visibility Toggles
         this.showChA = true;
         this.showChB = true;
         this.showChC = true;
@@ -36,6 +50,28 @@ export class OscilloscopeCanvas {
         this.bufferB = new Array(this.bufferSize).fill(0);
         this.bufferC = new Array(this.bufferSize).fill(0);
         this.bufferD = new Array(this.bufferSize).fill(0);
+    }
+
+    resetControls() {
+        this.voltPerDivChA = 2.0;
+        this.voltPerDivChB = 2.0;
+        this.voltPerDivChC = 2.0;
+        this.voltPerDivChD = 5.0;
+
+        this.posOffsetYChA = 0;
+        this.posOffsetYChB = 0;
+        this.posOffsetYChC = 0;
+        this.posOffsetYChD = 0;
+
+        this.timePerDiv = 0.002;
+        this.posOffsetX = 0;
+
+        this.showChA = true;
+        this.showChB = true;
+        this.showChC = true;
+        this.showChD = true;
+
+        this.render();
     }
 
     addSample(vA, vB, vC = 0, vD = 0) {
@@ -76,7 +112,6 @@ export class OscilloscopeCanvas {
         if (vMax === -Infinity) vMax = 0;
         const vpp = Math.max(0, vMax - vMin);
 
-        // Zero-Crossing Frequency Estimator
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
         for (let i = 1; i < buffer.length; i++) {
@@ -134,18 +169,18 @@ export class OscilloscopeCanvas {
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces
+        // 2. Render 4 Waveform Traces with Independent Per-Channel Controls
         if (this.showChA) {
-            this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY);
+            this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
         if (this.showChB) {
-            this.renderTrace(this.bufferB, '#e879f9', this.voltPerDivChB, zeroY, scaleY);
+            this.renderTrace(this.bufferB, '#e879f9', this.voltPerDivChB, zeroY, scaleY, this.posOffsetYChB, this.posOffsetX);
         }
         if (this.showChC) {
-            this.renderTrace(this.bufferC, '#38bdf8', this.voltPerDivChC, zeroY, scaleY);
+            this.renderTrace(this.bufferC, '#38bdf8', this.voltPerDivChC, zeroY, scaleY, this.posOffsetYChC, this.posOffsetX);
         }
         if (this.showChD) {
-            this.renderTrace(this.bufferD, '#22c55e', this.voltPerDivChD, zeroY, scaleY);
+            this.renderTrace(this.bufferD, '#22c55e', this.voltPerDivChD, zeroY, scaleY, this.posOffsetYChD, this.posOffsetX);
         }
 
         // 3. Channel Telemetry HUD Overlay
@@ -158,23 +193,23 @@ export class OscilloscopeCanvas {
         this.ctx.textBaseline = 'middle';
 
         // CH A Stats
-        this.ctx.fillStyle = '#facc15';
-        this.ctx.fillText(`CH A: ${this.statsA.vpp.toFixed(2)}Vpp (${this.statsA.freq.toFixed(0)}Hz)`, 16, 21);
+        this.ctx.fillStyle = this.showChA ? '#facc15' : '#475569';
+        this.ctx.fillText(`CH A: ${this.voltPerDivChA}V/d (${this.statsA.vpp.toFixed(2)}Vpp)`, 16, 21);
 
         // CH B Stats
-        this.ctx.fillStyle = '#e879f9';
-        this.ctx.fillText(`CH B: ${this.statsB.vpp.toFixed(2)}Vpp`, 160, 21);
+        this.ctx.fillStyle = this.showChB ? '#e879f9' : '#475569';
+        this.ctx.fillText(`CH B: ${this.voltPerDivChB}V/d (${this.statsB.vpp.toFixed(2)}Vpp)`, 190, 21);
 
         // CH C Stats
-        this.ctx.fillStyle = '#38bdf8';
-        this.ctx.fillText(`CH C: ${this.statsC.vpp.toFixed(2)}Vpp`, 280, 21);
+        this.ctx.fillStyle = this.showChC ? '#38bdf8' : '#475569';
+        this.ctx.fillText(`CH C: ${this.voltPerDivChC}V/d (${this.statsC.vpp.toFixed(2)}Vpp)`, 360, 21);
 
         // CH D Stats
-        this.ctx.fillStyle = '#22c55e';
-        this.ctx.fillText(`CH D: ${this.statsD.vpp.toFixed(2)}Vpp`, 400, 21);
+        this.ctx.fillStyle = this.showChD ? '#22c55e' : '#475569';
+        this.ctx.fillText(`CH D: ${this.voltPerDivChD}V/d (${this.statsD.vpp.toFixed(2)}Vpp)`, 530, 21);
     }
 
-    renderTrace(buffer, color, voltPerDiv, zeroY, scaleY) {
+    renderTrace(buffer, color, voltPerDiv, zeroY, scaleY, posOffsetY = 0, posOffsetX = 0) {
         if (!buffer || buffer.length === 0) return;
 
         this.ctx.strokeStyle = color;
@@ -184,13 +219,21 @@ export class OscilloscopeCanvas {
 
         const stepX = this.canvas.width / (buffer.length - 1);
         const vDivScale = scaleY / (voltPerDiv || 1.0);
+        const traceZeroY = zeroY - posOffsetY;
 
         this.ctx.beginPath();
+        let isFirstPoint = true;
+
         for (let i = 0; i < buffer.length; i++) {
+            const bufIdx = i + Math.round(posOffsetX);
+            if (bufIdx < 0 || bufIdx >= buffer.length) continue;
+
             const x = i * stepX;
-            const y = zeroY - (buffer[i] * vDivScale);
-            if (i === 0) {
+            const y = traceZeroY - (buffer[bufIdx] * vDivScale);
+
+            if (isFirstPoint) {
                 this.ctx.moveTo(x, y);
+                isFirstPoint = false;
             } else {
                 this.ctx.lineTo(x, y);
             }
