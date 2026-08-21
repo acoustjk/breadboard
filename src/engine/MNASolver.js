@@ -1,7 +1,7 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) Linear Circuit Engine for Hybrid Circuit Simulator.
- * SPICE Behavioral VCVS Driver with Hard Saturation Rail Clamping & NaN Overflow Protection v=1057.
+ * Added VDC / DCSource Power Driver & Saturation Rail Clamping v=1058.
  */
 
 export class MNASolver {
@@ -64,7 +64,7 @@ export class MNASolver {
             }
         };
 
-        // 1. Process Passive Linear Components
+        // 1. Process Passive Linear & Voltage Source Components
         components.forEach(comp => {
             const nA = this.grid.getNodeId(comp.pinA);
             const nB = this.grid.getNodeId(comp.pinB);
@@ -79,6 +79,11 @@ export class MNASolver {
                 const { Geq, Ieq } = comp.getCompanionModel(dt);
                 addConductance(nA, nB, Geq);
                 addCurrentSource(nA, nB, Ieq);
+            } else if (comp.type === 'VDC') {
+                const gSrc = 1000.0;
+                const vVal = comp.voltage !== undefined ? comp.voltage : 5.0;
+                addConductance(nA, nB, gSrc);
+                addCurrentSource(nA, nB, vVal * gSrc);
             } else if (comp.type === 'DIODE') {
                 addConductance(nA, nB, 50.0);
             } else if (comp.type === 'ZENER') {
@@ -120,7 +125,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741') {
-                    // Single Op-Amp VCVS Behavioral Model with Hard Saturation Rail Clamping
+                    // Single Op-Amp VCVS Behavioral Model with Rail Clamping
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
