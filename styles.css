@@ -331,3 +331,16 @@ body {
     gap: 8px;
     font-size: 12px;
 }
+
+.select-input-sm {
+    background: #1e293b;
+    color: #f8fafc;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+
+.select-input-sm option {
+    background: #0f172a;
+    color: #f8fafc;
+}

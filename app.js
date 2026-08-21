@@ -970,23 +970,38 @@ class AppController {
             }
         };
 
-        const bindTimeDivSync = (selectId, numId, propName) => {
+        const bindTimeDivSync = (selectId, sliderId, numId, propName) => {
             const selectEl = document.getElementById(selectId);
+            const sliderEl = document.getElementById(sliderId);
             const numEl = document.getElementById(numId);
-            if (selectEl && numEl) {
+
+            const updateVal = (secVal) => {
+                this.oscilloscopeCanvas[propName] = secVal;
+                const msVal = secVal * 1000.0;
+                if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
+                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(50.0, msVal));
+                this.oscilloscopeCanvas.render();
+            };
+
+            if (selectEl) {
                 selectEl.addEventListener('change', (e) => {
                     const secVal = parseFloat(e.target.value);
-                    numEl.value = (secVal * 1000).toFixed(2);
-                    this.oscilloscopeCanvas[propName] = secVal;
-                    this.oscilloscopeCanvas.render();
+                    updateVal(secVal);
                 });
+            }
+            if (sliderEl) {
+                sliderEl.addEventListener('input', (e) => {
+                    const msVal = parseFloat(e.target.value);
+                    if (!isNaN(msVal) && msVal > 0) {
+                        updateVal(msVal / 1000.0);
+                    }
+                });
+            }
+            if (numEl) {
                 numEl.addEventListener('input', (e) => {
                     const msVal = parseFloat(e.target.value);
                     if (!isNaN(msVal) && msVal > 0) {
-                        const secVal = msVal / 1000.0;
-                        selectEl.value = secVal.toString();
-                        this.oscilloscopeCanvas[propName] = secVal;
-                        this.oscilloscopeCanvas.render();
+                        updateVal(msVal / 1000.0);
                     }
                 });
             }
@@ -1017,7 +1032,7 @@ class AppController {
         bindScopeCheckbox('chkChC', 'showChC');
         bindScopeCheckbox('chkChD', 'showChD');
 
-        bindTimeDivSync('timeDivSelect', 'numTimeDivMs', 'timePerDiv');
+        bindTimeDivSync('timeDivSelect', 'rangeTimeDivMs', 'numTimeDivMs', 'timePerDiv');
         bindPosXSync('posXTime', 'numPosXTime', 'posOffsetX');
 
         const btnResetScope = document.getElementById('btnResetScopeControls');
@@ -1044,6 +1059,8 @@ class AppController {
                 document.getElementById('chkChD').checked = true;
 
                 document.getElementById('timeDivSelect').value = '0.005';
+                const rSlider = document.getElementById('rangeTimeDivMs');
+                if (rSlider) rSlider.value = '5.0';
                 document.getElementById('numTimeDivMs').value = '5.00';
                 document.getElementById('posXTime').value = '0';
                 document.getElementById('numPosXTime').value = '0';

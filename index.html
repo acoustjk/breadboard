@@ -186,7 +186,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CSS 캔버스 좌표 스케일링 완전 해결 & 조준선 핀 타겟 조명 탑재 v=1066!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 오실로스코프 960px 확장 & Time/Div 슬라이더+타이핑 탑재 v=1069!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -203,8 +203,8 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>브라우저 캔버스 크기가 달라지더라도 마우스 좌표가 핀 구멍에 <strong>100% 정밀하게 흡착(Snapping)</strong>되도록 좌표 보정 엔진을 수리했습니다!</p>
-                <p>마우스를 올리면 <strong>빨간색/노란색 타겟 조명</strong>이 켜지므로 핀 구멍 2곳을 누르시면 소자가 완벽하게 배치됩니다!</p>
+                <p>오실로스코프 팝업 창 가로 폭을 <strong>960px로 시원하게 확장</strong>하여 CH A~D 모든 채널이 잘림 없이 깔끔하게 표시됩니다!</p>
+                <p><strong>Time/Div 컨트롤</strong>에 **드래그 슬라이더 + 수치 타이핑 입력**이 모두 추가되었습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -264,20 +264,20 @@
 
     <!-- Floating 4CH Oscilloscope Instrument Modal -->
     <div id="scopeModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 820px;">
+        <div class="modal-content" style="max-width: 960px;">
             <div class="modal-header">
                 <h3 style="color: var(--accent-amber);">📊 4-Channel (4CH) Real-Time Oscilloscope Console</h3>
                 <button id="btnCloseScopeModal" class="btn">✖</button>
             </div>
             <div class="canvas-wrapper">
-                <canvas id="oscilloscopeCanvas" width="760" height="290"></canvas>
+                <canvas id="oscilloscopeCanvas" width="900" height="290"></canvas>
             </div>
 
             <!-- Oscilloscope Control Panel (Per-Channel Volt/Div Scale + Fine Input, Y-Position Shift + Fine Input, Channel Toggle) -->
-            <div class="instrument-controls-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; font-size: 11px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #1e293b;">
+            <div class="instrument-controls-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; font-size: 11px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #1e293b;">
 
                 <!-- CH A Controls (Yellow) -->
-                <div class="channel-control-card" style="border-left: 3px solid #facc15; padding: 6px 8px; background: rgba(250, 204, 21, 0.04); border-radius: 6px;">
+                <div class="channel-control-card" style="border-left: 3px solid #facc15; padding: 8px 10px; background: rgba(250, 204, 21, 0.04); border-radius: 6px;">
                     <div style="color: #facc15; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <label><input type="checkbox" id="chkChA" checked> 📍 CH A (OUT1)</label>
                         <span id="txtValChA" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
@@ -304,7 +304,7 @@
                 </div>
 
                 <!-- CH B Controls (Magenta) -->
-                <div class="channel-control-card" style="border-left: 3px solid #e879f9; padding: 6px 8px; background: rgba(232, 121, 249, 0.04); border-radius: 6px;">
+                <div class="channel-control-card" style="border-left: 3px solid #e879f9; padding: 8px 10px; background: rgba(232, 121, 249, 0.04); border-radius: 6px;">
                     <div style="color: #e879f9; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <label><input type="checkbox" id="chkChB" checked> 📍 CH B (OUT2)</label>
                         <span id="txtValChB" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
@@ -331,7 +331,7 @@
                 </div>
 
                 <!-- CH C Controls (Cyan) -->
-                <div class="channel-control-card" style="border-left: 3px solid #38bdf8; padding: 6px 8px; background: rgba(56, 189, 248, 0.04); border-radius: 6px;">
+                <div class="channel-control-card" style="border-left: 3px solid #38bdf8; padding: 8px 10px; background: rgba(56, 189, 248, 0.04); border-radius: 6px;">
                     <div style="color: #38bdf8; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <label><input type="checkbox" id="chkChC" checked> 📍 CH C (Vref)</label>
                         <span id="txtValChC" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
@@ -358,7 +358,7 @@
                 </div>
 
                 <!-- CH D Controls (Green) -->
-                <div class="channel-control-card" style="border-left: 3px solid #22c55e; padding: 6px 8px; background: rgba(34, 197, 94, 0.04); border-radius: 6px;">
+                <div class="channel-control-card" style="border-left: 3px solid #22c55e; padding: 8px 10px; background: rgba(34, 197, 94, 0.04); border-radius: 6px;">
                     <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <label><input type="checkbox" id="chkChD" checked> 📍 CH D (VCC)</label>
                         <span id="txtValChD" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
@@ -386,31 +386,37 @@
 
             </div>
 
-            <!-- Horizontal Timebase & X-Position Controls (Time/Div & Fine Input, X-Pos Shift + Fine Input) -->
+            <!-- Horizontal Timebase & X-Position Controls (Time/Div Slider + Fine Input, X-Pos Shift + Fine Input) -->
             <div style="display: flex; gap: 14px; margin-top: 8px; background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: center; font-size: 11px;">
                 <div style="color: #38bdf8; font-weight: bold;">🔍 Time/Div (가로 확대):</div>
 
-                <div style="display: flex; gap: 4px; align-items: center;">
-                    <label for="timeDivSelect">Scale:</label>
-                    <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 95px; font-size: 11px;">
-                        <option value="0.00001">0.01 ms (10µs)</option>
-                        <option value="0.00002">0.02 ms (20µs)</option>
-                        <option value="0.00005">0.05 ms (50µs)</option>
-                        <option value="0.0001">0.1 ms (100µs)</option>
-                        <option value="0.0002">0.2 ms (200µs)</option>
-                        <option value="0.0005">0.5 ms (500µs)</option>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <label for="timeDivSelect" style="color: #94a3b8;">Scale:</label>
+                    <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 85px; font-size: 11px;">
+                        <option value="0.00001">0.01 ms</option>
+                        <option value="0.00002">0.02 ms</option>
+                        <option value="0.00005">0.05 ms</option>
+                        <option value="0.0001">0.1 ms</option>
+                        <option value="0.0002">0.2 ms</option>
+                        <option value="0.0005">0.5 ms</option>
                         <option value="0.001">1.0 ms</option>
                         <option value="0.002">2.0 ms</option>
                         <option value="0.005" selected>5.0 ms</option>
                         <option value="0.010">10.0 ms</option>
+                        <option value="0.020">20.0 ms</option>
+                        <option value="0.050">50.0 ms</option>
                     </select>
-                    <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="100" style="width: 55px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
+
+                    <label for="rangeTimeDivMs" style="color: #94a3b8; margin-left: 4px;">Slider:</label>
+                    <input type="range" id="rangeTimeDivMs" min="0.01" max="50.0" step="0.01" value="5.0" style="width: 130px; vertical-align: middle;">
+
+                    <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="100" style="width: 52px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
                 </div>
 
                 <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
-                    <label for="posXTime">X-Pos Shift:</label>
-                    <input type="range" id="posXTime" min="-300" max="300" value="0" step="1" style="width: 110px; vertical-align: middle;">
-                    <input type="number" id="numPosXTime" value="0" step="1" min="-300" max="300" style="width: 48px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">px</span>
+                    <label for="posXTime" style="color: #94a3b8;">X-Pos Shift:</label>
+                    <input type="range" id="posXTime" min="-300" max="300" value="0" step="1" style="width: 100px; vertical-align: middle;">
+                    <input type="number" id="numPosXTime" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">px</span>
                 </div>
 
                 <button id="btnResetScopeControls" class="btn" style="padding: 3px 10px; font-size: 11px; background: #334155;">🎯 스케일/포지션 리셋</button>
@@ -460,6 +466,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1068"></script>
+    <script type="module" src="./app.js?v=1069"></script>
 </body>
 </html>
