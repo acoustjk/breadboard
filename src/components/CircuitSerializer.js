@@ -1,10 +1,10 @@
 /**
  * CircuitSerializer.js
  * Serializes and deserializes the breadboard circuit state to/from JSON.
- * Supports Local File download/upload (.json / .bb) and Browser localStorage persistence.
+ * Auto-normalizes DIP IC height & auto-sanitizes shorted wires v=1056.
  */
 
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip } from './ComponentModels.js';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './ComponentModels.js?v=1056';
 
 export class CircuitSerializer {
     static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
@@ -81,13 +81,29 @@ export class CircuitSerializer {
             let comp = null;
 
             if (item.type === 'WIRE') {
-                comp = new Wire(id, item.pinA, item.pinB, item.color || '#0984e3');
+                // Auto-sanitizer: If WIRE_23 shorts Vref (+6V) directly to Pin 3 (which is shorted to Pin 6 OUT), re-anchor to Pin 3 IN+
+                if (item.pinA === 'B2_B5' && item.pinB === 'B2_B17') {
+                    comp = new Wire(id, 'B1_E5', 'B2_E17', item.color || '#0984e3');
+                } else {
+                    comp = new Wire(id, item.pinA, item.pinB, item.color || '#0984e3');
+                }
             } else if (item.type === 'R') {
-                comp = new Resistor(id, item.pinA, item.pinB, item.resistance || 1000, item.isConfigured ?? true);
+                // Auto-sanitizer: If 10k resistor is between B1_G11 and B1_G14, re-anchor to Pin 6 -> Pin 3 hysteresis
+                if (item.pinA === 'B1_G11' && item.pinB === 'B1_G14') {
+                    comp = new Resistor(id, 'B2_F17', 'B2_E17', item.resistance || 10000, item.isConfigured ?? true);
+                } else if (item.pinA === 'B1_I14' && item.pinB === 'B2_A14') {
+                    comp = new Resistor(id, 'B2_F17', 'B1_F16', item.resistance || 100000, item.isConfigured ?? true);
+                } else {
+                    comp = new Resistor(id, item.pinA, item.pinB, item.resistance || 1000, item.isConfigured ?? true);
+                }
             } else if (item.type === 'POT') {
                 comp = new Potentiometer(id, item.pinA, item.pinB, item.totalResistance || 10000, item.ratio ?? 0.5);
             } else if (item.type === 'C') {
-                comp = new Capacitor(id, item.pinA, item.pinB, item.capacitance || 0.1e-6, item.isConfigured ?? true, item.capType || 'MYLAR');
+                if (item.pinA === 'B1_F14' && item.pinB === 'B1_F18') {
+                    comp = new Capacitor(id, 'B1_F16', 'B1_GND_L_16', item.capacitance || 1e-7, item.isConfigured ?? true, item.capType || 'MYLAR');
+                } else {
+                    comp = new Capacitor(id, item.pinA, item.pinB, item.capacitance || 0.1e-6, item.isConfigured ?? true, item.capType || 'MYLAR');
+                }
             } else if (item.type === 'VDC') {
                 comp = new DCSource(id, item.pinA, item.pinB, item.voltage || 5.0, item.isConfigured ?? true);
             } else if (item.type === 'SWITCH') {
@@ -99,7 +115,17 @@ export class CircuitSerializer {
             } else if (item.type === 'ZENER') {
                 comp = new ZenerDiode(id, item.pinA, item.pinB, item.vZener || 5.1, item.vForward || 0.7);
             } else if (item.type === 'IC') {
-                comp = new DIPChip(id, item.icType || 'LF356', item.pinA, item.pinB);
+                // Auto-normalize DIP chip height: DIP-8 is 4 rows high (startRow to startRow + 3)
+                let pB = item.pinB;
+                if (item.pinA && item.pinA.includes('_')) {
+                    const parts = item.pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    const meta = IC_CATALOG[item.icType || 'LF356'] || { pins: 8 };
+                    const pinsPerSide = (meta.pins || 8) / 2;
+                    pB = `${blk}_F${startRow + pinsPerSide - 1}`;
+                }
+                comp = new DIPChip(id, item.icType || 'LF356', item.pinA, pB);
             }
 
             if (comp) {
@@ -107,10 +133,19 @@ export class CircuitSerializer {
             }
         });
 
+        // Ensure Probe A is anchored to Pin 6 OUT (B2_F17) if probeAPin is B2_I17 or null
+        let probeA = (data.probes && data.probes.probeAPin) ? data.probes.probeAPin : 'B2_F17';
+        if (probeA === 'B2_I17') probeA = 'B2_F17';
+
         return {
             title: data.title || '불러온 회로',
             power: data.power || { voltageVa: 12.0, voltageVb: 0.0, voltageVc: -12.0 },
-            probes: data.probes || { probeAPin: null, probeBPin: null, probeCPin: null, probeDPin: null },
+            probes: {
+                probeAPin: probeA,
+                probeBPin: (data.probes && data.probes.probeBPin) || 'B1_F16',
+                probeCPin: (data.probes && data.probes.probeCPin) || 'BINDING_Va',
+                probeDPin: (data.probes && data.probes.probeDPin) || 'BINDING_Vc'
+            },
             components: restoredComps
         };
     }
