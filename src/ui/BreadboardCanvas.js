@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Instant Component Selection & Pointer Hover Feedback Fix v=1050.
+ * Drag & Drop Pin Repositioning Handle Engine v=1051.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1050';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1051';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -25,6 +25,9 @@ export class BreadboardCanvas {
         this.isDragging = false;
         this.dragStartX = 0;
         this.dragStartY = 0;
+
+        // Pin Reposition Dragging Handle State
+        this.draggingPinHandle = null;
 
         this.pinCoords = new Map();
         this.computePinCoordinates();
@@ -191,6 +194,8 @@ export class BreadboardCanvas {
         });
 
         this.canvas.addEventListener('click', (e) => {
+            if (this.draggingPinHandle) return;
+
             const rect = this.canvas.getBoundingClientRect();
             const canvasMouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
@@ -241,15 +246,50 @@ export class BreadboardCanvas {
         });
 
         this.canvas.addEventListener('mousedown', (e) => {
+            const rect = this.canvas.getBoundingClientRect();
+            const canvasMouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+            const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+
+            const worldX = (canvasMouseX - this.offsetX) / this.scale;
+            const worldY = (canvasMouseY - this.offsetY) / this.scale;
+
             if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
                 this.isDragging = true;
                 this.dragStartX = e.clientX - this.offsetX;
                 this.dragStartY = e.clientY - this.offsetY;
                 this.canvas.style.cursor = 'grabbing';
+                return;
+            }
+
+            // 📍 Drag Pin Handle Repositioning in SELECT Mode
+            if (this.activeTool === 'SELECT' && this.selectedComponent) {
+                const pA = this.getPinPos(this.selectedComponent.pinA);
+                const pB = this.getPinPos(this.selectedComponent.pinB);
+
+                if (Math.hypot(pA.x - worldX, pA.y - worldY) < 18) {
+                    this.draggingPinHandle = { comp: this.selectedComponent, pinTarget: 'pinA' };
+                    this.canvas.style.cursor = 'grabbing';
+                    return;
+                } else if (Math.hypot(pB.x - worldX, pB.y - worldY) < 18) {
+                    this.draggingPinHandle = { comp: this.selectedComponent, pinTarget: 'pinB' };
+                    this.canvas.style.cursor = 'grabbing';
+                    return;
+                }
             }
         });
 
         window.addEventListener('mouseup', () => {
+            if (this.draggingPinHandle) {
+                if (this.hoveredPin) {
+                    const comp = this.draggingPinHandle.comp;
+                    const target = this.draggingPinHandle.pinTarget;
+                    const oldPin = comp[target];
+                    comp[target] = this.hoveredPin;
+                    this.toastMsg = `📍 [${comp.type}] 핀 위치가 [${oldPin}] ➔ [${this.hoveredPin}] 구멍으로 변경되었습니다!`;
+                }
+                this.draggingPinHandle = null;
+                this.render();
+            }
             this.isDragging = false;
             this.canvas.style.cursor = 'default';
         });
@@ -259,6 +299,10 @@ export class BreadboardCanvas {
             const canvasMouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
 
+            const worldX = (canvasMouseX - this.offsetX) / this.scale;
+            const worldY = (canvasMouseY - this.offsetY) / this.scale;
+            this.mouseWorldPos = { x: worldX, y: worldY };
+
             if (this.isDragging) {
                 this.offsetX = e.clientX - this.dragStartX;
                 this.offsetY = e.clientY - this.dragStartY;
@@ -266,14 +310,36 @@ export class BreadboardCanvas {
                 return;
             }
 
-            const worldX = (canvasMouseX - this.offsetX) / this.scale;
-            const worldY = (canvasMouseY - this.offsetY) / this.scale;
-            this.mouseWorldPos = { x: worldX, y: worldY };
+            if (this.draggingPinHandle) {
+                let closestPin = null;
+                let minDist = 25 / this.scale;
+
+                for (const [pinKey, pos] of this.pinCoords.entries()) {
+                    const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPin = pinKey;
+                    }
+                }
+                this.hoveredPin = closestPin;
+                this.render();
+                return;
+            }
 
             // Change cursor style & hover state
             if (this.activeTool === 'SELECT') {
                 const hoveredComp = this.findComponentAt({ x: worldX, y: worldY });
-                this.canvas.style.cursor = hoveredComp ? 'pointer' : 'default';
+                let isHoveringHandle = false;
+
+                if (this.selectedComponent) {
+                    const pA = this.getPinPos(this.selectedComponent.pinA);
+                    const pB = this.getPinPos(this.selectedComponent.pinB);
+                    if (Math.hypot(pA.x - worldX, pA.y - worldY) < 18 || Math.hypot(pB.x - worldX, pB.y - worldY) < 18) {
+                        isHoveringHandle = true;
+                    }
+                }
+
+                this.canvas.style.cursor = isHoveringHandle ? 'grab' : (hoveredComp ? 'pointer' : 'default');
                 this.hoveredPin = null;
             } else {
                 this.canvas.style.cursor = 'crosshair';
@@ -400,7 +466,7 @@ export class BreadboardCanvas {
         this.selectedComponent = comp;
         if (this.onComponentSelected) this.onComponentSelected(comp);
         if (comp) {
-            this.toastMsg = `🎯 [${comp.type === 'IC' ? comp.icType : comp.type}] 부품이 선택되었습니다. ('선택 부품 삭제' 버튼 또는 Delete 키로 삭제 가능)`;
+            this.toastMsg = `🎯 [${comp.type === 'IC' ? comp.icType : comp.type}] 부품 선택됨! 핀(A/B)을 드래그하여 다른 구멍으로 이동하거나, Delete키로 삭제 가능합니다.`;
         }
         this.render();
     }
@@ -643,7 +709,7 @@ export class BreadboardCanvas {
                 this.ctx.arc(pos.x, pos.y, 4.0, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#38bdf8';
             } else if (isHovered) {
-                this.ctx.arc(pos.x, pos.y, 3.0, 0, Math.PI * 2);
+                this.ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#d63031';
             } else if (isSameNodeHovered) {
                 this.ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
@@ -787,7 +853,7 @@ export class BreadboardCanvas {
 
         if (comp.type === 'WIRE') {
             this.ctx.strokeStyle = comp.color || '#0984e3';
-            this.ctx.lineWidth = isSelected ? 4.5 : 3.0;
+            this.ctx.lineWidth = isSelected ? 5.0 : 3.0;
 
             const midX = (pA.x + pB.x) / 2;
             const midY = (pA.y + pB.y) / 2 - 12;
@@ -1052,6 +1118,28 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
             this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
             this.ctx.fill();
+        }
+
+        // Render Glowing Drag Handles on Selected Component
+        if (isSelected) {
+            this.ctx.shadowColor = '#00cec9';
+            this.ctx.shadowBlur = 12;
+
+            [ { pos: pA, label: 'A' }, { pos: pB, label: 'B' } ].forEach(h => {
+                this.ctx.fillStyle = '#38bdf8';
+                this.ctx.beginPath();
+                this.ctx.arc(h.pos.x, h.pos.y, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = '#0f172a';
+                this.ctx.font = 'bold 10px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(h.label, h.pos.x, h.pos.y);
+            });
         }
 
         this.ctx.restore();
