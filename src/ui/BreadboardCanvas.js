@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Canvas CSS Scale Factor Fix, Visual Hover Target & Pin Placement Engine v=1066.
+ * Oscilloscope Probe Plugging & Pin Assignment Engine v=1067.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1066';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1067';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -46,6 +46,9 @@ export class BreadboardCanvas {
         this.placementPinA = null;
         if (tool === 'SELECT') {
             this.showToast('👆 선택 모드: 부품 클릭 시 선택/이동/삭제/속성 조절');
+        } else if (tool.startsWith('PROBE_')) {
+            const ch = tool.split('_')[1];
+            this.showToast(`📍 [CH ${ch} 프로브] 모드: 꽂을 핀 구멍을 클릭하세요.`);
         } else {
             this.showToast(`📌 [${tool}] 배치 모드: 첫 번째 핀 구멍을 마우스로 클릭하세요.`);
         }
@@ -157,11 +160,21 @@ export class BreadboardCanvas {
             const { worldX, worldY } = this.getMouseWorldPos(e);
             const clickedPin = this.getNearestPin(worldX, worldY, 24.0);
 
-            // Handle Probes
+            // Handle 4CH Oscilloscope Probes Placement
             if (this.placementMode && this.placementMode.startsWith('PROBE_')) {
                 const ch = this.placementMode.split('_')[1];
-                if (clickedPin && this.onProbePlaced) {
-                    this.onProbePlaced(ch, clickedPin);
+                if (clickedPin) {
+                    if (ch === 'A') this.probeAPin = clickedPin;
+                    else if (ch === 'B') this.probeBPin = clickedPin;
+                    else if (ch === 'C') this.probeCPin = clickedPin;
+                    else if (ch === 'D') this.probeDPin = clickedPin;
+
+                    if (this.onProbePlaced) {
+                        this.onProbePlaced(ch, clickedPin);
+                    }
+                    this.showToast(`📍 CH ${ch} 프로브가 [${clickedPin}] 핀에 꽂혔습니다!`);
+                } else {
+                    this.showToast('⚠️ 프로브를 꽂을 핀 구멍을 클릭하세요.');
                 }
                 this.cancelPlacement();
                 return;

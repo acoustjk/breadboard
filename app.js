@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1066';
-import { MNASolver } from './src/engine/MNASolver.js?v=1066';
-import { FFT } from './src/engine/FFT.js?v=1066';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1066';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1066';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1066';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1066';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1066';
-import { AICopilot } from './src/components/AICopilot.js?v=1066';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1066';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1067';
+import { MNASolver } from './src/engine/MNASolver.js?v=1067';
+import { FFT } from './src/engine/FFT.js?v=1067';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1067';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1067';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1067';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1067';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1067';
+import { AICopilot } from './src/components/AICopilot.js?v=1067';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1067';
 
 class AppController {
     constructor() {
@@ -181,10 +181,19 @@ class AppController {
         };
 
         this.breadboardCanvas.onProbePlaced = (type, pinKey) => {
-            if (type === 'A') this.probeAPin = pinKey;
-            else if (type === 'B') this.probeBPin = pinKey;
-            else if (type === 'C') this.probeCPin = pinKey;
-            else if (type === 'D') this.probeDPin = pinKey;
+            if (type === 'A') {
+                this.probeAPin = pinKey;
+                this.breadboardCanvas.probeAPin = pinKey;
+            } else if (type === 'B') {
+                this.probeBPin = pinKey;
+                this.breadboardCanvas.probeBPin = pinKey;
+            } else if (type === 'C') {
+                this.probeCPin = pinKey;
+                this.breadboardCanvas.probeCPin = pinKey;
+            } else if (type === 'D') {
+                this.probeDPin = pinKey;
+                this.breadboardCanvas.probeDPin = pinKey;
+            }
 
             this.resetToolState();
             this.breadboardCanvas.toastMsg = `📍 4CH 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
