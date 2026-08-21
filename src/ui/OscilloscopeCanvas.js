@@ -1,7 +1,7 @@
 /**
  * OscilloscopeCanvas.js
  * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
- * Symmetrical 50% Baseline with Overflow Guard & Clamped Safety HUD v=1057.
+ * Left Y-Axis Voltage Ruler Scale & Major/Minor Tick Marks v=1059.
  */
 
 export class OscilloscopeCanvas {
@@ -169,11 +169,11 @@ export class OscilloscopeCanvas {
         this.ctx.fillStyle = '#94a3b8';
         this.ctx.font = 'bold 10px monospace';
         const timeFormatted = this.timePerDiv >= 0.001 ? `${(this.timePerDiv * 1000).toFixed(1)}ms/div` : `${(this.timePerDiv * 1000000).toFixed(0)}µs/div`;
-        this.ctx.fillText(`0V Center Baseline (${timeFormatted})`, 6, zeroY - 5);
+        this.ctx.fillText(`0V Center Baseline (${timeFormatted})`, 54, zeroY - 5);
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom & Overflow Safety Clamping
+        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom
         if (this.showChA) {
             this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
@@ -187,8 +187,59 @@ export class OscilloscopeCanvas {
             this.renderTrace(this.bufferD, '#22c55e', this.voltPerDivChD, zeroY, scaleY, this.posOffsetYChD, this.posOffsetX);
         }
 
-        // 3. Channel Telemetry HUD Overlay
+        // 3. Render Left Y-Axis Voltage Ruler Scale & Major/Minor Tick Marks
+        const activeVoltDiv = (this.showChA ? this.voltPerDivChA : (this.showChB ? this.voltPerDivChB : 5.0)) || 5.0;
+
         this.ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+        this.ctx.fillRect(0, 38, 50, height - 38);
+        this.ctx.strokeStyle = '#334155';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(0, 38, 50, height - 38);
+
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.font = 'bold 10px monospace';
+
+        for (let j = 0; j <= numDivsY; j++) {
+            const y = j * divH;
+            if (y < 36) continue;
+
+            const divOffsetFromCenter = 4 - j;
+            const voltVal = divOffsetFromCenter * activeVoltDiv;
+            const signStr = voltVal > 0 ? '+' : (voltVal < 0 ? '' : ' ');
+            const voltStr = `${signStr}${voltVal.toFixed(0)}V`;
+
+            // Major Tick Mark
+            this.ctx.strokeStyle = (j === 4) ? '#facc15' : '#475569';
+            this.ctx.lineWidth = (j === 4) ? 2 : 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(40, y);
+            this.ctx.lineTo(48, y);
+            this.ctx.stroke();
+
+            // Voltage Text Label
+            this.ctx.fillStyle = (j === 4) ? '#facc15' : (voltVal > 0 ? '#ef4444' : '#38bdf8');
+            this.ctx.fillText(voltStr, 4, y);
+
+            // Minor Sub-Ticks (5 subdivisions per division)
+            if (j < numDivsY) {
+                const subH = divH / 5;
+                for (let k = 1; k < 5; k++) {
+                    const subY = y + k * subH;
+                    if (subY >= 38) {
+                        this.ctx.strokeStyle = '#334155';
+                        this.ctx.lineWidth = 1;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(44, subY);
+                        this.ctx.lineTo(48, subY);
+                        this.ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // 4. Channel Telemetry HUD Overlay
+        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
         this.ctx.fillRect(8, 8, width - 16, 26);
         this.ctx.strokeStyle = '#334155';
         this.ctx.strokeRect(8, 8, width - 16, 26);
