@@ -1,7 +1,7 @@
 /**
  * CircuitNode.js
  * Breadboard Tie-Point Pin to Electrical MNA Node Mapping Engine.
- * Supports Wanjie BB-4T7D 3,220 Tie-Points + Va, Vb, Vc, GND Power Supply Binding Posts.
+ * Supports Wanjie BB-4T7D Dual Vertical Rails (RED +, BLUE -) on all 4 Blocks v=1047.
  */
 
 export class BreadboardGrid {
@@ -28,14 +28,21 @@ export class BreadboardGrid {
         this.nodeMap.set('BINDING_GND', '0'); // Ground
 
         // 3. 4 Vertical Terminal Strip Blocks (Block 1~4)
+        // Each Block has Dual Vertical Rails on Left (VCC_L, GND_L) and Right (VCC_R, GND_R)
         const leftCols = ['A', 'B', 'C', 'D', 'E'];
         const rightCols = ['F', 'G', 'H', 'I', 'J'];
 
         for (let blk = 1; blk <= 4; blk++) {
             for (let r = 1; r <= 63; r++) {
-                // Vertical Rail Strip
+                // Left Dual Vertical Rails (RED +, BLUE -)
                 this.nodeMap.set(`B${blk}_VCC_${r}`, `NODE_B${blk}_RAIL_VCC`);
+                this.nodeMap.set(`B${blk}_VCC_L_${r}`, `NODE_B${blk}_RAIL_VCC`);
                 this.nodeMap.set(`B${blk}_GND_${r}`, '0');
+                this.nodeMap.set(`B${blk}_GND_L_${r}`, '0');
+
+                // Right Dual Vertical Rails (RED +, BLUE -)
+                this.nodeMap.set(`B${blk}_VCC_R_${r}`, `NODE_B${blk}_RAIL_VCC`);
+                this.nodeMap.set(`B${blk}_GND_R_${r}`, '0');
 
                 // Left Row (Cols A, B, C, D, E)
                 const leftNodeId = `NODE_B${blk}_L_ROW_${r}`;
@@ -56,7 +63,7 @@ export class BreadboardGrid {
 
     getNodeId(pinKey) {
         if (!pinKey) return null;
-        if (pinKey === 'GND' || pinKey.startsWith('GND_') || pinKey === 'BINDING_GND') {
+        if (pinKey === 'GND' || pinKey.includes('GND') || pinKey === 'BINDING_GND') {
             return '0';
         }
         return this.nodeMap.get(pinKey) || `NODE_${pinKey}`;

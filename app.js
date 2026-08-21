@@ -1,19 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Circuit Save & Load (.json File Export/Import + localStorage Persistence) v=1045.
+ * Dual Vertical Power Rails (RED +, BLUE -) on all 4 Blocks v=1047.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1045';
-import { MNASolver } from './src/engine/MNASolver.js?v=1045';
-import { FFT } from './src/engine/FFT.js?v=1045';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1045';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1045';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1045';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1045';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1045';
-import { AICopilot } from './src/components/AICopilot.js?v=1045';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1045';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1047';
+import { MNASolver } from './src/engine/MNASolver.js?v=1047';
+import { FFT } from './src/engine/FFT.js?v=1047';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1047';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1047';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1047';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1047';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1047';
+import { AICopilot } from './src/components/AICopilot.js?v=1047';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1047';
 
 class AppController {
     constructor() {

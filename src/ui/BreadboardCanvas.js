@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Supports ESC Key Cancellation during 1st Pin Component/Wire Placement.
+ * Supports Dual Vertical Power Rails (RED +, BLUE -) on all 4 Blocks v=1047.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1033';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1047';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -38,10 +38,10 @@ export class BreadboardCanvas {
 
         // Power Supply Binding Post Voltages
         this.voltageVa = 12.0;
-        this.voltageVb = -12.0;
-        this.voltageVc = 5.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -12.0;
 
-        // 4CH Oscilloscope Probes (Start null for clean empty board)
+        // 4CH Oscilloscope Probes
         this.probeAPin = null;
         this.probeBPin = null;
         this.probeCPin = null;
@@ -120,6 +120,7 @@ export class BreadboardCanvas {
         }
 
         // 3. 4 Vertical Terminal Strip Blocks (Block 1~4)
+        // Each Block now features Dual Vertical Power Bus Rails on BOTH Left & Right sides!
         const blockWidth = 186;
         const blockGap = 12;
         const startX = 25;
@@ -132,17 +133,27 @@ export class BreadboardCanvas {
         for (let blk = 1; blk <= this.numBlocks; blk++) {
             const bX = startX + (blk - 1) * (blockWidth + blockGap);
 
-            const railLeftX = Math.round(bX + 12);
-            const railRightX = Math.round(bX + 174);
+            const railLeftVccX = Math.round(bX + 10);
+            const railLeftGndX = Math.round(bX + 22);
+            const railRightVccX = Math.round(bX + 164);
+            const railRightGndX = Math.round(bX + 176);
 
             for (let r = 1; r <= this.rowsPerBlock; r++) {
                 const y = Math.round(startY + (r - 1) * pitchY);
-                this.pinCoords.set(`B${blk}_VCC_${r}`, { x: railLeftX, y });
-                this.pinCoords.set(`B${blk}_GND_${r}`, { x: railRightX, y });
+
+                // Left Dual Vertical Rails (RED +, BLUE -)
+                this.pinCoords.set(`B${blk}_VCC_${r}`, { x: railLeftVccX, y });
+                this.pinCoords.set(`B${blk}_VCC_L_${r}`, { x: railLeftVccX, y });
+                this.pinCoords.set(`B${blk}_GND_${r}`, { x: railLeftGndX, y });
+                this.pinCoords.set(`B${blk}_GND_L_${r}`, { x: railLeftGndX, y });
+
+                // Right Dual Vertical Rails (RED +, BLUE -)
+                this.pinCoords.set(`B${blk}_VCC_R_${r}`, { x: railRightVccX, y });
+                this.pinCoords.set(`B${blk}_GND_R_${r}`, { x: railRightGndX, y });
             }
 
-            const leftStartX = bX + 40;
-            const rightStartX = bX + 106;
+            const leftStartX = bX + 41;
+            const rightStartX = bX + 105;
             const colPitchX = 11;
 
             for (let r = 1; r <= this.rowsPerBlock; r++) {
@@ -180,51 +191,36 @@ export class BreadboardCanvas {
             }
         });
 
-        this.canvas.addEventListener('wheel', (e) => {
-            if (!e.ctrlKey) return;
-            e.preventDefault();
-
-            const zoomDelta = -e.deltaY * 0.001;
-            const newScale = Math.max(this.minScale, Math.min(this.maxScale, this.scale * (1 + zoomDelta)));
-
-            const rect = this.canvas.getBoundingClientRect();
-            const mouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
-            const mouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
-
-            this.offsetX = mouseX - (mouseX - this.offsetX) * (newScale / this.scale);
-            this.offsetY = mouseY - (mouseY - this.offsetY) * (newScale / this.scale);
-            this.scale = newScale;
-
-            this.render();
-        }, { passive: false });
-
         this.canvas.addEventListener('click', (e) => {
-            if (this.isDragging) return;
-
             const rect = this.canvas.getBoundingClientRect();
             const canvasMouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+
             const worldX = (canvasMouseX - this.offsetX) / this.scale;
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
 
-            let clickedPin = null;
-            let minDist = 22 / this.scale;
-
-            for (const [pinKey, pos] of this.pinCoords.entries()) {
-                const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
-                if (dist < minDist) {
-                    minDist = dist;
-                    clickedPin = pinKey;
+            // Check Binding Posts Double-click / Click
+            const bindingKeys = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
+            for (const key of bindingKeys) {
+                const pos = this.pinCoords.get(key);
+                if (pos && Math.hypot(pos.x - worldX, pos.y - worldY) < 18) {
+                    if (this.onBindingPostDblClicked) {
+                        this.onBindingPostDblClicked(key);
+                    }
+                    return;
                 }
             }
 
-            if (this.activeTool !== 'SELECT' && clickedPin) {
-                this.handlePinClick(clickedPin);
+            if (this.hoveredPin) {
+                this.handlePinClick(this.hoveredPin);
+                return;
+            }
+
+            const clickedComp = this.findComponentAt({ x: worldX, y: worldY });
+            if (clickedComp) {
+                this.selectComponent(clickedComp);
             } else {
-                this.handleComponentClick({ x: worldX, y: worldY });
-                if (!this.selectedComponent && clickedPin && this.activeTool !== 'SELECT') {
-                    this.handlePinClick(clickedPin);
-                }
+                this.selectComponent(null);
             }
         });
 
@@ -232,20 +228,9 @@ export class BreadboardCanvas {
             const rect = this.canvas.getBoundingClientRect();
             const canvasMouseX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
             const canvasMouseY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+
             const worldX = (canvasMouseX - this.offsetX) / this.scale;
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
-
-            // Check Binding Posts Double Click
-            const bpKeys = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc'];
-            for (const key of bpKeys) {
-                const pos = this.pinCoords.get(key);
-                if (pos && Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
-                    if (this.onBindingPostDblClicked) {
-                        this.onBindingPostDblClicked(key);
-                    }
-                    return;
-                }
-            }
 
             const clickedComp = this.findComponentAt({ x: worldX, y: worldY });
             if (clickedComp && this.onComponentDblClicked) {
@@ -348,59 +333,48 @@ export class BreadboardCanvas {
             this.probeAPin = pinKey;
             if (this.onProbePlaced) this.onProbePlaced('A', pinKey);
             this.activeTool = 'SELECT';
-            this.render();
             return;
-        }
-
-        if (this.activeTool === 'PROBE_B') {
+        } else if (this.activeTool === 'PROBE_B') {
             this.probeBPin = pinKey;
             if (this.onProbePlaced) this.onProbePlaced('B', pinKey);
             this.activeTool = 'SELECT';
-            this.render();
             return;
-        }
-
-        if (this.activeTool === 'PROBE_C') {
+        } else if (this.activeTool === 'PROBE_C') {
             this.probeCPin = pinKey;
             if (this.onProbePlaced) this.onProbePlaced('C', pinKey);
             this.activeTool = 'SELECT';
-            this.render();
             return;
-        }
-
-        if (this.activeTool === 'PROBE_D') {
+        } else if (this.activeTool === 'PROBE_D') {
             this.probeDPin = pinKey;
             if (this.onProbePlaced) this.onProbePlaced('D', pinKey);
             this.activeTool = 'SELECT';
-            this.render();
             return;
         }
 
-        if (this.activeTool !== 'SELECT') {
-            if (!this.placementPinA) {
-                this.placementPinA = pinKey;
-            } else {
-                const pinA = this.placementPinA;
-                const pinB = pinKey;
-                const toolType = this.activeTool;
+        if (this.activeTool === 'SELECT') {
+            return;
+        }
 
-                if (pinA !== pinB && this.onComponentPlaced) {
-                    this.onComponentPlaced(toolType, pinA, pinB);
-                }
-
-                this.placementPinA = null;
-                this.activeTool = 'SELECT';
-            }
+        if (!this.placementPinA) {
+            this.placementPinA = pinKey;
+            this.toastMsg = `📍 1번 핀 [${pinKey}] 선택됨. 연결할 2번 핀을 클릭하세요 (ESC 키로 취소).`;
             this.render();
+        } else {
+            const pinB = pinKey;
+            if (pinB !== this.placementPinA) {
+                if (this.onComponentPlaced) {
+                    this.onComponentPlaced(this.activeTool, this.placementPinA, pinB);
+                }
+            }
+            this.placementPinA = null;
         }
     }
 
-    handleComponentClick(mousePos) {
-        const selected = this.findComponentAt(mousePos);
-        this.selectedComponent = selected;
-        if (this.onComponentSelected) this.onComponentSelected(selected);
-        if (selected) {
-            this.toastMsg = `🎯 [${selected.type === 'IC' ? selected.icType : selected.type}] 부품이 선택되었습니다. ('선택 부품 삭제' 버튼 또는 Delete 키로 삭제 가능)`;
+    selectComponent(comp) {
+        this.selectedComponent = comp;
+        if (this.onComponentSelected) this.onComponentSelected(comp);
+        if (comp) {
+            this.toastMsg = `🎯 [${comp.type === 'IC' ? comp.icType : comp.type}] 부품이 선택되었습니다. ('선택 부품 삭제' 버튼 또는 Delete 키로 삭제 가능)`;
         }
         this.render();
     }
@@ -531,7 +505,7 @@ export class BreadboardCanvas {
         this.ctx.lineTo(780, 168);
         this.ctx.stroke();
 
-        // 5. Render 4 Vertical Terminal Strips
+        // 5. Render 4 Vertical Terminal Strips with DUAL Vertical Power Rails (RED +, BLUE -)
         const blockWidth = 186;
         const blockGap = 12;
         const startX = 25;
@@ -554,19 +528,49 @@ export class BreadboardCanvas {
             this.ctx.fillStyle = '#dcdde1';
             this.ctx.fillRect(troughX - 3, startY - 5, 6, bH - 10);
 
-            this.ctx.strokeStyle = '#ff7675';
+            // Left Dual Vertical Power Rails (RED +, BLUE -)
+            this.ctx.strokeStyle = '#ff7675'; // RED (+) Line
             this.ctx.lineWidth = 1.5;
             this.ctx.beginPath();
-            this.ctx.moveTo(bX + 12, startY - 5);
-            this.ctx.lineTo(bX + 12, startY + bH - 15);
+            this.ctx.moveTo(bX + 10, startY - 5);
+            this.ctx.lineTo(bX + 10, startY + bH - 15);
             this.ctx.stroke();
 
-            this.ctx.strokeStyle = '#74b9ff';
+            this.ctx.strokeStyle = '#74b9ff'; // BLUE (-) Line
             this.ctx.beginPath();
-            this.ctx.moveTo(bX + 174, startY - 5);
-            this.ctx.lineTo(bX + 174, startY + bH - 15);
+            this.ctx.moveTo(bX + 22, startY - 5);
+            this.ctx.lineTo(bX + 22, startY + bH - 15);
             this.ctx.stroke();
 
+            // Right Dual Vertical Power Rails (RED +, BLUE -)
+            this.ctx.strokeStyle = '#ff7675'; // RED (+) Line
+            this.ctx.beginPath();
+            this.ctx.moveTo(bX + 164, startY - 5);
+            this.ctx.lineTo(bX + 164, startY + bH - 15);
+            this.ctx.stroke();
+
+            this.ctx.strokeStyle = '#74b9ff'; // BLUE (-) Line
+            this.ctx.beginPath();
+            this.ctx.moveTo(bX + 176, startY - 5);
+            this.ctx.lineTo(bX + 176, startY + bH - 15);
+            this.ctx.stroke();
+
+            // Printed '+' and '-' signs at top and bottom of each dual rail
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.font = 'bold 10px sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('+', bX + 10, startY - 14);
+            this.ctx.fillText('+', bX + 164, startY - 14);
+            this.ctx.fillText('+', bX + 10, startY + bH - 2);
+            this.ctx.fillText('+', bX + 164, startY + bH - 2);
+
+            this.ctx.fillStyle = '#0984e3';
+            this.ctx.fillText('-', bX + 22, startY - 14);
+            this.ctx.fillText('-', bX + 176, startY - 14);
+            this.ctx.fillText('-', bX + 22, startY + bH - 2);
+            this.ctx.fillText('-', bX + 176, startY + bH - 2);
+
+            // Row numbers
             this.ctx.fillStyle = '#475569';
             this.ctx.font = 'bold 9px sans-serif';
             this.ctx.textAlign = 'center';
@@ -574,22 +578,23 @@ export class BreadboardCanvas {
 
             for (let r = 5; r <= 60; r += 5) {
                 const rY = Math.round(startY + (r - 1) * pitchY);
-                this.ctx.fillText(`${r}`, Math.round(bX + 26), rY);
-                this.ctx.fillText(`${r}`, Math.round(bX + 160), rY);
+                this.ctx.fillText(`${r}`, Math.round(bX + 31), rY);
+                this.ctx.fillText(`${r}`, Math.round(bX + 155), rY);
             }
 
+            // Column Labels A-E and F-J
             this.ctx.fillStyle = '#1e293b';
             this.ctx.font = 'bold 9px monospace';
             this.ctx.textBaseline = 'alphabetic';
 
             ['A', 'B', 'C', 'D', 'E'].forEach((c, idx) => {
-                const cX = Math.round(bX + 40 + idx * 11);
+                const cX = Math.round(bX + 41 + idx * 11);
                 this.ctx.fillText(c, cX, startY - 14);
                 this.ctx.fillText(c, cX, startY + bH - 2);
             });
 
             ['F', 'G', 'H', 'I', 'J'].forEach((c, idx) => {
-                const cX = Math.round(bX + 106 + idx * 11);
+                const cX = Math.round(bX + 105 + idx * 11);
                 this.ctx.fillText(c, cX, startY - 14);
                 this.ctx.fillText(c, cX, startY + bH - 2);
             });
@@ -651,338 +656,315 @@ export class BreadboardCanvas {
         if (this.probeCPin) this.renderProbe('CH C', this.probeCPin, '#38bdf8');
         if (this.probeDPin) this.renderProbe('CH D', this.probeDPin, '#22c55e');
 
-        this.ctx.restore();
-
-        // 9. Canvas Overlay HUD & Toast Message
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-        if (this.activeTool !== 'SELECT') {
-            this.ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
-            this.ctx.fillRect(15, 10, 480, 28);
-            this.ctx.fillStyle = '#0f172a';
-            this.ctx.font = 'bold 12px sans-serif';
-            this.ctx.textAlign = 'left';
-            this.ctx.textBaseline = 'middle';
-
-            const guideMsg = !this.placementPinA ?
-                `📍 [${this.activeTool}] 1번째 핀 클릭하세요 (ESC: 배치 취소)` :
-                `📍 [${this.activeTool}] 2번째 핀을 클릭하여 완료하세요 (ESC: 취소)`;
-            this.ctx.fillText(guideMsg, 25, 24);
-        }
-
+        // Toast Message Notification Overlay
         if (this.toastMsg) {
-            this.ctx.fillStyle = 'rgba(34, 197, 94, 0.92)';
-            this.ctx.fillRect(15, height - 40, 460, 28);
-            this.ctx.fillStyle = '#0f172a';
+            this.ctx.save();
             this.ctx.font = 'bold 12px sans-serif';
-            this.ctx.textAlign = 'left';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(this.toastMsg, 25, height - 26);
+            const tw = this.ctx.measureText(this.toastMsg).width + 30;
+
+            this.ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+            this.ctx.beginPath();
+            this.ctx.roundRect((baseW - tw) / 2, baseH - 38, tw, 28, 6);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#38bdf8';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            this.ctx.fillStyle = '#f8fafc';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(this.toastMsg, baseW / 2, baseH - 20);
+            this.ctx.restore();
         }
 
-        this.ctx.fillStyle = 'rgba(18, 22, 31, 0.85)';
-        this.ctx.fillRect(width - 250, 10, 240, 26);
-        this.ctx.strokeStyle = '#273142';
-        this.ctx.strokeRect(width - 250, 10, 240, 26);
-
-        this.ctx.fillStyle = '#00cec9';
-        this.ctx.font = 'bold 11px monospace';
-        this.ctx.textAlign = 'right';
-        this.ctx.textBaseline = 'alphabetic';
-        this.ctx.fillText(`TOOL: ${this.activeTool} | ZOOM: ${(this.scale * 100).toFixed(0)}%`, width - 15, 27);
+        this.ctx.restore();
     }
 
-    renderComponent(comp, isSelected = false) {
+    renderProbe(channelName, pinKey, colorHex) {
+        const pos = this.getPinPos(pinKey);
+        this.ctx.save();
+
+        this.ctx.shadowColor = colorHex;
+        this.ctx.shadowBlur = 8;
+
+        this.ctx.strokeStyle = colorHex;
+        this.ctx.lineWidth = 2.5;
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x, pos.y, 7, 0, Math.PI * 2);
+        this.ctx.stroke();
+
+        this.ctx.fillStyle = colorHex;
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        this.ctx.font = 'bold 10px sans-serif';
+        const tw = this.ctx.measureText(channelName).width + 12;
+
+        this.ctx.fillStyle = colorHex;
+        this.ctx.beginPath();
+        this.ctx.roundRect(pos.x + 10, pos.y - 10, tw, 18, 4);
+        this.ctx.fill();
+
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(channelName, pos.x + 10 + tw / 2, pos.y - 1);
+
+        this.ctx.restore();
+    }
+
+    renderComponent(comp, isSelected) {
         const pA = this.getPinPos(comp.pinA);
         const pB = this.getPinPos(comp.pinB);
-
-        const midX = (pA.x + pB.x) / 2;
-        const midY = (pA.y + pB.y) / 2;
 
         this.ctx.save();
 
         if (isSelected) {
-            this.ctx.shadowColor = '#38bdf8';
-            this.ctx.shadowBlur = 14;
+            this.ctx.shadowColor = '#00cec9';
+            this.ctx.shadowBlur = 10;
         }
 
         if (comp.type === 'WIRE') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : (comp.color || '#0984e3');
-            this.ctx.lineWidth = isSelected ? 5.5 : 3.5;
-            this.ctx.lineCap = 'round';
+            this.ctx.strokeStyle = comp.color || '#0984e3';
+            this.ctx.lineWidth = isSelected ? 4.5 : 3.0;
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2 - 12;
+
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
-
-            const isBindingWire = comp.pinA.startsWith('BINDING_') || comp.pinB.startsWith('BINDING_');
-            const midWireX = (pA.x + pB.x) / 2 + (isBindingWire ? 30 : 10);
-            const midWireY = (pA.y + pB.y) / 2 + (isBindingWire ? -15 : 0);
-
-            this.ctx.quadraticCurveTo(midWireX, midWireY, pB.x, pB.y);
+            this.ctx.quadraticCurveTo(midX, midY, pB.x, pB.y);
             this.ctx.stroke();
 
-        } else if (comp.type === 'R') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = isSelected ? 3 : 2;
+            // Terminal Pin Heads
+            this.ctx.fillStyle = '#2d3436';
             this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
-
-            const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-
-            this.ctx.translate(midX, midY);
-            this.ctx.rotate(angle);
-
-            const bodyColor = comp.isConfigured ? '#e17055' : '#cbd5e1';
-            this.ctx.fillStyle = bodyColor;
-            this.ctx.beginPath();
-            this.ctx.roundRect(-14, -5, 28, 10, 2);
+            this.ctx.arc(pA.x, pA.y, 3.5, 0, Math.PI * 2);
+            this.ctx.arc(pB.x, pB.y, 3.5, 0, Math.PI * 2);
             this.ctx.fill();
 
-            if (isSelected) {
-                this.ctx.strokeStyle = '#38bdf8';
-                this.ctx.lineWidth = 1.5;
-                this.ctx.stroke();
-            }
-
-            const bands = comp.getBands ? comp.getBands() : getResistorColorBands(comp.resistance, comp.isConfigured);
-            bands.forEach((bColor, idx) => {
-                this.ctx.fillStyle = bColor;
-                this.ctx.fillRect(-10 + idx * 6, -5, 3, 10);
-            });
-
-        } else if (comp.type === 'C') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = isSelected ? 3 : 2;
+        } else if (comp.type === 'R') {
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.lineTo(pB.x, pB.y);
             this.ctx.stroke();
 
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
             const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+
+            this.ctx.save();
             this.ctx.translate(midX, midY);
             this.ctx.rotate(angle);
 
-            const capKind = comp.capType || 'ELEC';
+            this.ctx.fillStyle = '#f5f6fa';
+            this.ctx.beginPath();
+            this.ctx.roundRect(-14, -5, 28, 10, 3);
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#2d3436';
+            this.ctx.lineWidth = isSelected ? 2 : 1;
+            this.ctx.stroke();
 
-            if (capKind === 'ELEC') {
-                const bodyColor = comp.isConfigured ? '#1d4ed8' : '#64748b';
-                this.ctx.fillStyle = bodyColor;
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, 10, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0f172a';
-                this.ctx.lineWidth = isSelected ? 2 : 1;
-                this.ctx.stroke();
+            // 4 Resistor Color Bands
+            const bands = getResistorColorBands(comp.resistance);
+            const bandOffsets = [-9, -4, 1, 7];
+            bands.forEach((bandColor, idx) => {
+                this.ctx.fillStyle = bandColor;
+                this.ctx.fillRect(bandOffsets[idx], -5, idx === 3 ? 2.5 : 2, 10);
+            });
 
-                this.ctx.fillStyle = '#e2e8f0';
-                this.ctx.fillRect(3, -10, 7, 20);
-
-                this.ctx.fillStyle = '#1e293b';
-                this.ctx.font = 'bold 10px sans-serif';
+            if (this.showValueBadges && comp.isConfigured) {
+                const formatted = comp.resistance >= 1000 ? (comp.resistance / 1000) + 'k' : comp.resistance;
+                this.ctx.fillStyle = '#0284c7';
+                this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText('-', 6.5, -3);
-                this.ctx.fillText('-', 6.5, 5);
+                this.ctx.fillText(`${formatted}Ω`, 0, -8);
+            }
 
-                this.ctx.fillStyle = '#f8fafc';
-                this.ctx.font = 'bold 9px sans-serif';
-                this.ctx.fillText('+', -5, 1);
+            this.ctx.restore();
 
-            } else if (capKind === 'CERAMIC') {
-                const bodyColor = comp.isConfigured ? '#d97706' : '#94a3b8';
-                this.ctx.fillStyle = bodyColor;
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, 9, 0, Math.PI * 2);
+        } else if (comp.type === 'POT') {
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 2.0;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+
+            this.ctx.fillStyle = '#0284c7';
+            this.ctx.beginPath();
+            this.ctx.arc(midX, midY, 14, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#0f172a';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+
+            // Knob Arrow Indicator
+            const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
+            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.lineWidth = 2.5;
+            this.ctx.beginPath();
+            this.ctx.moveTo(midX, midY);
+            this.ctx.lineTo(midX + Math.cos(knobAngle) * 10, midY + Math.sin(knobAngle) * 10);
+            this.ctx.stroke();
+
+            if (this.showValueBadges) {
+                const effRes = comp.getEffectiveResistance();
+                const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
+                this.ctx.fillStyle = '#facc15';
+                this.ctx.font = 'bold 9px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 17);
+            }
+
+        } else if (comp.type === 'C') {
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 1.8;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+
+            const isElec = comp.capType === 'ELEC';
+            const isCeramic = comp.capType === 'CERAMIC';
+
+            this.ctx.fillStyle = isElec ? '#0984e3' : (isCeramic ? '#f1c40f' : '#2ec4b6');
+            this.ctx.beginPath();
+
+            if (isElec) {
+                this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
                 this.ctx.fill();
-                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#78350f';
-                this.ctx.lineWidth = isSelected ? 2 : 1;
-                this.ctx.stroke();
-
                 this.ctx.fillStyle = '#ffffff';
-                this.ctx.font = 'bold 8px sans-serif';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(comp.isConfigured ? '104' : '???', 0, 3);
-
-            } else if (capKind === 'MYLAR') {
-                const bodyColor = comp.isConfigured ? '#15803d' : '#94a3b8';
-                this.ctx.fillStyle = bodyColor;
-                this.ctx.beginPath();
-                this.ctx.roundRect(-10, -6, 20, 12, 2);
+                this.ctx.fillRect(midX - 7, midY - 2, 14, 4);
+            } else {
+                this.ctx.roundRect(midX - 7, midY - 8, 14, 16, 2);
                 this.ctx.fill();
-                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#14532d';
-                this.ctx.lineWidth = isSelected ? 2 : 1;
-                this.ctx.stroke();
+            }
 
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.font = 'bold 8px monospace';
+            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#2d3436';
+            this.ctx.lineWidth = isSelected ? 2 : 1;
+            this.ctx.stroke();
+
+            if (this.showValueBadges && comp.isConfigured) {
+                const microVal = comp.capacitance * 1e6;
+                this.ctx.fillStyle = '#e879f9';
+                this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(comp.isConfigured ? '104K' : '???', 0, 3);
+                this.ctx.fillText(`${microVal < 0.1 ? (comp.capacitance * 1e9).toFixed(0) + 'n' : microVal.toFixed(1) + 'µ'}F`, midX, midY - 11);
             }
 
         } else if (comp.type === 'IC') {
+            const midX = (pA.x + pB.x) / 2;
             const numPinsPerSide = (comp.pins || 8) / 2;
             const pitchY = 11.2;
+            const chipWidth = Math.abs(pB.x - pA.x) + 32;
+            const chipHeight = (numPinsPerSide - 1) * pitchY + 32;
+            const topY = pA.y - 16;
 
-            const chipWidth = Math.abs(pB.x - pA.x) + 22;
-            const chipHeight = (numPinsPerSide - 1) * pitchY + 28;
-
-            const topY = pA.y - 12;
-
-            // IC Chip Black DIP Body
-            this.ctx.fillStyle = '#1e293b';
+            // DIP Chip Body
+            this.ctx.fillStyle = '#1e272e';
             this.ctx.beginPath();
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0f172a';
-            this.ctx.lineWidth = isSelected ? 3.0 : 1.5;
+            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
+            this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
             this.ctx.stroke();
 
-            // Notch at Top (North)
+            // Pin 1 Notch & Dot Indicator
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
             this.ctx.arc(midX, topY, 6, 0, Math.PI);
             this.ctx.fill();
 
-            // Pin 1 White Dot at Top-Left (Col E)
             this.ctx.fillStyle = '#ffffff';
             this.ctx.beginPath();
-            this.ctx.arc(midX - chipWidth / 2 + 7, topY + 9, 2.2, 0, Math.PI * 2);
+            this.ctx.arc(midX - chipWidth / 2 + 8, topY + 10, 2.5, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Laser-etched Part Name (Vertical 90-degree rotated)
-            this.ctx.save();
-            this.ctx.translate(midX, topY + chipHeight / 2);
-            this.ctx.rotate(-Math.PI / 2);
-            this.ctx.fillStyle = '#e2e8f0';
-            this.ctx.font = 'bold 10px monospace';
+            // Printed IC Name Text
+            this.ctx.fillStyle = '#f5f6fa';
+            this.ctx.font = 'bold 11px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(comp.icType || 'LF356', 0, 0);
-            this.ctx.restore();
+            this.ctx.fillText(comp.icType || 'LF356', midX, topY + chipHeight / 2 + 3);
 
-            // Silver Pin Legs & Explicit Pin Number Overlays (1~N)
-            for (let p = 0; p < numPinsPerSide; p++) {
-                const pinY = pA.y + p * pitchY;
-                const pinNumLeft = p + 1;
-                const pinNumRight = comp.pins - p;
+        } else if (comp.type === 'DIODE' || comp.type === 'ZENER') {
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 1.8;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
 
-                // Left Pin Leg & Label (Pin 1, 2, 3, 4...)
-                this.ctx.fillStyle = isSelected ? '#38bdf8' : '#cbd5e1';
-                this.ctx.fillRect(midX - chipWidth / 2 - 3, pinY - 2, 4, 4);
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+            const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
 
-                this.ctx.fillStyle = '#38bdf8';
+            this.ctx.save();
+            this.ctx.translate(midX, midY);
+            this.ctx.rotate(angle);
+
+            this.ctx.fillStyle = comp.type === 'ZENER' ? '#e17055' : '#2d3436';
+            this.ctx.beginPath();
+            this.ctx.roundRect(-10, -5, 20, 10, 2);
+            this.ctx.fill();
+
+            // Cathode Silver Band
+            this.ctx.fillStyle = '#dcdde1';
+            this.ctx.fillRect(4, -5, 3, 10);
+
+            if (this.showValueBadges) {
+                this.ctx.fillStyle = '#facc15';
                 this.ctx.font = 'bold 9px monospace';
-                this.ctx.textAlign = 'right';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`${pinNumLeft}`, midX - chipWidth / 2 - 5, pinY);
-
-                // Right Pin Leg & Label (Pin 8, 7, 6, 5...)
-                this.ctx.fillStyle = isSelected ? '#38bdf8' : '#cbd5e1';
-                this.ctx.fillRect(midX + chipWidth / 2 - 1, pinY - 2, 4, 4);
-
-                this.ctx.fillStyle = '#38bdf8';
-                this.ctx.font = 'bold 9px monospace';
-                this.ctx.textAlign = 'left';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`${pinNumRight}`, midX + chipWidth / 2 + 5, pinY);
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(comp.type === 'ZENER' ? `${comp.vZener || 5.1}V Zener` : '1N4007', 0, -8);
             }
 
-        } else if (comp.type === 'DIODE') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = isSelected ? 3 : 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
-
-            const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-            this.ctx.translate(midX, midY);
-            this.ctx.rotate(angle);
-
-            this.ctx.fillStyle = '#0f172a';
-            this.ctx.beginPath();
-            this.ctx.roundRect(-13, -5, 26, 10, 2);
-            this.ctx.fill();
-
-            this.ctx.fillStyle = '#cbd5e1';
-            this.ctx.fillRect(7, -5, 4, 10);
-
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 8px sans-serif';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText('1N4007', -2, 3);
-
-        } else if (comp.type === 'ZENER') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = isSelected ? 3 : 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
-
-            const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-            this.ctx.translate(midX, midY);
-            this.ctx.rotate(angle);
-
-            this.ctx.fillStyle = '#ea580c';
-            this.ctx.beginPath();
-            this.ctx.roundRect(-13, -5, 26, 10, 2);
-            this.ctx.fill();
-
-            this.ctx.fillStyle = '#0f172a';
-            this.ctx.fillRect(7, -5, 4, 10);
-
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 8px sans-serif';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(`${comp.vZener || 5.1}V Z`, -2, 3);
-
-        } else if (comp.type === 'POT') {
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#71717a';
-            this.ctx.lineWidth = isSelected ? 3 : 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
-
-            const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
-            this.ctx.translate(midX, midY);
-            this.ctx.rotate(angle);
-
-            this.ctx.fillStyle = '#0284c7';
-            this.ctx.beginPath();
-            this.ctx.roundRect(-14, -14, 28, 28, 4);
-            this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#0369a1';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.stroke();
-
-            this.ctx.fillStyle = '#f8fafc';
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
-            this.ctx.fill();
-
-            const dialAngle = (comp.ratio || 0.5) * Math.PI * 1.5 - Math.PI * 0.75;
-            this.ctx.strokeStyle = '#0f172a';
-            this.ctx.lineWidth = 2;
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, 0);
-            this.ctx.lineTo(Math.cos(dialAngle) * 7, Math.sin(dialAngle) * 7);
-            this.ctx.stroke();
+            this.ctx.restore();
 
         } else if (comp.type === 'VDC') {
-            const bodyColor = comp.isConfigured ? '#d63031' : '#94a3b8';
-            this.ctx.fillStyle = bodyColor;
-            this.ctx.fillRect(midX - 14, midY - 7, 28, 14);
+            this.ctx.strokeStyle = '#ef4444';
+            this.ctx.lineWidth = 2.0;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.arc(midX, midY, 11, 0, Math.PI * 2);
+            this.ctx.fill();
+
             this.ctx.fillStyle = '#ffffff';
             this.ctx.font = 'bold 9px sans-serif';
             this.ctx.textAlign = 'center';
-            const labelText = comp.isConfigured ? `${comp.voltage}V DC` : '??? V';
-            this.ctx.fillText(labelText, midX, midY + 3);
+            this.ctx.fillText(`${comp.voltage}V`, midX, midY + 3);
 
         } else if (comp.type === 'SWITCH') {
-            this.ctx.fillStyle = comp.isOpen ? '#b2bec3' : '#00b894';
-            this.ctx.fillRect(midX - 12, midY - 7, 24, 14);
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 2.0;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+
+            this.ctx.fillStyle = comp.isOpen ? '#ef4444' : '#22c55e';
+            this.ctx.beginPath();
+            this.ctx.roundRect(midX - 10, midY - 6, 20, 12, 3);
+            this.ctx.fill();
 
             this.ctx.fillStyle = '#ffffff';
             this.ctx.font = 'bold 8px sans-serif';
@@ -990,87 +972,26 @@ export class BreadboardCanvas {
             this.ctx.fillText(comp.isOpen ? 'OFF' : 'ON', midX, midY + 3);
 
         } else if (comp.type === 'LED') {
-            this.ctx.fillStyle = comp.isOn ? '#00b894' : '#006266';
+            this.ctx.strokeStyle = '#636e72';
+            this.ctx.lineWidth = 1.8;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x, pA.y);
+            this.ctx.lineTo(pB.x, pB.y);
+            this.ctx.stroke();
+
+            const midX = (pA.x + pB.x) / 2;
+            const midY = (pA.y + pB.y) / 2;
+
             if (comp.isOn) {
-                this.ctx.shadowColor = '#55efc4';
+                this.ctx.shadowColor = '#22c55e';
                 this.ctx.shadowBlur = 12;
             }
+
+            this.ctx.fillStyle = comp.isOn ? '#22c55e' : '#166534';
             this.ctx.beginPath();
             this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
             this.ctx.fill();
-            this.ctx.shadowBlur = 0;
         }
-
-        this.ctx.restore();
-
-        if (this.showValueBadges && comp.isConfigured && comp.type !== 'WIRE') {
-            this.ctx.save();
-            this.ctx.translate(midX + 18, midY - 10);
-
-            let text = '';
-            if (comp.type === 'IC') {
-                text = `🔲 ${comp.icType || 'LF356'} DIP-${comp.pins || 8}`;
-            } else if (comp.type === 'R') {
-                text = comp.resistance >= 1000 ? `${(comp.resistance / 1000)}kΩ` : `${comp.resistance}Ω`;
-            } else if (comp.type === 'C') {
-                text = `${(comp.capacitance * 1e6).toFixed(0)}µF`;
-            } else if (comp.type === 'POT') {
-                const effRes = comp.getEffectiveResistance ? comp.getEffectiveResistance() : 5000;
-                text = `🎛️ ${effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0)}Ω (${(comp.ratio * 100).toFixed(0)}%)`;
-            } else if (comp.type === 'ZENER') {
-                text = `⚡ ${comp.vZener || 5.1}V Zener`;
-            } else if (comp.type === 'DIODE') {
-                text = `🔻 1N4007`;
-            } else if (comp.type === 'VDC') {
-                text = `${comp.voltage}V`;
-            }
-
-            if (text) {
-                this.ctx.font = 'bold 10px monospace';
-                const textWidth = this.ctx.measureText(text).width;
-                const padX = 6;
-                const rectW = textWidth + padX * 2;
-                const rectH = 15;
-
-                this.ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-                this.ctx.beginPath();
-                this.ctx.roundRect(0, -10, rectW, rectH, 4);
-                this.ctx.fill();
-
-                this.ctx.strokeStyle = '#38bdf8';
-                this.ctx.lineWidth = 1.2;
-                this.ctx.stroke();
-
-                this.ctx.fillStyle = '#38bdf8';
-                this.ctx.textAlign = 'left';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(text, padX, -2);
-            }
-            this.ctx.restore();
-        }
-    }
-
-    renderProbe(label, pinKey, color) {
-        if (!pinKey) return;
-        const pos = this.getPinPos(pinKey);
-        this.ctx.save();
-
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2.5;
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x, pos.y);
-        this.ctx.lineTo(pos.x + 14, pos.y - 22);
-        this.ctx.stroke();
-
-        this.ctx.fillStyle = color;
-        this.ctx.beginPath();
-        this.ctx.roundRect(pos.x + 14, pos.y - 32, 54, 15, 3);
-        this.ctx.fill();
-
-        this.ctx.fillStyle = '#0f172a';
-        this.ctx.font = 'bold 9px monospace';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(label, pos.x + 41, pos.y - 21);
 
         this.ctx.restore();
     }
