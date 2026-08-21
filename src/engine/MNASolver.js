@@ -1,7 +1,7 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
- * LM358 Dual Op-Amp Schmitt Trigger + Linear Integrator Driver v=1043.
+ * LM741 & LF356 Single Op-Amp Implicit MNA VCVS Matrix Stamp v=1046.
  */
 
 export class MNASolver {
@@ -194,17 +194,35 @@ export class MNASolver {
                 } else if (icType === 'LF356' || icType === 'LM741') {
                     // Single Op-Amp: Pin 2 (-), Pin 3 (+), Pin 6 (OUT)
                     const nOut = getNode(pins.pin6);
-                    if (nOut) {
-                        const vMinus = comp.lastVMinus || 0;
-                        const vPlus = comp.lastVPlus || 0;
-                        const vDiff = vPlus - vMinus;
-                        const gain = 500.0;
-                        const vPos = comp.vPin7 || 12.0;
-                        const vNeg = comp.vPin4 || -12.0;
-                        const vOutIdeal = Math.max(vNeg + 1.2, Math.min(vPos - 1.2, vDiff * gain));
+                    const nPlus = getNode(pins.pin3);
+                    const nMinus = getNode(pins.pin2);
 
-                        addConductance(nOut, '0', 100.0);
-                        addCurrentSource(nOut, '0', vOutIdeal * 100.0);
+                    const vPos = comp.vPin7 || 12.0;
+                    const vNeg = comp.vPin4 || -12.0;
+                    const vMax = vPos - 1.2;
+                    const vMin = vNeg + 1.2;
+
+                    if (nOut) {
+                        const iOut = nodeIndexMap.get(nOut);
+                        const iPlus = nPlus ? nodeIndexMap.get(nPlus) : -1;
+                        const iMinus = nMinus ? nodeIndexMap.get(nMinus) : -1;
+
+                        const G_out = 100.0;
+                        const Av = 200.0;
+
+                        if (iOut >= 0) {
+                            A[iOut][iOut] += G_out;
+                            if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
+                            if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
+                        }
+
+                        // Saturation Rail Compensation
+                        const vEst = comp.vPin6 || 0;
+                        if (vEst > vMax) {
+                            Z[iOut] += G_out * (vMax - vEst);
+                        } else if (vEst < vMin) {
+                            Z[iOut] += G_out * (vMin - vEst);
+                        }
                     }
 
                 } else if (icType === 'LM358' || icType === 'LM393') {
