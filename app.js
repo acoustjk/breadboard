@@ -1147,6 +1147,7 @@ class AppController {
         }
 
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
+            this.warmupSimulationBuffer(1200);
             this.startSimulation();
             // Auto Reset Scope Controls to ensure bright yellow trace is centered
             this.oscilloscopeCanvas.resetControls();
