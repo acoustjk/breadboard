@@ -121,7 +121,38 @@ class AppController {
             } else if (toolType === 'TRANSISTOR_CATALOG') {
                 const transKey = this.selectedTransistorType || '2N3904';
                 const meta = TRANSISTOR_CATALOG[transKey] || TRANSISTOR_CATALOG['2N3904'];
-                newComp = new BJTTransistor(id, transKey, pinA, pinB, pinB);
+
+                // Calculate middle pin (Base) between pinA and pinB for 2-click placement
+                let pinE = pinA;
+                let pinC = pinB;
+                let pinBase = pinA;
+
+                const matchA = pinA.match(/^(B\d_)?([A-J])(\d+)$/);
+                const matchB = pinB.match(/^(B\d_)?([A-J])(\d+)$/);
+
+                if (matchA && matchB && matchA[1] === matchB[1] && matchA[3] === matchB[3]) {
+                    const blockPrefix = matchA[1] || 'B1_';
+                    const rowNum = matchA[3];
+                    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                    const idxA = cols.indexOf(matchA[2]);
+                    const idxB = cols.indexOf(matchB[2]);
+
+                    const midIdx = Math.round((idxA + idxB) / 2);
+                    if (midIdx === idxA || midIdx === idxB) {
+                        const minIdx = Math.min(idxA, idxB);
+                        pinE = `${blockPrefix}${cols[minIdx]}${rowNum}`;
+                        pinBase = `${blockPrefix}${cols[Math.min(9, minIdx + 1)]}${rowNum}`;
+                        pinC = `${blockPrefix}${cols[Math.min(9, minIdx + 2)]}${rowNum}`;
+                    } else {
+                        pinE = pinA;
+                        pinBase = `${blockPrefix}${cols[midIdx]}${rowNum}`;
+                        pinC = pinB;
+                    }
+                } else {
+                    pinBase = pinA;
+                }
+
+                newComp = new BJTTransistor(id, transKey, pinE, pinBase, pinC);
                 labelMsg = `🔺 ${meta.name} (${meta.polarity} TO-92)`;
             } else if (toolType === 'DIODE') {
                 newComp = new Diode(id, pinA, pinB, 0.7);

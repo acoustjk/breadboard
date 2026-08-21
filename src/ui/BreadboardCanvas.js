@@ -187,47 +187,7 @@ export class BreadboardCanvas {
                 return;
             }
 
-            // Handle Transistor 3-Pin Single-Click Placement
-            if (this.placementMode === 'TRANSISTOR_CATALOG') {
-                if (!clickedPin) {
-                    this.showToast('⚠️ 트랜지스터 Emitter(E)를 꽂을 핀 구멍 근처를 클릭해주세요.');
-                    return;
-                }
-
-                // Infer 3 adjacent pins across columns (e.g. E20, F20, G20)
-                const pinE = clickedPin;
-                let pinB = clickedPin;
-                let pinC = clickedPin;
-
-                const match = clickedPin.match(/^(B\d_)?([A-J])(\d+)$/);
-                if (match) {
-                    const blockPrefix = match[1] || 'B1_';
-                    const colChar = match[2];
-                    const rowNum = match[3];
-                    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-                    const colIdx = cols.indexOf(colChar);
-
-                    if (colIdx >= 0 && colIdx <= 7) {
-                        pinB = `${blockPrefix}${cols[colIdx + 1]}${rowNum}`;
-                        pinC = `${blockPrefix}${cols[colIdx + 2]}${rowNum}`;
-                    } else if (colIdx >= 2) {
-                        pinE = `${blockPrefix}${cols[colIdx - 2]}${rowNum}`;
-                        pinB = `${blockPrefix}${cols[colIdx - 1]}${rowNum}`;
-                        pinC = `${blockPrefix}${colChar}${rowNum}`;
-                    }
-                }
-
-                const tool = this.placementMode;
-                this.placementMode = 'SELECT';
-                this.placementPinA = null;
-
-                if (this.onComponentPlaced) {
-                    this.onComponentPlaced(tool, pinE, pinC, pinB); // pinA, pinB, pinC
-                }
-                return;
-            }
-
-            // Handle Component Placement Mode (2-pin components)
+            // Handle Component Placement Mode (All components including Transistors & ICs use 2-click placement)
             if (this.placementMode && this.placementMode !== 'SELECT') {
                 if (!clickedPin) {
                     this.showToast('⚠️ 핀 구멍 근처를 가볍게 마우스로 클릭해주세요.');
