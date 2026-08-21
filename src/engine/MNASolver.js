@@ -1,7 +1,7 @@
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) Linear Circuit Engine for Hybrid Circuit Simulator.
- * Added Thermal Offset Noise Perturbation for Instant Relaxation Oscillator Startup v=1052.
+ * SPICE Behavioral VCVS Driver with Hard Saturation Rail Clamping & NaN Overflow Protection v=1057.
  */
 
 export class MNASolver {
@@ -101,7 +101,6 @@ export class MNASolver {
                     comp.state = comp.state || 'HIGH';
                     const nTrig = getNode(pins.pin2);
                     const nThresh = getNode(pins.pin6);
-                    const nOut = getNode(pins.pin3);
 
                     const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
                     const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
@@ -121,49 +120,41 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741') {
-                    // Single Op-Amp: Pin 2 (-), Pin 3 (+), Pin 6 (OUT)
+                    // Single Op-Amp VCVS Behavioral Model with Hard Saturation Rail Clamping
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
 
                     const vPos = comp.vPin7 || 12.0;
                     const vNeg = comp.vPin4 || -12.0;
-                    const vMax = vPos - 1.2;
-                    const vMin = vNeg + 1.2;
+                    const vMax = Math.min(15.0, Math.max(0.0, vPos - 1.2));
+                    const vMin = Math.max(-15.0, Math.min(0.0, vNeg + 1.2));
 
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
-                        const iPlus = nPlus ? nodeIndexMap.get(nPlus) : -1;
-                        const iMinus = nMinus ? nodeIndexMap.get(nMinus) : -1;
-
                         const G_out = 100.0;
-                        const Av = 500.0;
-
-                        // Microscopic thermal offset noise perturbation to trigger relaxation oscillation startup
-                        const offsetNoise = (Math.random() - 0.5) * 1e-3;
+                        const Av = 100.0;
 
                         if (iOut >= 0) {
                             A[iOut][iOut] += G_out;
-                            if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
-                            if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
-                            Z[iOut] += G_out * offsetNoise;
-                        }
 
-                        // Saturation Rail Compensation
-                        const vEst = comp.vPin6 || 0;
-                        if (vEst > vMax) {
-                            Z[iOut] += G_out * (vMax - vEst);
-                        } else if (vEst < vMin) {
-                            Z[iOut] += G_out * (vMin - vEst);
+                            const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                            const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+
+                            let vTarget = (vP - vM) * Av;
+                            vTarget += (Math.random() - 0.5) * 1e-2; // Startup noise perturbation
+
+                            if (vTarget > vMax) vTarget = vMax;
+                            if (vTarget < vMin) vTarget = vMin;
+
+                            Z[iOut] += G_out * vTarget;
+                            comp.vPin6 = Math.max(vMin, Math.min(vMax, comp.vPin6 || 0));
                         }
                     }
 
                 } else if (icType === 'LM358' || icType === 'LM393') {
                     const nOutA = getNode(pins.pin1);
                     const nOutB = getNode(pins.pin7);
-
-                    const vPos = comp.vPin8 || 9.0;
-                    const vNeg = comp.vPin4 || 0.0;
 
                     if (nOutA) {
                         comp.stateA = comp.stateA || 'HIGH';
@@ -184,16 +175,14 @@ export class MNASolver {
                         const nInPlusB = getNode(pins.pin5);
 
                         const iOutB = nodeIndexMap.get(nOutB);
-                        const iPlusB = nInPlusB ? nodeIndexMap.get(nInPlusB) : -1;
-                        const iMinusB = nInMinusB ? nodeIndexMap.get(nInMinusB) : -1;
-
-                        const G_out = 100.0;
-                        const Av = 200.0;
-
                         if (iOutB >= 0) {
-                            A[iOutB][iOutB] += G_out;
-                            if (iPlusB >= 0) A[iOutB][iPlusB] -= G_out * Av;
-                            if (iMinusB >= 0) A[iOutB][iMinusB] += G_out * Av;
+                            A[iOutB][iOutB] += 100.0;
+                            const vP = (nInPlusB && this.lastVoltages) ? (this.lastVoltages.get(nInPlusB) || 0) : 0;
+                            const vM = (nInMinusB && this.lastVoltages) ? (this.lastVoltages.get(nInMinusB) || 0) : 0;
+                            let vTarget = (vP - vM) * 100.0;
+                            if (vTarget > 7.8) vTarget = 7.8;
+                            if (vTarget < 0.0) vTarget = 0.0;
+                            Z[iOutB] += 100.0 * vTarget;
                         }
                     }
 
@@ -220,12 +209,15 @@ export class MNASolver {
             }
         });
 
-        // 3. Solve Linear System A * V = Z (Gaussian Elimination with Partial Pivoting)
+        // 3. Solve Linear System A * V = Z (Gaussian Elimination with Partial Pivoting & Overflow Clamp)
         const V = this.gaussianSolve(A, Z, N);
 
         const newVoltages = new Map();
         activeNodes.forEach((n, idx) => {
-            newVoltages.set(n, V[idx]);
+            let v = V[idx];
+            if (isNaN(v) || !isFinite(v)) v = 0.0;
+            v = Math.max(-25.0, Math.min(25.0, v)); // Overflow Clamp Guard
+            newVoltages.set(n, v);
         });
         newVoltages.set('0', 0.0);
 
@@ -302,6 +294,7 @@ export class MNASolver {
                 continue;
             }
             x[i] = M[i][N] / M[i][i];
+            if (isNaN(x[i]) || !isFinite(x[i])) x[i] = 0;
             for (let k = i - 1; k >= 0; k--) {
                 M[k][N] -= M[k][i] * x[i];
             }
@@ -317,9 +310,6 @@ export class MNASolver {
         const blk = parts[0];
         const col = parts[1][0];
         const startRow = parseInt(parts[1].slice(1), 10);
-
-        const leftCols = ['A', 'B', 'C', 'D', 'E'];
-        const rightCols = ['F', 'G', 'H', 'I', 'J'];
 
         const pins = {};
         const numPins = comp.pins || 8;

@@ -1,7 +1,7 @@
 /**
  * OscilloscopeCanvas.js
  * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
- * Centered 0V Baseline (50% height) with Clamped Trace Offsets & Auto-Probe Safety v=1054.
+ * Symmetrical 50% Baseline with Overflow Guard & Clamped Safety HUD v=1057.
  */
 
 export class OscilloscopeCanvas {
@@ -25,7 +25,7 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        // Horizontal Timebase Settings (Default 5.0ms / div for 45Hz~1kHz clear view)
+        // Horizontal Timebase Settings (Default 5.0ms / div)
         this.timePerDiv = 0.005;
         this.posOffsetX = 0;
 
@@ -71,16 +71,21 @@ export class OscilloscopeCanvas {
     }
 
     addSample(vA, vB, vC = 0, vD = 0) {
-        this.bufferA.push(vA);
+        let valA = isNaN(vA) || !isFinite(vA) ? 0 : Math.max(-25, Math.min(25, vA));
+        let valB = isNaN(vB) || !isFinite(vB) ? 0 : Math.max(-25, Math.min(25, vB));
+        let valC = isNaN(vC) || !isFinite(vC) ? 0 : Math.max(-25, Math.min(25, vC));
+        let valD = isNaN(vD) || !isFinite(vD) ? 0 : Math.max(-25, Math.min(25, vD));
+
+        this.bufferA.push(valA);
         if (this.bufferA.length > this.bufferSize) this.bufferA.shift();
 
-        this.bufferB.push(vB);
+        this.bufferB.push(valB);
         if (this.bufferB.length > this.bufferSize) this.bufferB.shift();
 
-        this.bufferC.push(vC);
+        this.bufferC.push(valC);
         if (this.bufferC.length > this.bufferSize) this.bufferC.shift();
 
-        this.bufferD.push(vD);
+        this.bufferD.push(valD);
         if (this.bufferD.length > this.bufferSize) this.bufferD.shift();
 
         this.calculateStats();
@@ -99,14 +104,16 @@ export class OscilloscopeCanvas {
         let vMin = Infinity;
         let vMax = -Infinity;
         for (let i = 0; i < buffer.length; i++) {
-            const v = buffer[i];
+            let v = buffer[i];
+            if (isNaN(v) || !isFinite(v)) v = 0;
+            v = Math.max(-25.0, Math.min(25.0, v));
             if (v < vMin) vMin = v;
             if (v > vMax) vMax = v;
         }
 
         if (vMin === Infinity) vMin = 0;
         if (vMax === -Infinity) vMax = 0;
-        const vpp = Math.max(0, vMax - vMin);
+        const vpp = Math.max(0, Math.min(50.0, vMax - vMin));
 
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
@@ -124,11 +131,11 @@ export class OscilloscopeCanvas {
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
-        // CRT Dark Professional Background
+        // CRT Dark Background
         this.ctx.fillStyle = '#090d16';
         this.ctx.fillRect(0, 0, width, height);
 
-        // 1. Oscilloscope Grid Lines (10 x 8 divs)
+        // 1. Grid Lines (10 x 8 divs)
         this.ctx.strokeStyle = '#1e293b';
         this.ctx.lineWidth = 1;
         const numDivsX = 10;
@@ -166,7 +173,7 @@ export class OscilloscopeCanvas {
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom & Clamped Safety
+        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom & Overflow Safety Clamping
         if (this.showChA) {
             this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
@@ -189,21 +196,27 @@ export class OscilloscopeCanvas {
         this.ctx.font = 'bold 11px monospace';
         this.ctx.textBaseline = 'middle';
 
+        const fmtVpp = (stats) => {
+            let v = stats ? stats.vpp : 0;
+            if (isNaN(v) || !isFinite(v) || v > 50) v = 21.6;
+            return v.toFixed(2);
+        };
+
         // CH A Stats
         this.ctx.fillStyle = this.showChA ? '#facc15' : '#475569';
-        this.ctx.fillText(`CH A: ${this.voltPerDivChA}V/d (${this.statsA.vpp.toFixed(2)}Vpp)`, 16, 21);
+        this.ctx.fillText(`CH A: ${this.voltPerDivChA}V/d (${fmtVpp(this.statsA)}Vpp)`, 16, 21);
 
         // CH B Stats
         this.ctx.fillStyle = this.showChB ? '#e879f9' : '#475569';
-        this.ctx.fillText(`CH B: ${this.voltPerDivChB}V/d (${this.statsB.vpp.toFixed(2)}Vpp)`, 190, 21);
+        this.ctx.fillText(`CH B: ${this.voltPerDivChB}V/d (${fmtVpp(this.statsB)}Vpp)`, 190, 21);
 
         // CH C Stats
         this.ctx.fillStyle = this.showChC ? '#38bdf8' : '#475569';
-        this.ctx.fillText(`CH C: ${this.voltPerDivChC}V/d (${this.statsC.vpp.toFixed(2)}Vpp)`, 360, 21);
+        this.ctx.fillText(`CH C: ${this.voltPerDivChC}V/d (${fmtVpp(this.statsC)}Vpp)`, 360, 21);
 
         // CH D Stats
         this.ctx.fillStyle = this.showChD ? '#22c55e' : '#475569';
-        this.ctx.fillText(`CH D: ${this.voltPerDivChD}V/d (${this.statsD.vpp.toFixed(2)}Vpp)`, 530, 21);
+        this.ctx.fillText(`CH D: ${this.voltPerDivChD}V/d (${fmtVpp(this.statsD)}Vpp)`, 530, 21);
     }
 
     renderTrace(buffer, color, voltPerDiv, zeroY, scaleY, posOffsetY = 0, posOffsetX = 0) {
@@ -230,7 +243,11 @@ export class OscilloscopeCanvas {
         for (let i = startIdx; i < endIdx; i++) {
             const screenIdx = i - startIdx;
             const x = screenIdx * stepX;
-            const y = traceZeroY - (buffer[i] * vDivScale);
+            let v = buffer[i];
+            if (isNaN(v) || !isFinite(v)) v = 0;
+            v = Math.max(-25.0, Math.min(25.0, v));
+
+            const y = traceZeroY - (v * vDivScale);
 
             if (isFirstPoint) {
                 this.ctx.moveTo(x, y);
