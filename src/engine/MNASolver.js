@@ -94,50 +94,57 @@ export class MNASolver {
                 addConductance(nA, nB, 20.0);
 
             } else if (comp.type === 'BJT') {
-                // Nonlinear BJT Behavioral Model (Ebers-Moll / VCVS Behavioral Current Model)
+                // Nonlinear BJT Behavioral Model (Dynamic Ebers-Moll Companion Model v=1073)
                 const nE = getNode(comp.pinEmitter || comp.pinA);
-                const nB = getNode(comp.pinBase);
+                const nBase = getNode(comp.pinBase);
                 const nC = getNode(comp.pinCollector || comp.pinB);
 
                 const vE = (nE && this.lastVoltages) ? (this.lastVoltages.get(nE) || 0) : 0;
-                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
+                const vBase = (nBase && this.lastVoltages) ? (this.lastVoltages.get(nBase) || 0) : 0;
                 const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
 
                 const polarity = comp.polarity || 'NPN';
                 const beta = comp.beta || 100.0;
 
-                if (polarity === 'NPN') {
-                    const vBE = vB - vE;
-                    const vCE = vC - vE;
+                if (!comp.noiseKick) {
+                    comp.noiseKick = (Math.random() * 0.03 - 0.015);
+                }
+                const vbeThresh = 0.65 + comp.noiseKick;
 
-                    if (vBE > 0.6) {
-                        addConductance(nB, nE, 10.0);
-                        const iB = Math.max(0, (vBE - 0.65) * 10.0);
-                        const iC = iB * beta;
-                        if (vCE < 0.2) {
-                            addConductance(nC, nE, 100.0);
-                        } else {
-                            addCurrentSource(nC, nE, iC);
-                        }
+                if (polarity === 'NPN') {
+                    const vBE = vBase - vE;
+                    const vCE = Math.max(0.01, vC - vE);
+
+                    if (vBE > 0.5) {
+                        const gBE = 0.1;
+                        addConductance(nBase, nE, gBE);
+                        addCurrentSource(nE, nBase, vbeThresh * gBE);
+
+                        const iB = Math.max(0, (vBE - vbeThresh) * gBE);
+                        const targetIC = iB * beta;
+                        const gCE = Math.min(100.0, Math.max(1e-5, targetIC / vCE));
+
+                        addConductance(nC, nE, gCE);
                     } else {
-                        addConductance(nB, nE, 1e-6);
+                        addConductance(nBase, nE, 1e-6);
                         addConductance(nC, nE, 1e-6);
                     }
                 } else { // PNP
-                    const vEB = vE - vB;
-                    const vEC = vE - vC;
+                    const vEB = vE - vBase;
+                    const vEC = Math.max(0.01, vE - vC);
 
-                    if (vEB > 0.6) {
-                        addConductance(nE, nB, 10.0);
-                        const iB = Math.max(0, (vEB - 0.65) * 10.0);
-                        const iC = iB * beta;
-                        if (vEC < 0.2) {
-                            addConductance(nE, nC, 100.0);
-                        } else {
-                            addCurrentSource(nE, nC, iC);
-                        }
+                    if (vEB > 0.5) {
+                        const gBE = 0.1;
+                        addConductance(nE, nBase, gBE);
+                        addCurrentSource(nBase, nE, vbeThresh * gBE);
+
+                        const iB = Math.max(0, (vEB - vbeThresh) * gBE);
+                        const targetIC = iB * beta;
+                        const gEC = Math.min(100.0, Math.max(1e-5, targetIC / vEC));
+
+                        addConductance(nE, nC, gEC);
                     } else {
-                        addConductance(nE, nB, 1e-6);
+                        addConductance(nE, nBase, 1e-6);
                         addConductance(nE, nC, 1e-6);
                     }
                 }
