@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Binding Post Y-Coord Fix, Dynamic Voltage Display & Clamped Rail Pin Mapping v=1068.
+ * TO-92 BJT Transistor 3-Pin Renderer & Placement Engine v=1070.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1068';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1070';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -23,7 +23,7 @@ export class BreadboardCanvas {
         this.voltageVc = -12.0;
 
         this.selectedComponent = null;
-        this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
+        this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'TRANSISTOR_CATALOG', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
         this.placementPinA = null;
         this.hoveredPin = null;
         this.mouseWorldPos = { x: 0, y: 0 };
@@ -54,6 +54,8 @@ export class BreadboardCanvas {
         } else if (tool.startsWith('PROBE_')) {
             const ch = tool.split('_')[1];
             this.showToast(`📍 [CH ${ch} 프로브] 모드: 꽂을 핀 구멍을 클릭하세요.`);
+        } else if (tool === 'TRANSISTOR_CATALOG') {
+            this.showToast('🔺 [트랜지스터 TO-92] 모드: Emitter(E)를 꽂을 핀 구멍을 마우스로 클릭하세요.');
         } else {
             this.showToast(`📌 [${tool}] 배치 모드: 첫 번째 핀 구멍을 마우스로 클릭하세요.`);
         }
@@ -185,7 +187,47 @@ export class BreadboardCanvas {
                 return;
             }
 
-            // Handle Component Placement Mode
+            // Handle Transistor 3-Pin Single-Click Placement
+            if (this.placementMode === 'TRANSISTOR_CATALOG') {
+                if (!clickedPin) {
+                    this.showToast('⚠️ 트랜지스터 Emitter(E)를 꽂을 핀 구멍 근처를 클릭해주세요.');
+                    return;
+                }
+
+                // Infer 3 adjacent pins across columns (e.g. E20, F20, G20)
+                const pinE = clickedPin;
+                let pinB = clickedPin;
+                let pinC = clickedPin;
+
+                const match = clickedPin.match(/^(B\d_)?([A-J])(\d+)$/);
+                if (match) {
+                    const blockPrefix = match[1] || 'B1_';
+                    const colChar = match[2];
+                    const rowNum = match[3];
+                    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                    const colIdx = cols.indexOf(colChar);
+
+                    if (colIdx >= 0 && colIdx <= 7) {
+                        pinB = `${blockPrefix}${cols[colIdx + 1]}${rowNum}`;
+                        pinC = `${blockPrefix}${cols[colIdx + 2]}${rowNum}`;
+                    } else if (colIdx >= 2) {
+                        pinE = `${blockPrefix}${cols[colIdx - 2]}${rowNum}`;
+                        pinB = `${blockPrefix}${cols[colIdx - 1]}${rowNum}`;
+                        pinC = `${blockPrefix}${colChar}${rowNum}`;
+                    }
+                }
+
+                const tool = this.placementMode;
+                this.placementMode = 'SELECT';
+                this.placementPinA = null;
+
+                if (this.onComponentPlaced) {
+                    this.onComponentPlaced(tool, pinE, pinC, pinB); // pinA, pinB, pinC
+                }
+                return;
+            }
+
+            // Handle Component Placement Mode (2-pin components)
             if (this.placementMode && this.placementMode !== 'SELECT') {
                 if (!clickedPin) {
                     this.showToast('⚠️ 핀 구멍 근처를 가볍게 마우스로 클릭해주세요.');
@@ -221,8 +263,8 @@ export class BreadboardCanvas {
             let foundComp = null;
             if (this.componentsRef) {
                 for (const comp of this.componentsRef) {
-                    const pA = this.getPinPos(comp.pinA);
-                    const pB = this.getPinPos(comp.pinB);
+                    const pA = this.getPinPos(comp.pinA || comp.pinEmitter);
+                    const pB = this.getPinPos(comp.pinB || comp.pinCollector);
                     const distA = Math.hypot(pA.x - worldX, pA.y - worldY);
                     const distB = Math.hypot(pB.x - worldX, pB.y - worldY);
                     const midX = (pA.x + pB.x) / 2;
@@ -771,8 +813,8 @@ export class BreadboardCanvas {
     }
 
     renderComponent(comp, isSelected) {
-        const pA = this.getPinPos(comp.pinA);
-        const pB = this.getPinPos(comp.pinB);
+        const pA = this.getPinPos(comp.pinA || comp.pinEmitter);
+        const pB = this.getPinPos(comp.pinB || comp.pinCollector);
 
         this.ctx.save();
 
@@ -799,6 +841,51 @@ export class BreadboardCanvas {
             this.ctx.arc(pA.x, pA.y, 3.5, 0, Math.PI * 2);
             this.ctx.arc(pB.x, pB.y, 3.5, 0, Math.PI * 2);
             this.ctx.fill();
+
+        } else if (comp.type === 'BJT') {
+            const pE = this.getPinPos(comp.pinEmitter || comp.pinA);
+            const pBase = this.getPinPos(comp.pinBase);
+            const pC = this.getPinPos(comp.pinCollector || comp.pinB);
+
+            // Draw 3 Metallic Silver Leads
+            this.ctx.strokeStyle = '#cbd5e1';
+            this.ctx.lineWidth = 1.8;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pE.x, pE.y);
+            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.moveTo(pBase.x, pBase.y);
+            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.moveTo(pC.x, pC.y);
+            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.stroke();
+
+            const midX = (pE.x + pBase.x + pC.x) / 3;
+            const midY = (pE.y + pBase.y + pC.y) / 3 - 14;
+
+            // TO-92 Black Plastic D-Shape Package Body
+            this.ctx.fillStyle = '#1e272e';
+            this.ctx.beginPath();
+            this.ctx.arc(midX, midY, 13, Math.PI, 0);
+            this.ctx.lineTo(midX + 13, midY + 8);
+            this.ctx.lineTo(midX - 13, midY + 8);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
+            this.ctx.lineWidth = isSelected ? 2.2 : 1.2;
+            this.ctx.stroke();
+
+            // Transistor Part Name (2N3904 / C1815)
+            this.ctx.fillStyle = '#f8fafc';
+            this.ctx.font = 'bold 8px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(comp.transType || '2N3904', midX, midY + 3);
+
+            // E, B, C Pin Label Tags on Pin Holes
+            this.ctx.fillStyle = '#facc15';
+            this.ctx.font = 'bold 9px sans-serif';
+            this.ctx.fillText('E', pE.x, pE.y - 4);
+            this.ctx.fillText('B', pBase.x, pBase.y - 4);
+            this.ctx.fillText('C', pC.x, pC.y - 4);
 
         } else if (comp.type === 'R') {
             this.ctx.strokeStyle = '#636e72';

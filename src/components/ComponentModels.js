@@ -1,6 +1,6 @@
 /**
  * ComponentModels.js
- * Extended Circuit Component Models with LF356 & LM301 Op-Amps v=1065.
+ * Extended Circuit Component Models with Transistors (NPN & PNP BJT) v=1070.
  */
 
 export function getResistorColorBands(resistance, isConfigured = true) {
@@ -47,6 +47,14 @@ export function getResistorColorBands(resistance, isConfigured = true) {
     return [c1, c2, multColor, c4];
 }
 
+export const TRANSISTOR_CATALOG = {
+    '2N3904': { name: '2N3904 (NPN)', polarity: 'NPN', beta: 100, desc: '범용 NPN 소신호 트랜지스터 (EBC TO-92)' },
+    '2N3906': { name: '2N3906 (PNP)', polarity: 'PNP', beta: 100, desc: '범용 PNP 소신호 트랜지스터 (EBC TO-92)' },
+    '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, desc: '고전류 NPN 스위칭 트랜지스터 (TO-92)' },
+    'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
+    'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' }
+};
+
 export const IC_CATALOG = {
     'LF356': { name: 'LF356 JFET Op-Amp', pins: 8, desc: '통신설비기능장 PNM 회로 표준 고속 JFET 입력 연산증폭기' },
     'LM301': { name: 'LM301 Precision Op-Amp', pins: 8, desc: '단일 정밀 연산 증폭기 (Super-Beta Input DIP-8 Op-Amp)' },
@@ -69,6 +77,23 @@ export const IC_CATALOG = {
     'CD4017': { name: 'CD4017 Decade Counter', pins: 16, desc: '10진 디케이드 카운터 / 존슨 시퀀서' },
     'CD4026': { name: 'CD4026 7-Seg Counter', pins: 16, desc: '7세그먼트 디스플레이 카운터 드라이버' }
 };
+
+export class BJTTransistor {
+    constructor(id, transType = '2N3904', pinEmitter = 'B1_E20', pinBase = 'B1_F20', pinCollector = 'B1_G20') {
+        this.id = id;
+        this.type = 'BJT';
+        this.transType = transType;
+        const catalogMeta = TRANSISTOR_CATALOG[transType] || TRANSISTOR_CATALOG['2N3904'];
+        this.polarity = catalogMeta.polarity;
+        this.beta = catalogMeta.beta || 100.0;
+        this.pinEmitter = pinEmitter;
+        this.pinBase = pinBase;
+        this.pinCollector = pinCollector;
+        this.pinA = pinEmitter;
+        this.pinB = pinCollector;
+        this.isConfigured = true;
+    }
+}
 
 export class Resistor {
     constructor(id, pinA, pinB, resistance = 1000, isConfigured = false) {

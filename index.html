@@ -97,6 +97,21 @@
                 </div>
             </div>
 
+            <!-- Transistor Family Dropdown (NPN / PNP BJT TO-92) -->
+            <div class="palette-section">
+                <div class="palette-section-title">🔺 트랜지스터(BJT) 소자 라이브러리:</div>
+                <div class="palette-block-vertical">
+                    <select id="transistorTypeSelect" class="select-input">
+                        <option value="2N3904" selected>🔺 2N3904 (NPN) TO-92</option>
+                        <option value="2N3906">🔻 2N3906 (PNP) TO-92</option>
+                        <option value="2N2222">⚡ 2N2222 (NPN 고전류)</option>
+                        <option value="C1815">🔺 KSC1815 (NPN 저소음)</option>
+                        <option value="A1015">🔻 KSA1015 (PNP 저소음)</option>
+                    </select>
+                    <button id="toolTransistorCatalog" class="btn btn-primary">🔺 선택한 트랜지스터 배치</button>
+                </div>
+            </div>
+
             <!-- IC Catalog Dropdown (20 IC Chips) -->
             <div class="palette-section">
                 <div class="palette-section-title">🔲 IC 칩 카탈로그 (20종 SPICE 엔진):</div>
@@ -466,6 +481,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1069"></script>
+    <script type="module" src="./app.js?v=1070"></script>
 </body>
 </html>

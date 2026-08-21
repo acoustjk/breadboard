@@ -93,6 +93,55 @@ export class MNASolver {
             } else if (comp.type === 'LED') {
                 addConductance(nA, nB, 20.0);
 
+            } else if (comp.type === 'BJT') {
+                // Nonlinear BJT Behavioral Model (Ebers-Moll / VCVS Behavioral Current Model)
+                const nE = getNode(comp.pinEmitter || comp.pinA);
+                const nB = getNode(comp.pinBase);
+                const nC = getNode(comp.pinCollector || comp.pinB);
+
+                const vE = (nE && this.lastVoltages) ? (this.lastVoltages.get(nE) || 0) : 0;
+                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
+                const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
+
+                const polarity = comp.polarity || 'NPN';
+                const beta = comp.beta || 100.0;
+
+                if (polarity === 'NPN') {
+                    const vBE = vB - vE;
+                    const vCE = vC - vE;
+
+                    if (vBE > 0.6) {
+                        addConductance(nB, nE, 10.0);
+                        const iB = Math.max(0, (vBE - 0.65) * 10.0);
+                        const iC = iB * beta;
+                        if (vCE < 0.2) {
+                            addConductance(nC, nE, 100.0);
+                        } else {
+                            addCurrentSource(nC, nE, iC);
+                        }
+                    } else {
+                        addConductance(nB, nE, 1e-6);
+                        addConductance(nC, nE, 1e-6);
+                    }
+                } else { // PNP
+                    const vEB = vE - vB;
+                    const vEC = vE - vC;
+
+                    if (vEB > 0.6) {
+                        addConductance(nE, nB, 10.0);
+                        const iB = Math.max(0, (vEB - 0.65) * 10.0);
+                        const iC = iB * beta;
+                        if (vEC < 0.2) {
+                            addConductance(nE, nC, 100.0);
+                        } else {
+                            addCurrentSource(nE, nC, iC);
+                        }
+                    } else {
+                        addConductance(nE, nB, 1e-6);
+                        addConductance(nE, nC, 1e-6);
+                    }
+                }
+
             // ==========================================
             // 2. Behavioral Models for IC Chips
             // ==========================================

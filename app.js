@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1068';
-import { MNASolver } from './src/engine/MNASolver.js?v=1068';
-import { FFT } from './src/engine/FFT.js?v=1068';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1068';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1068';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1068';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1068';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1068';
-import { AICopilot } from './src/components/AICopilot.js?v=1068';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1068';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1070';
+import { MNASolver } from './src/engine/MNASolver.js?v=1070';
+import { FFT } from './src/engine/FFT.js?v=1070';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1070';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1070';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1070';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1070';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1070';
+import { AICopilot } from './src/components/AICopilot.js?v=1070';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1070';
 
 class AppController {
     constructor() {
@@ -49,6 +49,7 @@ class AppController {
         this.selectedResistorType = 'R';
         this.selectedCapacitorType = 'C_MYLAR';
         this.selectedIcKey = 'LF356';
+        this.selectedTransistorType = '2N3904';
 
         this.currentExamTitle = null;
 
@@ -117,6 +118,11 @@ class AppController {
                 const meta = IC_CATALOG[icKey] || IC_CATALOG['LF356'];
                 newComp = new DIPChip(id, icKey, pinA, pinB);
                 labelMsg = `🔲 ${meta.name} (DIP-${meta.pins})`;
+            } else if (toolType === 'TRANSISTOR_CATALOG') {
+                const transKey = this.selectedTransistorType || '2N3904';
+                const meta = TRANSISTOR_CATALOG[transKey] || TRANSISTOR_CATALOG['2N3904'];
+                newComp = new BJTTransistor(id, transKey, pinA, pinB, pinB);
+                labelMsg = `🔺 ${meta.name} (${meta.polarity} TO-92)`;
             } else if (toolType === 'DIODE') {
                 newComp = new Diode(id, pinA, pinB, 0.7);
                 labelMsg = '정류 다이오드 (1N4007)';
@@ -901,6 +907,13 @@ class AppController {
             });
         }
 
+        const transSelect = document.getElementById('transistorTypeSelect');
+        if (transSelect) {
+            transSelect.addEventListener('change', (e) => {
+                this.selectedTransistorType = e.target.value;
+            });
+        }
+
         const bindVoltDivSync = (selectId, numId, propName) => {
             const selectEl = document.getElementById(selectId);
             const numEl = document.getElementById(numId);
@@ -1097,6 +1110,7 @@ class AppController {
             { id: 'toolWire', tool: 'WIRE' },
             { id: 'toolResistorCatalog', tool: 'RESISTOR_CATALOG' },
             { id: 'toolCapacitorCatalog', tool: 'CAPACITOR_CATALOG' },
+            { id: 'toolTransistorCatalog', tool: 'TRANSISTOR_CATALOG' },
             { id: 'toolIcCatalog', tool: 'IC_CATALOG' },
             { id: 'toolDiode', tool: 'DIODE' },
             { id: 'toolZener', tool: 'ZENER' },
