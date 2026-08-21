@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Middle Click / Right Click Mouse Drag Pan & Zoom Reset v=1063.
+ * Top Horizontal Power Rail Holes & Pin Coordinates Fix v=1064.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1063';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1064';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -135,31 +135,40 @@ export class BreadboardCanvas {
             this.pinCoords.set(key, { x: Math.round(x), y: Math.round(y) });
         };
 
-        // Binding Posts
+        // 1. Binding Posts
         setCoord('BINDING_Va', 70, 50);
         setCoord('BINDING_Vb', 180, 50);
         setCoord('BINDING_Vc', 290, 50);
         setCoord('BINDING_GND', 400, 50);
 
+        // 2. Top Horizontal Bus Rails (50 Columns evenly spaced across x = 45..780 inside top white power strip at y = 106..178)
+        for (let c = 1; c <= 50; c++) {
+            const x = 45 + (c - 1) * 15.0;
+
+            const yVcc1 = 114; // Red Line +12V
+            const yGnd1 = 138; // Blue Line 0V/GND
+            const yVcc2 = 146; // Red Line +12V
+            const yGnd2 = 168; // Blue Line -12V
+
+            // Map without block prefix (e.g. VCC_TOP1_15)
+            setCoord(`VCC_TOP1_${c}`, x, yVcc1);
+            setCoord(`GND_TOP1_${c}`, x, yGnd1);
+            setCoord(`VCC_TOP2_${c}`, x, yVcc2);
+            setCoord(`GND_TOP2_${c}`, x, yGnd2);
+
+            // Map with block prefixes B1_, B2_, B3_, B4_ for complete compatibility
+            for (let blk = 1; blk <= this.numBlocks; blk++) {
+                setCoord(`B${blk}_VCC_TOP1_${c}`, x, yVcc1);
+                setCoord(`B${blk}_GND_TOP1_${c}`, x, yGnd1);
+                setCoord(`B${blk}_VCC_TOP2_${c}`, x, yVcc2);
+                setCoord(`B${blk}_GND_TOP2_${c}`, x, yGnd2);
+            }
+        }
+
+        // 3. Main Breadboard Blocks (1..4)
         for (let blk = 1; blk <= this.numBlocks; blk++) {
             const bX = startX + (blk - 1) * (blockWidth + blockGap);
             const prefix = `B${blk}_`;
-
-            // Top Power Rails (Columns 1..60)
-            for (let c = 1; c <= 60; c++) {
-                const x = bX + 31 + (Math.min(50, c) - 1) * 2.8;
-                setCoord(`${prefix}VCC_TOP1_${c}`, x, startY - 24);
-                setCoord(`${prefix}VCC_TOP2_${c}`, x, startY - 18);
-                setCoord(`${prefix}GND_TOP1_${c}`, x, startY - 12);
-                setCoord(`${prefix}GND_TOP2_${c}`, x, startY - 6);
-
-                if (blk === 1) {
-                    setCoord(`VCC_TOP1_${c}`, x, startY - 24);
-                    setCoord(`VCC_TOP2_${c}`, x, startY - 18);
-                    setCoord(`GND_TOP1_${c}`, x, startY - 12);
-                    setCoord(`GND_TOP2_${c}`, x, startY - 6);
-                }
-            }
 
             // Dual Vertical Power Rails
             for (let r = 1; r <= 60; r++) {
@@ -207,8 +216,7 @@ export class BreadboardCanvas {
         if (pinKey.includes('_TOP')) {
             const parts = pinKey.split('_');
             const railType = `${parts[0]}_${parts[1]}`;
-            if (this.pinCoords.has(`${railType}_50`)) return this.pinCoords.get(`${railType}_50`);
-            if (this.pinCoords.has(`B1_${railType}_50`)) return this.pinCoords.get(`B1_${railType}_50`);
+            if (this.pinCoords.has(`${railType}_15`)) return this.pinCoords.get(`${railType}_15`);
         }
 
         return { x: 0, y: 0 };
@@ -297,10 +305,10 @@ export class BreadboardCanvas {
             this.ctx.fillText(bp.valText, bp.x, 86);
         });
 
-        // 4. Render Top 4 Horizontal Bus Lines
+        // 4. Render Top 4 Horizontal Bus Lines Panel
         this.ctx.fillStyle = '#f8fafc';
         this.ctx.beginPath();
-        this.ctx.roundRect(35, 106, 755, 72, 4);
+        this.ctx.roundRect(35, 106, 745, 72, 4);
         this.ctx.fill();
         this.ctx.strokeStyle = '#b2bec3';
         this.ctx.lineWidth = 1;
