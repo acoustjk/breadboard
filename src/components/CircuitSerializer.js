@@ -4,7 +4,7 @@
  * Auto-normalizes DIP IC height & auto-sanitizes shorted wires v=1056.
  */
 
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './ComponentModels.js?v=1056';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG } from './ComponentModels.js?v=1081';
 
 export class CircuitSerializer {
     static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
@@ -40,6 +40,12 @@ export class CircuitSerializer {
             } else if (comp.type === 'ZENER') {
                 base.vZener = comp.vZener;
                 base.vForward = comp.vForward;
+            } else if (comp.type === 'BJT') {
+                base.transType = comp.transType || '2N3904';
+                base.pinEmitter = comp.pinEmitter || comp.pinA;
+                base.pinBase = comp.pinBase;
+                base.pinCollector = comp.pinCollector || comp.pinB;
+                base.polarity = comp.polarity || 'NPN';
             } else if (comp.type === 'IC') {
                 base.icType = comp.icType;
             }
@@ -114,6 +120,12 @@ export class CircuitSerializer {
                 comp = new Diode(id, item.pinA, item.pinB, item.vForward || 0.7);
             } else if (item.type === 'ZENER') {
                 comp = new ZenerDiode(id, item.pinA, item.pinB, item.vZener || 5.1, item.vForward || 0.7);
+            } else if (item.type === 'BJT') {
+                const transType = item.transType || '2N3904';
+                const pE = item.pinEmitter || item.pinA;
+                const pB = item.pinBase;
+                const pC = item.pinCollector || item.pinB;
+                comp = new BJTTransistor(id, transType, pE, pB, pC);
             } else if (item.type === 'IC') {
                 // Auto-normalize DIP chip height: DIP-8 is 4 rows high (startRow to startRow + 3)
                 let pB = item.pinB;
