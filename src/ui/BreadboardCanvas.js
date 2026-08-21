@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Top Horizontal Power Rail Holes & Pin Coordinates Fix v=1064.
+ * Component Placement, Click/Hover Events & LM301 Support v=1065.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1064';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1065';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -19,7 +19,7 @@ export class BreadboardCanvas {
         this.showValueBadges = true;
 
         this.selectedComponent = null;
-        this.placementMode = null; // 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
+        this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
         this.placementPinA = null;
         this.hoveredPin = null;
         this.mouseWorldPos = { x: 0, y: 0 };
@@ -31,12 +31,38 @@ export class BreadboardCanvas {
         this.probeCPin = 'BINDING_Va';
         this.probeDPin = 'BINDING_Vc';
 
+        this.componentsRef = [];
+
         this.numBlocks = 4;
         this.pinCoords = new Map();
         this.initPinCoordinates();
         if (canvas) {
             this.initEvents();
         }
+    }
+
+    setActiveTool(tool) {
+        this.placementMode = tool;
+        this.placementPinA = null;
+        if (tool === 'SELECT') {
+            this.showToast('👆 선택 모드: 부품 클릭 시 선택/이동/삭제/속성 조절');
+        } else {
+            this.showToast(`📌 [${tool}] 모드: 첫 번째 핀 구멍을 클릭하세요.`);
+        }
+        if (this.onNeedsRender) this.onNeedsRender();
+    }
+
+    cancelPlacement() {
+        this.placementMode = 'SELECT';
+        this.placementPinA = null;
+        if (this.onPlacementCancelled) this.onPlacementCancelled();
+        if (this.onNeedsRender) this.onNeedsRender();
+    }
+
+    toggleValueBadges() {
+        this.showValueBadges = !this.showValueBadges;
+        if (this.onNeedsRender) this.onNeedsRender();
+        return this.showValueBadges;
     }
 
     zoomIn() {
@@ -54,6 +80,15 @@ export class BreadboardCanvas {
         this.panOffsetX = 0;
         this.panOffsetY = 0;
         if (this.onNeedsRender) this.onNeedsRender();
+    }
+
+    getMouseWorldPos(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const clientX = e.clientX - rect.left;
+        const clientY = e.clientY - rect.top;
+        const worldX = (clientX - this.panOffsetX) / this.zoomLevel;
+        const worldY = (clientY - this.panOffsetY) / this.zoomLevel;
+        return { worldX, worldY };
     }
 
     initEvents() {
@@ -96,7 +131,116 @@ export class BreadboardCanvas {
             e.preventDefault();
         });
 
-        // 4. Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
+        // 4. Canvas Mouse Move: Update hoveredPin and mouseWorldPos
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (isPanning) return;
+            const { worldX, worldY } = this.getMouseWorldPos(e);
+            this.mouseWorldPos = { x: worldX, y: worldY };
+
+            const nearest = this.getNearestPin(worldX, worldY, 16.0);
+            if (nearest !== this.hoveredPin) {
+                this.hoveredPin = nearest;
+                if (this.onNeedsRender) this.onNeedsRender();
+            } else if (this.placementPinA) {
+                if (this.onNeedsRender) this.onNeedsRender();
+            }
+        });
+
+        // 5. Canvas Click: Component placement, probe placement, component selection
+        this.canvas.addEventListener('click', (e) => {
+            if (e.button !== 0) return; // Left click only
+            const { worldX, worldY } = this.getMouseWorldPos(e);
+            const clickedPin = this.getNearestPin(worldX, worldY, 16.0);
+
+            // Handle Probes
+            if (this.placementMode && this.placementMode.startsWith('PROBE_')) {
+                const ch = this.placementMode.split('_')[1];
+                if (clickedPin && this.onProbePlaced) {
+                    this.onProbePlaced(ch, clickedPin);
+                }
+                this.cancelPlacement();
+                return;
+            }
+
+            // Handle Component Placement Mode
+            if (this.placementMode && this.placementMode !== 'SELECT') {
+                if (!clickedPin) {
+                    this.showToast('⚠️ 핀 구멍 위에 커서를 대고 클릭하세요.');
+                    return;
+                }
+
+                if (!this.placementPinA) {
+                    // First pin selected
+                    this.placementPinA = clickedPin;
+                    this.showToast(`📍 1번 핀 (${clickedPin}) 선택됨. 2번 핀 구멍을 클릭하세요.`);
+                    if (this.onNeedsRender) this.onNeedsRender();
+                } else {
+                    // Second pin selected
+                    const pinA = this.placementPinA;
+                    const pinB = clickedPin;
+                    if (pinA === pinB) {
+                        this.showToast('⚠️ 서로 다른 2개의 핀 구멍을 선택하세요.');
+                        return;
+                    }
+
+                    const tool = this.placementMode;
+                    this.placementMode = 'SELECT';
+                    this.placementPinA = null;
+
+                    if (this.onComponentPlaced) {
+                        this.onComponentPlaced(tool, pinA, pinB);
+                    }
+                }
+                return;
+            }
+
+            // Handle Selection Mode: Check if clicked component
+            let foundComp = null;
+            if (this.componentsRef) {
+                for (const comp of this.componentsRef) {
+                    const pA = this.getPinPos(comp.pinA);
+                    const pB = this.getPinPos(comp.pinB);
+                    const distA = Math.hypot(pA.x - worldX, pA.y - worldY);
+                    const distB = Math.hypot(pB.x - worldX, pB.y - worldY);
+                    const midX = (pA.x + pB.x) / 2;
+                    const midY = (pA.y + pB.y) / 2;
+                    const distMid = Math.hypot(midX - worldX, midY - worldY);
+
+                    if (distA < 16 || distB < 16 || distMid < 20) {
+                        foundComp = comp;
+                        break;
+                    }
+                }
+            }
+
+            this.selectedComponent = foundComp;
+            if (foundComp) {
+                this.showToast(`🔍 선택됨: [${foundComp.type}] ${foundComp.id}`);
+            }
+            if (this.onNeedsRender) this.onNeedsRender();
+        });
+
+        // 6. Canvas Double Click: Open property inspector or binding post prompt
+        this.canvas.addEventListener('dblclick', (e) => {
+            const { worldX, worldY } = this.getMouseWorldPos(e);
+
+            // Check Binding Posts
+            const bindingPosts = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
+            for (const bpKey of bindingPosts) {
+                const pos = this.getPinPos(bpKey);
+                if (Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
+                    if (this.onBindingPostDblClicked) this.onBindingPostDblClicked(bpKey);
+                    return;
+                }
+            }
+
+            // Check Component Double Click
+            if (this.selectedComponent && this.onComponentDblClicked) {
+                this.onComponentDblClicked(this.selectedComponent);
+            }
+        });
+
+        // 7. Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             const rect = this.canvas.getBoundingClientRect();
@@ -222,7 +366,7 @@ export class BreadboardCanvas {
         return { x: 0, y: 0 };
     }
 
-    getNearestPin(worldX, worldY, maxDist = 12.0) {
+    getNearestPin(worldX, worldY, maxDist = 16.0) {
         let closestKey = null;
         let minDist = maxDist;
 
@@ -239,6 +383,7 @@ export class BreadboardCanvas {
     }
 
     render(components = []) {
+        this.componentsRef = components;
         if (!this.ctx) return;
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);

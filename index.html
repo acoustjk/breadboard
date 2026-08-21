@@ -97,13 +97,14 @@
                 </div>
             </div>
 
-            <!-- IC Catalog Dropdown (19 IC Chips) -->
+            <!-- IC Catalog Dropdown (20 IC Chips) -->
             <div class="palette-section">
-                <div class="palette-section-title">🔲 IC 칩 카탈로그 (19종 SPICE 엔진):</div>
+                <div class="palette-section-title">🔲 IC 칩 카탈로그 (20종 SPICE 엔진):</div>
                 <div class="palette-block-vertical">
                     <select id="icLibrarySelect" class="select-input">
                         <optgroup label="⏱️ 통신기능장 & 아날로그 IC">
                             <option value="LF356" selected>LF356 (DIP-8) JFET Op-Amp (PNM)</option>
+                            <option value="LM301">LM301 (DIP-8) 정밀 Op-Amp</option>
                             <option value="NE555">NE555 (DIP-8) 정밀 타이머</option>
                             <option value="NE556">NE556 (DIP-14) 듀얼 타이머</option>
                             <option value="LM358">LM358 (DIP-8) 듀얼 Op-Amp</option>
@@ -185,7 +186,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 맨 위 전원 빵판 핀 구멍 50개 완전 복원 & 소자 배치 정상화 완료 v=1064!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 소자 클릭 배치 정상화 & LM301 정밀 Op-Amp 카탈로그 탑재 v=1065!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -202,7 +203,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>맨 위 전원 빵판의 <strong>50개 핀 구멍이 4개 전원 라인을 따라 완벽하게 복원</strong>되었습니다! 이제 전원선 연결 및 부품 배치가 100% 정상 작동합니다!</p>
+                <p>부품 클릭 배치가 100% 정상 작동하며, 요청하신 <strong>LM301 (DIP-8) 정밀 Op-Amp</strong>가 IC 카탈로그에 성공적으로 추가되었습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -458,6 +459,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1064"></script>
+    <script type="module" src="./app.js?v=1065"></script>
 </body>
 </html>

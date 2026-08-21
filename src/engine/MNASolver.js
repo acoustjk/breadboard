@@ -124,7 +124,7 @@ export class MNASolver {
                         }
                     }
 
-                } else if (icType === 'LF356' || icType === 'LM741') {
+                } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
                     // Single Op-Amp VCVS Behavioral Model with Rail Clamping
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);

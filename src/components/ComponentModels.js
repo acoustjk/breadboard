@@ -1,6 +1,6 @@
 /**
  * ComponentModels.js
- * Extended Circuit Component Models with LF356 JFET Op-Amp for PNM Circuit.
+ * Extended Circuit Component Models with LF356 & LM301 Op-Amps v=1065.
  */
 
 export function getResistorColorBands(resistance, isConfigured = true) {
@@ -49,6 +49,7 @@ export function getResistorColorBands(resistance, isConfigured = true) {
 
 export const IC_CATALOG = {
     'LF356': { name: 'LF356 JFET Op-Amp', pins: 8, desc: '통신설비기능장 PNM 회로 표준 고속 JFET 입력 연산증폭기' },
+    'LM301': { name: 'LM301 Precision Op-Amp', pins: 8, desc: '단일 정밀 연산 증폭기 (Super-Beta Input DIP-8 Op-Amp)' },
     'NE555': { name: 'NE555 Precision Timer', pins: 8, desc: '단일 정밀 타이머 / 아스타블 멀티바이브레이터' },
     'NE556': { name: 'NE556 Dual Timer', pins: 14, desc: '듀얼 555 듀얼 타이머 IC' },
     'LM358': { name: 'LM358 Dual Op-Amp', pins: 8, desc: '저전력 듀얼 연산 증폭기' },
@@ -163,7 +164,7 @@ export class DIPChip {
         this.type = 'IC';
         this.icType = icType;
         const catalogMeta = IC_CATALOG[icType] || IC_CATALOG['NE555'];
-        this.pins = catalogMeta.pins;
+        this.pins = catalogMeta ? catalogMeta.pins : 8;
         this.pinA = pinA;
         this.pinB = pinB;
         this.isConfigured = true;
