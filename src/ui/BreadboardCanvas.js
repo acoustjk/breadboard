@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Supports Dual Vertical Power Rails (RED +, BLUE -) on all 4 Blocks v=1047.
+ * Renders Official EIC-108 TP1, TP2, TP3 Flag Tags and Curved Bridge Wires v=1049.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1047';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1049';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -120,7 +120,6 @@ export class BreadboardCanvas {
         }
 
         // 3. 4 Vertical Terminal Strip Blocks (Block 1~4)
-        // Each Block now features Dual Vertical Power Bus Rails on BOTH Left & Right sides!
         const blockWidth = 186;
         const blockGap = 12;
         const startX = 25;
@@ -199,7 +198,6 @@ export class BreadboardCanvas {
             const worldX = (canvasMouseX - this.offsetX) / this.scale;
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
 
-            // Check Binding Posts Double-click / Click
             const bindingKeys = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
             for (const key of bindingKeys) {
                 const pos = this.pinCoords.get(key);
@@ -650,6 +648,13 @@ export class BreadboardCanvas {
             this.renderComponent(comp, isSelected);
         });
 
+        // 9. Render Official EIC-108 TP1, TP2, TP3 Flag Tags (matching media_1787274279103.jpg!)
+        if (components && components.some(c => c.id === 'U1')) {
+            this.renderTestPointFlag('TP1', 'B3_F18', '#facc15');
+            this.renderTestPointFlag('TP2', 'B3_F40', '#e879f9');
+            this.renderTestPointFlag('TP3', 'B4_C33', '#38bdf8');
+        }
+
         // Render 4CH Probes ONLY if pin is attached!
         if (this.probeAPin) this.renderProbe('CH A', this.probeAPin, '#facc15');
         if (this.probeBPin) this.renderProbe('CH B', this.probeBPin, '#e879f9');
@@ -675,6 +680,34 @@ export class BreadboardCanvas {
             this.ctx.fillText(this.toastMsg, baseW / 2, baseH - 20);
             this.ctx.restore();
         }
+
+        this.ctx.restore();
+    }
+
+    renderTestPointFlag(label, pinKey, colorHex) {
+        const pos = this.getPinPos(pinKey);
+        this.ctx.save();
+
+        this.ctx.strokeStyle = '#64748b';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x, pos.y);
+        this.ctx.lineTo(pos.x + 22, pos.y);
+        this.ctx.stroke();
+
+        this.ctx.fillStyle = '#ffffff';
+        this.ctx.beginPath();
+        this.ctx.roundRect(pos.x + 22, pos.y - 8, 32, 16, 3);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#0f172a';
+        this.ctx.lineWidth = 1.5;
+        this.ctx.stroke();
+
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.font = 'bold 10px sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(label, pos.x + 38, pos.y);
 
         this.ctx.restore();
     }
