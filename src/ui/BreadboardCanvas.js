@@ -964,10 +964,43 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
 
             if (isElec) {
-                this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
+                // Electrolytic Cylinder Body
+                this.ctx.arc(midX, midY, 10, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Minus (-) Silver Stripe on pinB (Cathode) side
+                const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
+                const stripeX = midX + Math.cos(angle) * 5;
+                const stripeY = midY + Math.sin(angle) * 5;
+
+                this.ctx.fillStyle = '#f1f2f6';
+                this.ctx.beginPath();
+                this.ctx.arc(stripeX, stripeY, 5, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.ctx.fillStyle = '#2d3436';
+                this.ctx.font = 'bold 9px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('-', stripeX, stripeY);
+
+                // Bright Polarity Badges on Lead Holes: pinA = (+ Red), pinB = (- Blue)
+                this.ctx.fillStyle = '#ef4444';
+                this.ctx.beginPath();
+                this.ctx.arc(pA.x, pA.y, 6, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.fillStyle = '#ffffff';
-                this.ctx.fillRect(midX - 7, midY - 2, 14, 4);
+                this.ctx.font = 'bold 10px monospace';
+                this.ctx.fillText('+', pA.x, pA.y + 1);
+
+                this.ctx.fillStyle = '#3b82f6';
+                this.ctx.beginPath();
+                this.ctx.arc(pB.x, pB.y, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 10px monospace';
+                this.ctx.fillText('-', pB.x, pB.y + 1);
+
             } else {
                 this.ctx.roundRect(midX - 7, midY - 8, 14, 16, 2);
                 this.ctx.fill();
