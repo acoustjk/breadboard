@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Safe Pin Coordinates Resolution & Clamped Rail Fallback v=1062.
+ * Middle Click / Right Click Mouse Drag Pan & Zoom Reset v=1063.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1062';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1063';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -39,10 +39,64 @@ export class BreadboardCanvas {
         }
     }
 
+    zoomIn() {
+        this.zoomLevel = Math.min(3.5, this.zoomLevel * 1.2);
+        if (this.onNeedsRender) this.onNeedsRender();
+    }
+
+    zoomOut() {
+        this.zoomLevel = Math.max(0.4, this.zoomLevel * 0.8);
+        if (this.onNeedsRender) this.onNeedsRender();
+    }
+
+    resetZoom() {
+        this.zoomLevel = 1.0;
+        this.panOffsetX = 0;
+        this.panOffsetY = 0;
+        if (this.onNeedsRender) this.onNeedsRender();
+    }
+
     initEvents() {
         if (!this.canvas) return;
 
-        // Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
+        let isPanning = false;
+        let startPanX = 0;
+        let startPanY = 0;
+
+        // 1. Mouse Down: Middle Click (button 1) or Right Click (button 2) initiates Pan
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 1 || e.button === 2) {
+                isPanning = true;
+                startPanX = e.clientX - this.panOffsetX;
+                startPanY = e.clientY - this.panOffsetY;
+                this.canvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        // 2. Window Mouse Move: Drag updates panOffsetX and panOffsetY in real time
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                this.panOffsetX = e.clientX - startPanX;
+                this.panOffsetY = e.clientY - startPanY;
+                if (this.onNeedsRender) this.onNeedsRender();
+            }
+        });
+
+        // 3. Window Mouse Up: End Pan
+        window.addEventListener('mouseup', (e) => {
+            if (isPanning) {
+                isPanning = false;
+                this.canvas.style.cursor = 'default';
+            }
+        });
+
+        // Prevent default context menu on right click pan
+        this.canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+
+        // 4. Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             const rect = this.canvas.getBoundingClientRect();

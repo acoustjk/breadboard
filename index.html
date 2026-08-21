@@ -183,9 +183,9 @@
             <div class="breadboard-toolbar">
                 <button id="btnZoomIn" class="btn">🔍+ 확대</button>
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
-                <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
+                <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ (0,0) 좌상단 쏠림 완전 원상 복구 & 깔끔한 IC 핀 번호 표시 완료 v=1062!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">🖱️ 마우스 휠버튼/우클릭 드래그 시 상하좌우 자유 이동 적용 v=1063!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -202,7 +202,8 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>(0,0) 좌표로 쏠리던 점퍼선들이 모두 정상 좌표로 깔끔히 원상 복구되었으며, IC 핀 번호도 칩 위에서 정갈하고 예쁘게 표시됩니다!</p>
+                <p>마우스 휠 버튼(또는 마우스 우클릭)을 누른 상태로 드래그하면 <strong>상하좌우 자유롭게 판을 이동</strong>시킬 수 있습니다!</p>
+                <p><strong>[🎯 화면 맞춤 / 맨 위 전원 보기]</strong> 버튼을 누르면 언제든지 맨 위 전원 바인딩 포스트로 즉시 되돌아옵니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -458,6 +459,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1062"></script>
+    <script type="module" src="./app.js?v=1063"></script>
 </body>
 </html>
