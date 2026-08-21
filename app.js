@@ -1,19 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * Dual Vertical Power Rails (RED +, BLUE -) on all 4 Blocks v=1047.
+ * EIC-108 [PNM] Official Exam Schematic 100% Exact Pin Parity Preset v=1048.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1047';
-import { MNASolver } from './src/engine/MNASolver.js?v=1047';
-import { FFT } from './src/engine/FFT.js?v=1047';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1047';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1047';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1047';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1047';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1047';
-import { AICopilot } from './src/components/AICopilot.js?v=1047';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1047';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1048';
+import { MNASolver } from './src/engine/MNASolver.js?v=1048';
+import { FFT } from './src/engine/FFT.js?v=1048';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1048';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1048';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1048';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1048';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1048';
+import { AICopilot } from './src/components/AICopilot.js?v=1048';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1048';
 
 class AppController {
     constructor() {
@@ -296,9 +296,9 @@ class AppController {
         }
     }
 
-    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
+    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment with uploaded media_1787274279103.jpg)
     initPNMExam() {
-        this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 100% 정밀 도면)';
+        this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 도면 100% 실시간 동일 배치)';
         this.voltageVa = 12.0;
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
@@ -307,78 +307,87 @@ class AppController {
         this.breadboardCanvas.voltageVc = -12.0;
 
         this.components = [
-            // Banana Jack Power Supply Wires
+            // Banana Jack Power Supply Wires to Top Rails
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
             new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
 
             // Top Power Bus Rails to 4 Blocks Jumper Bridges
-            new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
-            new Wire('JUMP_POS2', 'VCC_TOP1_15', 'B2_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND2', 'GND_TOP1_5', 'B2_GND_1', '#3b82f6'),
-            new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_1', '#ef4444'),
-            new Wire('JUMP_NEG3', 'VCC_TOP2_25', 'B3_GND_1', '#00b894'),
-            new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_1', '#ef4444'),
-            new Wire('JUMP_NEG4', 'VCC_TOP2_45', 'B4_GND_1', '#00b894'),
+            new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
+            new Wire('JUMP_POS2', 'VCC_TOP1_15', 'B2_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND2', 'GND_TOP1_5', 'B2_GND_L_1', '#3b82f6'),
+            new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_NEG3', 'VCC_TOP2_25', 'B3_GND_L_1', '#00b894'),
+            new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_NEG4', 'VCC_TOP2_45', 'B4_GND_L_1', '#00b894'),
 
-            // Block 1 & Block 2 Stage 1, 2, 3 CR Phase-Shift Oscillator Network (Row 18)
+            // Vertical Rail Bridges between Left and Right Strips of Blocks
+            new Wire('JUMP_B1_LR_POS', 'B1_VCC_L_1', 'B1_VCC_R_1', '#ef4444'),
+            new Wire('JUMP_B1_LR_GND', 'B1_GND_L_1', 'B1_GND_R_1', '#3b82f6'),
+            new Wire('JUMP_B2_LR_POS', 'B2_VCC_L_1', 'B2_VCC_R_1', '#ef4444'),
+            new Wire('JUMP_B3_LR_POS', 'B3_VCC_L_1', 'B3_VCC_R_1', '#ef4444'),
+            new Wire('JUMP_B3_LR_NEG', 'B3_GND_L_1', 'B3_GND_R_1', '#00b894'),
+            new Wire('JUMP_B4_LR_POS', 'B4_VCC_L_1', 'B4_VCC_R_1', '#ef4444'),
+            new Wire('JUMP_B4_LR_NEG', 'B4_GND_L_1', 'B4_GND_R_1', '#00b894'),
+
+            // --- Block 1 & Block 2 & Block 3: 3-Stage CR Phase-Shift Oscillator Network (Row 18) ---
             new Capacitor('C1_1', 'B1_C18', 'B1_D18', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_1', 'B1_E18', 'B1_GND_18', 4700, true),
+            new Resistor('R1_1', 'B1_E18', 'B1_GND_L_18', 4700, true),
             new Wire('W_B1_B2', 'B1_E18', 'B2_A18', '#0984e3'),
 
             new Capacitor('C1_2', 'B2_C18', 'B2_D18', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_2', 'B2_E18', 'B2_GND_18', 4700, true),
+            new Resistor('R1_2', 'B2_E18', 'B2_GND_L_18', 4700, true),
             new Wire('W_B2_B3', 'B2_E18', 'B3_A18', '#0984e3'),
 
             new Capacitor('C1_3', 'B3_C18', 'B3_D18', 0.01e-6, true, 'MYLAR'),
-            new Resistor('R1_3', 'B3_E18', 'B3_GND_18', 4700, true),
+            new Resistor('R1_3', 'B3_E18', 'B3_GND_L_18', 4700, true),
             new Capacitor('C1_4', 'B3_E18', 'B3_A19', 0.01e-6, true, 'MYLAR'),
 
-            // U1 Phase Shift Op-Amp (Block 3 Rows 18~21)
+            // --- Block 3: U1 Phase Shift Op-Amp (Rows 18~21) ---
             new DIPChip('U1', 'LF356', 'B3_E18', 'B3_F18'),
             new Resistor('R1_IN', 'B3_B19', 'B3_C19', 10000, true),
-            new Resistor('R1_GND', 'B3_B20', 'B3_GND_20', 10000, true),
+            new Resistor('R1_GND', 'B3_B20', 'B3_GND_L_20', 10000, true),
             new Potentiometer('VR1', 'B3_A12', 'B3_C14', 1000000, 0.5),
             new Wire('W_VR1_FB', 'B3_C14', 'B3_D19', '#e67e22'),
 
-            new Wire('W_U1_VPOS', 'B3_VCC_19', 'B3_F19', '#ef4444'),
-            new Wire('W_U1_VNEG', 'B3_GND_21', 'B3_E21', '#00b894'),
+            new Wire('W_U1_VPOS', 'B3_VCC_L_19', 'B3_F19', '#ef4444'),
+            new Wire('W_U1_VNEG', 'B3_GND_L_21', 'B3_E21', '#00b894'),
 
             new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
-            new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_24', 9.1, 0.7),
+            new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_R_24', 9.1, 0.7),
 
             // Positive Feedback Loop Wires
             new Wire('W_OSC_FB', 'B3_F20', 'B1_C18', '#e74c3c'),
             new Wire('W_VR1_OUT', 'B3_C14', 'B3_F20', '#f39c12'),
 
-            // U3 Sawtooth Generator (Block 3 Rows 40~43)
+            // --- Block 3: U3 Sawtooth Generator (Rows 40~43) ---
             new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
             new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5),
-            new Capacitor('C3', 'B3_C41', 'B3_GND_41', 0.1e-6, true, 'MYLAR'),
+            new Capacitor('C3', 'B3_C41', 'B3_GND_L_41', 0.1e-6, true, 'MYLAR'),
             new Resistor('R3_FB1', 'B3_B42', 'B3_D42', 10000, true),
-            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_42', 10000, true),
+            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_L_42', 10000, true),
 
-            new Wire('W_U3_VPOS', 'B3_VCC_41', 'B3_F41', '#ef4444'),
-            new Wire('W_U3_VNEG', 'B3_GND_43', 'B3_E43', '#00b894'),
-            new Wire('W_VR2_IN', 'B3_VCC_35', 'B3_A35', '#ef4444'),
+            new Wire('W_U3_VPOS', 'B3_VCC_L_41', 'B3_F41', '#ef4444'),
+            new Wire('W_U3_VNEG', 'B3_GND_L_43', 'B3_E43', '#00b894'),
+            new Wire('W_VR2_IN', 'B3_VCC_L_35', 'B3_A35', '#ef4444'),
             new Wire('W_VR2_OUT', 'B3_C37', 'B3_B41', '#f39c12'),
             new Wire('W_U3_FB', 'B3_C37', 'B3_F42', '#9b59b6'),
 
-            // U2 Zero-crossing Comparator & Q1 NPN Switch (Block 4)
+            // --- Block 4: U2 Zero-crossing Comparator & Pulse Generator (Rows 18~21 & Rows 35~38) ---
             new DIPChip('U2', 'LF356', 'B4_E18', 'B4_F18'),
             new Wire('W_TP1_U2', 'B3_F20', 'B4_A19', '#9b59b6'),
             new Capacitor('C2_IN', 'B4_A19', 'B4_B19', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_19', 1000000, true),
-            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_20', 1000000, true),
+            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_L_19', 1000000, true),
+            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_L_20', 1000000, true),
 
-            new Wire('W_U2_VPOS', 'B4_VCC_19', 'B4_F19', '#ef4444'),
-            new Wire('W_U2_VNEG', 'B4_GND_21', 'B4_E21', '#00b894'),
+            new Wire('W_U2_VPOS', 'B4_VCC_L_19', 'B4_F19', '#ef4444'),
+            new Wire('W_U2_VNEG', 'B4_GND_L_21', 'B4_E21', '#00b894'),
 
             new Wire('W_U3_Q1', 'B3_F42', 'B4_A35', '#e17055'),
             new Resistor('R_BASE', 'B4_A35', 'B4_B35', 1000, true),
             new Resistor('R_PULLUP', 'B4_F20', 'B4_C35', 5100, true),
-            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_35', 0.7)
+            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_L_35', 0.7)
         ];
 
         // 4CH Oscilloscope Probes directly attached to TP1, TP2, TP3, Va!
@@ -393,7 +402,7 @@ class AppController {
         this.breadboardCanvas.probeDPin = 'BINDING_Va';
 
         this.warmupSimulationBuffer(400);
-        this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면 100% 정밀 반영 [PNM 회로] 4CH 파형 계측 준비 완료!`;
+        this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면과 100% 정밀 동일한 [PNM 펄스 수 변조 회로] 프리셋이 로드되었습니다!`;
     }
 
     // ⚡ Sample 2: LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power)
@@ -406,68 +415,54 @@ class AppController {
         this.breadboardCanvas.voltageVb = 0.0;
         this.breadboardCanvas.voltageVc = 0.0;
 
-        const cBp = new Capacitor('C_bp', 'B1_A15', 'B1_GND_17', 10e-6, true, 'ELEC');
-        cBp.vCap = 4.5; // Pre-charge bypass capacitor to 4.5V Vref
+        const cBp = new Capacitor('C_bp', 'B1_A15', 'B1_GND_L_17', 10e-6, true, 'ELEC');
+        cBp.vCap = 4.5;
 
         const cInt = new Capacitor('C_INT', 'B1_H22', 'B1_H21', 0.1e-6, true, 'MYLAR');
         cInt.vCap = 2.0;
 
         this.components = [
-            // Power Supply Wires (+9V to TOP VCC Rail, GND to TOP GND Rail)
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_15', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_15', '#3b82f6'),
 
-            // Power Rail to Block 1 Jumper Bridges
-            new Wire('JUMP_VCC', 'VCC_TOP1_15', 'B1_VCC_15', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_15', 'B1_GND_15', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_15', 'B1_VCC_L_15', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_15', 'B1_GND_L_15', '#3b82f6'),
 
-            // --- Row 15~17: Vref (4.5V) Voltage Divider & Bypass Capacitor ---
-            new Resistor('Ra', 'B1_VCC_15', 'B1_A15', 10000, true),
-            new Resistor('Rb', 'B1_A15', 'B1_GND_16', 10000, true),
+            new Resistor('Ra', 'B1_VCC_L_15', 'B1_A15', 10000, true),
+            new Resistor('Rb', 'B1_A15', 'B1_GND_L_16', 10000, true),
             cBp,
 
-            // --- Row 20~23: LM358 Dual Op-Amp (DIP-8) ---
             new DIPChip('IC1', 'LM358', 'B1_E20', 'B1_F20'),
 
-            // Pin 8 (VCC): +9V Connection
-            new Wire('W_LM358_VCC', 'B1_F20', 'B1_VCC_20', '#ef4444'),
-            // Pin 4 (GND): 0V Connection
-            new Wire('W_LM358_GND', 'B1_E23', 'B1_GND_23', '#3b82f6'),
+            new Wire('W_LM358_VCC', 'B1_F20', 'B1_VCC_R_20', '#ef4444'),
+            new Wire('W_LM358_GND', 'B1_E23', 'B1_GND_L_23', '#3b82f6'),
 
-            // Pin 2 (IN1-): Connected to Node A (Vref 4.5V)
             new Wire('W_VREF_PIN2', 'B1_B15', 'B1_E21', '#f39c12'),
-            // Pin 5 (IN2+): Connected to Node A (Vref 4.5V)
             new Wire('W_VREF_PIN5', 'B1_C15', 'B1_F23', '#f39c12'),
 
-            // --- Feedback Network Wires & Resistors ---
-            // Row 25: R1 (10kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 3 (IN1+, B1_E22)
             new Wire('W_PIN1_R1', 'B1_E20', 'B1_A20', '#0984e3'),
             new Resistor('R1', 'B1_A20', 'B1_A22', 10000, true),
             new Wire('W_R1_PIN3', 'B1_A22', 'B1_E22', '#0984e3'),
 
-            // Row 27: R2 (10kΩ) connected between Pin 7 (OUT2, B1_F21) and Pin 3 (IN1+, B1_E22)
             new Wire('W_PIN7_R2', 'B1_F21', 'B1_G21', '#9b59b6'),
             new Wire('W_R2_CROSS', 'B1_G21', 'B1_B22', '#9b59b6'),
             new Resistor('R2', 'B1_B22', 'B1_C22', 10000, true),
             new Wire('W_R2_PIN3', 'B1_C22', 'B1_E22', '#9b59b6'),
 
-            // Row 30: R4 (100kΩ) connected between Pin 1 (OUT1, B1_E20) and Pin 6 (IN2-, B1_F22)
             new Wire('W_PIN1_R4', 'B1_E20', 'B1_D20', '#e17055'),
             new Wire('W_R4_CROSS', 'B1_D20', 'B1_J22', '#e17055'),
             new Resistor('R4', 'B1_J22', 'B1_G22', 100000, true),
             new Wire('W_R4_PIN6', 'B1_G22', 'B1_F22', '#e17055'),
 
-            // Row 31: C (0.1µF) connected between Pin 6 (IN2-, B1_F22) and Pin 7 (OUT2, B1_F21)
             new Wire('W_PIN6_C', 'B1_F22', 'B1_H22', '#2ec4b6'),
             cInt,
             new Wire('W_C_PIN7', 'B1_H21', 'B1_F21', '#2ec4b6')
         ];
 
-        // 4CH Oscilloscope Probes directly attached to Key Waveform Test Points
-        this.probeAPin = 'B1_E20'; // CH A (Yellow) -> Pin 1 (OUT1: Square Wave 0~9V)
-        this.probeBPin = 'B1_F21'; // CH B (Magenta) -> Pin 7 (OUT2: Triangle/Sine Wave Integrator Out)
-        this.probeCPin = 'B1_A15'; // CH C (Cyan) -> Node A (Vref 4.5V DC Bias)
-        this.probeDPin = 'B1_F20'; // CH D (Green) -> Pin 8 (VCC +9V Power Rail)
+        this.probeAPin = 'B1_E20';
+        this.probeBPin = 'B1_F21';
+        this.probeCPin = 'B1_A15';
+        this.probeDPin = 'B1_F20';
 
         this.breadboardCanvas.probeAPin = 'B1_E20';
         this.breadboardCanvas.probeBPin = 'B1_F21';
@@ -491,33 +486,33 @@ class AppController {
         this.components = [
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_5', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_5', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_10', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_10', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_10', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_10', '#3b82f6'),
 
             new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
 
-            new Wire('W_GND', 'B1_E10', 'B1_GND_10', '#3b82f6'),
-            new Wire('W_VCC', 'B1_F10', 'B1_VCC_10', '#ef4444'),
-            new Wire('W_RESET', 'B1_E13', 'B1_VCC_13', '#ef4444'),
+            new Wire('W_GND', 'B1_E10', 'B1_GND_L_10', '#3b82f6'),
+            new Wire('W_VCC', 'B1_F10', 'B1_VCC_R_10', '#ef4444'),
+            new Wire('W_RESET', 'B1_E13', 'B1_VCC_L_13', '#ef4444'),
 
-            new Resistor('R1', 'B1_VCC_11', 'B1_H11', 1000, true),
+            new Resistor('R1', 'B1_VCC_R_11', 'B1_H11', 1000, true),
             new Resistor('R2', 'B1_H11', 'B1_J12', 10000, true),
             new Wire('W_TRIG_THRESH', 'B1_D11', 'B1_J12', '#0984e3'),
-            new Capacitor('C1', 'B1_C11', 'B1_GND_11', 0.1e-6, true, 'MYLAR'),
+            new Capacitor('C1', 'B1_C11', 'B1_GND_L_11', 0.1e-6, true, 'MYLAR'),
 
             new Resistor('R_LED', 'B1_C12', 'B1_A16', 330, true),
-            new LEDComponent('LED1', 'B1_B16', 'B1_GND_16', 2.0)
+            new LEDComponent('LED1', 'B1_B16', 'B1_GND_L_16', 2.0)
         ];
 
         this.probeAPin = 'B1_E12';
         this.probeBPin = 'B1_C11';
         this.probeCPin = 'B1_H11';
-        this.probeDPin = 'B1_VCC_10';
+        this.probeDPin = 'B1_VCC_L_10';
 
         this.breadboardCanvas.probeAPin = 'B1_E12';
         this.breadboardCanvas.probeBPin = 'B1_C11';
         this.breadboardCanvas.probeCPin = 'B1_H11';
-        this.breadboardCanvas.probeDPin = 'B1_VCC_10';
+        this.breadboardCanvas.probeDPin = 'B1_VCC_L_10';
 
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 로드 완료! (CH A: 685Hz 구형파, CH B: 삼각 파형)`;
@@ -528,21 +523,21 @@ class AppController {
         this.components = [
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
             new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
-            new Resistor('R1', 'B1_VCC_10', 'B1_A10', 1000, true),
+            new Resistor('R1', 'B1_VCC_L_10', 'B1_A10', 1000, true),
             new Potentiometer('POT1', 'B1_B10', 'B1_C10', 10000, 0.5),
-            new Capacitor('C1', 'B1_D10', 'B1_GND_10', 10e-6, true, 'ELEC'),
+            new Capacitor('C1', 'B1_D10', 'B1_GND_L_10', 10e-6, true, 'ELEC'),
             new DIPChip('IC2', 'LM741', 'B1_E25', 'B1_F25'),
             new Wire('W_OUT_555', 'B1_C11', 'B1_A25', '#0984e3'),
             new Resistor('R_FB', 'B1_B25', 'B1_D25', 10000, true),
-            new LEDComponent('LED1', 'B1_C25', 'B1_GND_25', 2.0)
+            new LEDComponent('LED1', 'B1_C25', 'B1_GND_L_25', 2.0)
         ];
         this.breadboardCanvas.probeAPin = 'B1_C11';
         this.breadboardCanvas.probeBPin = 'B1_D25';
-        this.breadboardCanvas.probeCPin = 'B1_VCC_1';
-        this.breadboardCanvas.probeDPin = 'B1_GND_1';
+        this.breadboardCanvas.probeCPin = 'B1_VCC_L_1';
+        this.breadboardCanvas.probeDPin = 'B1_GND_L_1';
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로] 4CH 오실로스코프 계측 준비!`;
     }
@@ -555,12 +550,12 @@ class AppController {
             new DIPChip('REG1', 'LM7805', 'B1_E5', 'B1_F5'),
             new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_A5', '#ef4444'),
             new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_B5', '#3b82f6'),
-            new Wire('JUMP_REG_OUT', 'B1_C5', 'B1_VCC_15', '#ef4444'),
+            new Wire('JUMP_REG_OUT', 'B1_C5', 'B1_VCC_L_15', '#ef4444'),
             new DIPChip('IC1', 'NE555', 'B1_E15', 'B1_F15'),
-            new Resistor('R1', 'B1_VCC_15', 'B1_A15', 1000, true),
-            new Capacitor('C1', 'B1_B15', 'B1_GND_15', 10e-6, true, 'ELEC'),
+            new Resistor('R1', 'B1_VCC_L_15', 'B1_A15', 1000, true),
+            new Capacitor('C1', 'B1_B15', 'B1_GND_L_15', 10e-6, true, 'ELEC'),
             new Resistor('R_LED', 'B1_C16', 'B1_A20', 330, true),
-            new LEDComponent('LED1', 'B1_B20', 'B1_GND_20', 2.0)
+            new LEDComponent('LED1', 'B1_B20', 'B1_GND_L_20', 2.0)
         ];
         this.breadboardCanvas.probeAPin = 'B1_C16';
         this.breadboardCanvas.probeBPin = 'B1_C5';
@@ -575,17 +570,17 @@ class AppController {
         this.components = [
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
-            new Resistor('R1', 'B1_VCC_5', 'B1_A10', 1000, true),
-            new Capacitor('C1', 'B1_B10', 'B1_GND_10', 1e-6, true, 'MYLAR'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
+            new Resistor('R1', 'B1_VCC_L_5', 'B1_A10', 1000, true),
+            new Capacitor('C1', 'B1_B10', 'B1_GND_L_10', 1e-6, true, 'MYLAR'),
             new DIPChip('IC1', 'LM741', 'B1_E10', 'B1_F10'),
             new Wire('W_SIG', 'B1_C10', 'B1_A11', '#0984e3')
         ];
         this.breadboardCanvas.probeAPin = 'B1_A10';
         this.breadboardCanvas.probeBPin = 'B1_C10';
-        this.breadboardCanvas.probeCPin = 'B1_VCC_5';
-        this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.breadboardCanvas.probeCPin = 'B1_VCC_L_5';
+        this.breadboardCanvas.probeDPin = 'B1_GND_L_10';
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🥈 [전자산업기사 능동 LPF] 4CH 파형 계측 준비!`;
     }
@@ -595,17 +590,17 @@ class AppController {
         this.components = [
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
-            new Resistor('R1', 'B1_VCC_5', 'B1_A5', 10000, true),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
+            new Resistor('R1', 'B1_VCC_L_5', 'B1_A5', 10000, true),
             new Capacitor('C1', 'B1_B5', 'B1_A10', 0.1e-6, true, 'CERAMIC'),
-            new Capacitor('C2', 'B1_B10', 'B1_GND_10', 0.1e-6, true, 'CERAMIC'),
+            new Capacitor('C2', 'B1_B10', 'B1_GND_L_10', 0.1e-6, true, 'CERAMIC'),
             new Wire('W1', 'B1_C10', 'B1_D10', '#0984e3')
         ];
         this.breadboardCanvas.probeAPin = 'B1_A10';
-        this.breadboardCanvas.probeBPin = 'B1_VCC_5';
+        this.breadboardCanvas.probeBPin = 'B1_VCC_L_5';
         this.breadboardCanvas.probeCPin = 'B1_B10';
-        this.breadboardCanvas.probeDPin = 'B1_GND_10';
+        this.breadboardCanvas.probeDPin = 'B1_GND_L_10';
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `🥉 [무선설비기능사 Colpitts] 4CH 파형 계측 준비!`;
     }
@@ -615,19 +610,19 @@ class AppController {
         this.components = [
             new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
             new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_1', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_1', '#3b82f6'),
+            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
             new DIPChip('IC1', 'NE555', 'B1_E5', 'B1_F5'),
-            new Resistor('R1', 'B1_VCC_5', 'B1_A5', 1000, true),
-            new Capacitor('C1', 'B1_B5', 'B1_GND_5', 10e-6, true, 'ELEC'),
+            new Resistor('R1', 'B1_VCC_L_5', 'B1_A5', 1000, true),
+            new Capacitor('C1', 'B1_B5', 'B1_GND_L_5', 10e-6, true, 'ELEC'),
             new DIPChip('IC2', 'CD4017', 'B1_E20', 'B1_F20'),
             new Wire('W_CLK', 'B1_C6', 'B1_A20', '#0984e3'),
-            new LEDComponent('LED1', 'B1_B20', 'B1_GND_20', 2.0)
+            new LEDComponent('LED1', 'B1_B20', 'B1_GND_L_20', 2.0)
         ];
         this.breadboardCanvas.probeAPin = 'B1_C6';
         this.breadboardCanvas.probeBPin = 'B1_B20';
-        this.breadboardCanvas.probeCPin = 'B1_VCC_5';
-        this.breadboardCanvas.probeDPin = 'B1_GND_5';
+        this.breadboardCanvas.probeCPin = 'B1_VCC_L_5';
+        this.breadboardCanvas.probeDPin = 'B1_GND_L_5';
         this.warmupSimulationBuffer(300);
         this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
     }
