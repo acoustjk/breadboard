@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Component Placement, Click/Hover Events & LM301 Support v=1065.
+ * Canvas CSS Scale Factor Fix, Visual Hover Target & Pin Placement Engine v=1066.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1065';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1066';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -47,7 +47,7 @@ export class BreadboardCanvas {
         if (tool === 'SELECT') {
             this.showToast('👆 선택 모드: 부품 클릭 시 선택/이동/삭제/속성 조절');
         } else {
-            this.showToast(`📌 [${tool}] 모드: 첫 번째 핀 구멍을 클릭하세요.`);
+            this.showToast(`📌 [${tool}] 배치 모드: 첫 번째 핀 구멍을 마우스로 클릭하세요.`);
         }
         if (this.onNeedsRender) this.onNeedsRender();
     }
@@ -83,9 +83,14 @@ export class BreadboardCanvas {
     }
 
     getMouseWorldPos(e) {
+        if (!this.canvas) return { worldX: 0, worldY: 0 };
         const rect = this.canvas.getBoundingClientRect();
-        const clientX = e.clientX - rect.left;
-        const clientY = e.clientY - rect.top;
+        const scaleX = rect.width > 0 ? (this.canvas.width / rect.width) : 1.0;
+        const scaleY = rect.height > 0 ? (this.canvas.height / rect.height) : 1.0;
+
+        const clientX = (e.clientX - rect.left) * scaleX;
+        const clientY = (e.clientY - rect.top) * scaleY;
+
         const worldX = (clientX - this.panOffsetX) / this.zoomLevel;
         const worldY = (clientY - this.panOffsetY) / this.zoomLevel;
         return { worldX, worldY };
@@ -137,7 +142,7 @@ export class BreadboardCanvas {
             const { worldX, worldY } = this.getMouseWorldPos(e);
             this.mouseWorldPos = { x: worldX, y: worldY };
 
-            const nearest = this.getNearestPin(worldX, worldY, 16.0);
+            const nearest = this.getNearestPin(worldX, worldY, 24.0);
             if (nearest !== this.hoveredPin) {
                 this.hoveredPin = nearest;
                 if (this.onNeedsRender) this.onNeedsRender();
@@ -150,7 +155,7 @@ export class BreadboardCanvas {
         this.canvas.addEventListener('click', (e) => {
             if (e.button !== 0) return; // Left click only
             const { worldX, worldY } = this.getMouseWorldPos(e);
-            const clickedPin = this.getNearestPin(worldX, worldY, 16.0);
+            const clickedPin = this.getNearestPin(worldX, worldY, 24.0);
 
             // Handle Probes
             if (this.placementMode && this.placementMode.startsWith('PROBE_')) {
@@ -165,14 +170,14 @@ export class BreadboardCanvas {
             // Handle Component Placement Mode
             if (this.placementMode && this.placementMode !== 'SELECT') {
                 if (!clickedPin) {
-                    this.showToast('⚠️ 핀 구멍 위에 커서를 대고 클릭하세요.');
+                    this.showToast('⚠️ 핀 구멍 근처를 가볍게 마우스로 클릭해주세요.');
                     return;
                 }
 
                 if (!this.placementPinA) {
                     // First pin selected
                     this.placementPinA = clickedPin;
-                    this.showToast(`📍 1번 핀 (${clickedPin}) 선택됨. 2번 핀 구멍을 클릭하세요.`);
+                    this.showToast(`📍 1번 핀 [${clickedPin}] 선택 완료! 2번 핀 구멍을 클릭하세요.`);
                     if (this.onNeedsRender) this.onNeedsRender();
                 } else {
                     // Second pin selected
@@ -206,7 +211,7 @@ export class BreadboardCanvas {
                     const midY = (pA.y + pB.y) / 2;
                     const distMid = Math.hypot(midX - worldX, midY - worldY);
 
-                    if (distA < 16 || distB < 16 || distMid < 20) {
+                    if (distA < 20 || distB < 20 || distMid < 24) {
                         foundComp = comp;
                         break;
                     }
@@ -228,7 +233,7 @@ export class BreadboardCanvas {
             const bindingPosts = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
             for (const bpKey of bindingPosts) {
                 const pos = this.getPinPos(bpKey);
-                if (Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
+                if (Math.hypot(pos.x - worldX, pos.y - worldY) < 25) {
                     if (this.onBindingPostDblClicked) this.onBindingPostDblClicked(bpKey);
                     return;
                 }
@@ -244,8 +249,10 @@ export class BreadboardCanvas {
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             const rect = this.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            const scaleX = rect.width > 0 ? (this.canvas.width / rect.width) : 1.0;
+            const scaleY = rect.height > 0 ? (this.canvas.height / rect.height) : 1.0;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
 
             const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
             const newZoom = Math.max(0.4, Math.min(3.5, this.zoomLevel * zoomFactor));
@@ -366,7 +373,7 @@ export class BreadboardCanvas {
         return { x: 0, y: 0 };
     }
 
-    getNearestPin(worldX, worldY, maxDist = 16.0) {
+    getNearestPin(worldX, worldY, maxDist = 24.0) {
         let closestKey = null;
         let minDist = maxDist;
 
@@ -579,7 +586,7 @@ export class BreadboardCanvas {
             });
         }
 
-        // 6. Render All Metallic Pin Holes
+        // 6. Render All Metallic Pin Holes with Glowing Hover Targets
         let activeHoverNode = this.hoveredPin ? this.grid.getNodeId(this.hoveredPin) : null;
 
         for (const [pinKey, pos] of this.pinCoords.entries()) {
@@ -593,19 +600,28 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
 
             if (isPlacementStart) {
-                this.ctx.arc(pos.x, pos.y, 4.0, 0, Math.PI * 2);
+                this.ctx.arc(pos.x, pos.y, 6.0, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#38bdf8';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
             } else if (isHovered) {
-                this.ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
-                this.ctx.fillStyle = '#d63031';
+                this.ctx.arc(pos.x, pos.y, 5.5, 0, Math.PI * 2);
+                this.ctx.fillStyle = '#ef4444';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#facc15';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
             } else if (isSameNodeHovered) {
                 this.ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#fdcb6e';
+                this.ctx.fill();
             } else {
                 this.ctx.arc(pos.x, pos.y, 1.8, 0, Math.PI * 2);
                 this.ctx.fillStyle = '#2d3436';
+                this.ctx.fill();
             }
-            this.ctx.fill();
         }
 
         // 7. Render Placement Guide Line preview if 1st pin is selected
