@@ -60,7 +60,7 @@ class AppController {
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initUserPreservedSquare(); // Load Preserved User SQUARE Layout by Default
+        this.initBjtAstableOscillator(); // Load 2-Transistor Astable Multivibrator Layout by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
@@ -378,6 +378,63 @@ class AppController {
 
             this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
         }
+    }
+
+    // 🔺 2-Transistor (BJT 2N3904) Astable Multivibrator Preset (+5V)
+    initBjtAstableOscillator() {
+        this.currentExamTitle = '🔺 2-트랜지스터(BJT 2N3904) 비안정 멀티바이브레이터 사각파 발진회로';
+        this.voltageVa = 5.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = 0.0;
+        this.breadboardCanvas.voltageVa = 5.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = 0.0;
+
+        this.components = [
+            new Wire('W_VCC_TOP', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('W_GND_TOP', 'BINDING_GND', 'GND_TOP1_50', '#3b82f6'),
+
+            new Wire('W_B1_VCC', 'VCC_TOP1_1', 'B1_VCC_L_10', '#ef4444'),
+            new Wire('W_B1_GND', 'GND_TOP1_1', 'B1_GND_L_10', '#3b82f6'),
+            new Wire('W_B2_VCC', 'VCC_TOP1_25', 'B2_VCC_R_10', '#ef4444'),
+            new Wire('W_B2_GND', 'GND_TOP1_25', 'B2_GND_R_10', '#3b82f6'),
+
+            new Resistor('RC1', 'B1_VCC_L_10', 'B1_C15', 390, true),
+            new Resistor('RB1', 'B1_VCC_L_10', 'B1_D15', 47000, true),
+            new Wire('W_RC1_C1', 'B1_C15', 'B1_C33', '#0984e3'),
+            new Wire('W_RB1_B1', 'B1_D15', 'B1_C31', '#0984e3'),
+            new Wire('W_E1_GND', 'B1_C29', 'B1_GND_L_29', '#3b82f6'),
+            new BJTTransistor('Q1', '2N3904', 'B1_C29', 'B1_C31', 'B1_C33'),
+
+            new Resistor('RB2', 'B2_VCC_R_10', 'B2_F15', 47000, true),
+            new Resistor('RC2', 'B2_VCC_R_10', 'B2_G15', 390, true),
+            new Wire('W_RB2_B2', 'B2_F15', 'B2_G31', '#0984e3'),
+            new Wire('W_RC2_C2', 'B2_G15', 'B2_G33', '#0984e3'),
+            new Wire('W_E2_GND', 'B2_G29', 'B2_GND_R_29', '#3b82f6'),
+            new BJTTransistor('Q2', '2N3904', 'B2_G29', 'B2_G31', 'B2_G33'),
+
+            new Capacitor('C1', 'B1_C15', 'B1_D20', 0.1e-6, true, 'MYLAR'),
+            new Wire('W_C1_CROSS', 'B1_D20', 'B2_G31', '#0984e3'),
+            new Capacitor('C2', 'B2_G15', 'B2_F20', 0.1e-6, true, 'MYLAR'),
+            new Wire('W_C2_CROSS', 'B2_F20', 'B1_C31', '#0984e3')
+        ];
+
+        this.probeAPin = 'B1_C33';
+        this.probeBPin = 'B1_C31';
+        this.probeCPin = null;
+        this.probeDPin = null;
+
+        this.breadboardCanvas.probeAPin = this.probeAPin;
+        this.breadboardCanvas.probeBPin = this.probeBPin;
+        this.breadboardCanvas.probeCPin = null;
+        this.breadboardCanvas.probeDPin = null;
+
+        this.oscilloscopeCanvas.voltPerDivChA = 2.0;
+        this.oscilloscopeCanvas.voltPerDivChB = 2.0;
+        this.oscilloscopeCanvas.timePerDiv = 0.002;
+
+        this.warmupSimulationBuffer(1200);
+        this.breadboardCanvas.toastMsg = `🔺 2-트랜지스터 BJT 비안정 사각파 발진회로 로드 완료!`;
     }
 
     // 🎯 User's Exact Layout Preserved SQUARE Preset
@@ -1288,6 +1345,8 @@ class AppController {
             if (val === 'empty') {
                 this.initEmptyBoard();
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
+            } else if (val === 'bjt_astable') {
+                this.initBjtAstableOscillator();
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
             } else if (val === 'square_osc') {
