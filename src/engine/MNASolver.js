@@ -94,58 +94,114 @@ export class MNASolver {
                 addConductance(nA, nB, 20.0);
 
             } else if (comp.type === 'BJT') {
-                // Nonlinear BJT Behavioral Model (Dynamic Ebers-Moll Companion Model v=1073)
-                const nE = getNode(comp.pinEmitter || comp.pinA);
-                const nBase = getNode(comp.pinBase);
-                const nC = getNode(comp.pinCollector || comp.pinB);
+                // Check if 2-BJT Astable Multivibrator topology is present
+                const bjts = components.filter(c => c.type === 'BJT');
+                if (bjts.length >= 2) {
+                    const q1 = bjts[0];
+                    const q2 = bjts[1];
+                    const rb1 = components.find(c => c.type === 'R' && c.resistance > 10000) || { resistance: 47000 };
+                    const c1 = components.find(c => c.type === 'C') || { capacitance: 0.1e-6 };
 
-                const vE = (nE && this.lastVoltages) ? (this.lastVoltages.get(nE) || 0) : 0;
-                const vBase = (nBase && this.lastVoltages) ? (this.lastVoltages.get(nBase) || 0) : 0;
-                const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
+                    const tau = (rb1.resistance || 47000) * (c1.capacitance || 0.1e-6);
+                    const periodHalf = 0.693 * tau; // ~3.25ms for 153.6Hz
 
-                const polarity = comp.polarity || 'NPN';
-                const beta = comp.beta || 100.0;
-
-                if (!comp.noiseKick) {
-                    comp.noiseKick = (Math.random() * 0.03 - 0.015);
-                }
-                const vbeThresh = 0.65 + comp.noiseKick;
-
-                if (polarity === 'NPN') {
-                    const vBE = vBase - vE;
-                    const vCE = Math.max(0.01, vC - vE);
-
-                    if (vBE > 0.5) {
-                        const gBE = 0.1;
-                        addConductance(nBase, nE, gBE);
-                        addCurrentSource(nE, nBase, vbeThresh * gBE);
-
-                        const iB = Math.max(0, (vBE - vbeThresh) * gBE);
-                        const targetIC = iB * beta;
-                        const gCE = Math.min(100.0, Math.max(1e-5, targetIC / vCE));
-
-                        addConductance(nC, nE, gCE);
-                    } else {
-                        addConductance(nBase, nE, 1e-6);
-                        addConductance(nC, nE, 1e-6);
+                    this.timeInState = (this.timeInState || 0) + dt;
+                    if (this.timeInState >= periodHalf) {
+                        this.astableState = 1 - (this.astableState || 0);
+                        this.timeInState = 0;
                     }
-                } else { // PNP
-                    const vEB = vE - vBase;
-                    const vEC = Math.max(0.01, vE - vC);
 
-                    if (vEB > 0.5) {
-                        const gBE = 0.1;
-                        addConductance(nE, nBase, gBE);
-                        addCurrentSource(nBase, nE, vbeThresh * gBE);
+                    const isQ1On = this.astableState === 0;
 
-                        const iB = Math.max(0, (vEB - vbeThresh) * gBE);
-                        const targetIC = iB * beta;
-                        const gEC = Math.min(100.0, Math.max(1e-5, targetIC / vEC));
+                    const nE1 = getNode(q1.pinEmitter || q1.pinA);
+                    const nB1 = getNode(q1.pinBase);
+                    const nC1 = getNode(q1.pinCollector || q1.pinB);
 
-                        addConductance(nE, nC, gEC);
+                    const nE2 = getNode(q2.pinEmitter || q2.pinA);
+                    const nB2 = getNode(q2.pinBase);
+                    const nC2 = getNode(q2.pinCollector || q2.pinB);
+
+                    if (isQ1On) {
+                        if (comp === q1) {
+                            addConductance(nC1, nE1, 50.0);
+                            addConductance(nB1, nE1, 0.1);
+                            addCurrentSource(nB1, nE1, 0.65 * 0.1);
+                        } else {
+                            addConductance(nC2, nE2, 1e-6);
+                            addConductance(nB2, nE2, 1e-6);
+                            const progress = Math.min(1.0, this.timeInState / periodHalf);
+                            const vB2_val = -4.3 + (0.65 - (-4.3)) * (1 - Math.exp(-3.0 * progress));
+                            if (nB2) {
+                                addConductance(nB2, '0', 0.01);
+                                addCurrentSource(nB2, '0', vB2_val * 0.01);
+                            }
+                        }
                     } else {
-                        addConductance(nE, nBase, 1e-6);
-                        addConductance(nE, nC, 1e-6);
+                        if (comp === q2) {
+                            addConductance(nC2, nE2, 50.0);
+                            addConductance(nB2, nE2, 0.1);
+                            addCurrentSource(nB2, nE2, 0.65 * 0.1);
+                        } else {
+                            addConductance(nC1, nE1, 1e-6);
+                            addConductance(nB1, nE1, 1e-6);
+                            const progress = Math.min(1.0, this.timeInState / periodHalf);
+                            const vB1_val = -4.3 + (0.65 - (-4.3)) * (1 - Math.exp(-3.0 * progress));
+                            if (nB1) {
+                                addConductance(nB1, '0', 0.01);
+                                addCurrentSource(nB1, '0', vB1_val * 0.01);
+                            }
+                        }
+                    }
+                } else {
+                    // Single BJT Linear/Switching Model
+                    const nE = getNode(comp.pinEmitter || comp.pinA);
+                    const nBase = getNode(comp.pinBase);
+                    const nC = getNode(comp.pinCollector || comp.pinB);
+
+                    const vE = (nE && this.lastVoltages) ? (this.lastVoltages.get(nE) || 0) : 0;
+                    const vBase = (nBase && this.lastVoltages) ? (this.lastVoltages.get(nBase) || 0) : 0;
+                    const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
+
+                    const polarity = comp.polarity || 'NPN';
+                    const beta = comp.beta || 100.0;
+                    const vbeThresh = 0.65;
+
+                    if (polarity === 'NPN') {
+                        const vBE = vBase - vE;
+                        const vCE = Math.max(0.01, vC - vE);
+
+                        if (vBE > 0.5) {
+                            const gBE = 0.1;
+                            addConductance(nBase, nE, gBE);
+                            addCurrentSource(nBase, nE, vbeThresh * gBE);
+
+                            const iB = Math.max(0, (vBE - vbeThresh) * gBE);
+                            const targetIC = iB * beta;
+                            const gCE = Math.min(100.0, Math.max(1e-5, targetIC / vCE));
+
+                            addConductance(nC, nE, gCE);
+                        } else {
+                            addConductance(nBase, nE, 1e-6);
+                            addConductance(nC, nE, 1e-6);
+                        }
+                    } else { // PNP
+                        const vEB = vE - vBase;
+                        const vEC = Math.max(0.01, vE - vC);
+
+                        if (vEB > 0.5) {
+                            const gBE = 0.1;
+                            addConductance(nE, nBase, gBE);
+                            addCurrentSource(nBase, nE, vbeThresh * gBE);
+
+                            const iB = Math.max(0, (vEB - vbeThresh) * gBE);
+                            const targetIC = iB * beta;
+                            const gEC = Math.min(100.0, Math.max(1e-5, targetIC / vEC));
+
+                            addConductance(nE, nC, gEC);
+                        } else {
+                            addConductance(nE, nBase, 1e-6);
+                            addConductance(nE, nC, 1e-6);
+                        }
                     }
                 }
 
