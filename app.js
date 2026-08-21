@@ -121,39 +121,72 @@ class AppController {
             } else if (toolType === 'TRANSISTOR_CATALOG') {
                 const transKey = this.selectedTransistorType || '2N3904';
                 const meta = TRANSISTOR_CATALOG[transKey] || TRANSISTOR_CATALOG['2N3904'];
+                const pinout = meta.pinout || 'EBC';
 
-                // Calculate middle pin (Base) between pinA and pinB for 2-click placement
-                let pinE = pinA;
-                let pinC = pinB;
-                let pinBase = pinA;
+                let p1 = pinA;
+                let p2 = pinA;
+                let p3 = pinB;
 
                 const matchA = pinA.match(/^(B\d_)?([A-J])(\d+)$/);
                 const matchB = pinB.match(/^(B\d_)?([A-J])(\d+)$/);
 
-                if (matchA && matchB && matchA[1] === matchB[1] && matchA[3] === matchB[3]) {
+                if (matchA && matchB && matchA[1] === matchB[1]) {
                     const blockPrefix = matchA[1] || 'B1_';
-                    const rowNum = matchA[3];
-                    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-                    const idxA = cols.indexOf(matchA[2]);
-                    const idxB = cols.indexOf(matchB[2]);
+                    const colA = matchA[2];
+                    const colB = matchB[2];
+                    const rowA = parseInt(matchA[3], 10);
+                    const rowB = parseInt(matchB[3], 10);
 
-                    const midIdx = Math.round((idxA + idxB) / 2);
-                    if (midIdx === idxA || midIdx === idxB) {
+                    if (colA === colB) {
+                        // Vertical placement (3 rows in same column e.g. Row 24, 25, 26 as drawn by user)
+                        const minRow = Math.min(rowA, rowB);
+                        const maxRow = Math.max(rowA, rowB);
+                        if (maxRow - minRow === 1) {
+                            p1 = `${blockPrefix}${colA}${minRow}`;
+                            p2 = `${blockPrefix}${colA}${minRow + 1}`;
+                            p3 = `${blockPrefix}${colA}${Math.min(60, minRow + 2)}`;
+                        } else {
+                            const midRow = Math.round((minRow + maxRow) / 2);
+                            p1 = `${blockPrefix}${colA}${minRow}`;
+                            p2 = `${blockPrefix}${colA}${midRow}`;
+                            p3 = `${blockPrefix}${colA}${maxRow}`;
+                        }
+                    } else if (rowA === rowB) {
+                        // Horizontal placement (3 columns in same row e.g. E20, F20, G20)
+                        const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                        const idxA = cols.indexOf(colA);
+                        const idxB = cols.indexOf(colB);
                         const minIdx = Math.min(idxA, idxB);
-                        pinE = `${blockPrefix}${cols[minIdx]}${rowNum}`;
-                        pinBase = `${blockPrefix}${cols[Math.min(9, minIdx + 1)]}${rowNum}`;
-                        pinC = `${blockPrefix}${cols[Math.min(9, minIdx + 2)]}${rowNum}`;
+                        const maxIdx = Math.max(idxA, idxB);
+
+                        if (maxIdx - minIdx === 1) {
+                            p1 = `${blockPrefix}${cols[minIdx]}${rowA}`;
+                            p2 = `${blockPrefix}${cols[Math.min(9, minIdx + 1)]}${rowA}`;
+                            p3 = `${blockPrefix}${cols[Math.min(9, minIdx + 2)]}${rowA}`;
+                        } else {
+                            const midIdx = Math.round((minIdx + maxIdx) / 2);
+                            p1 = `${blockPrefix}${cols[minIdx]}${rowA}`;
+                            p2 = `${blockPrefix}${cols[midIdx]}${rowA}`;
+                            p3 = `${blockPrefix}${cols[maxIdx]}${rowA}`;
+                        }
                     } else {
-                        pinE = pinA;
-                        pinBase = `${blockPrefix}${cols[midIdx]}${rowNum}`;
-                        pinC = pinB;
+                        p1 = pinA; p2 = pinA; p3 = pinB;
                     }
-                } else {
-                    pinBase = pinA;
                 }
 
-                newComp = new BJTTransistor(id, transKey, pinE, pinBase, pinC);
-                labelMsg = `🔺 ${meta.name} (${meta.polarity} TO-92)`;
+                let pinEmitter, pinBase, pinCollector;
+                if (pinout === 'ECB') { // C1815, A1015 (Exactly as drawn by user: E, C, B)
+                    pinEmitter = p1;
+                    pinCollector = p2;
+                    pinBase = p3;
+                } else { // 'EBC' e.g. 2N3904, 2N3906, 2N2222
+                    pinEmitter = p1;
+                    pinBase = p2;
+                    pinCollector = p3;
+                }
+
+                newComp = new BJTTransistor(id, transKey, pinEmitter, pinBase, pinCollector);
+                labelMsg = `🔺 ${meta.name} (${pinout} TO-92)`;
             } else if (toolType === 'DIODE') {
                 newComp = new Diode(id, pinA, pinB, 0.7);
                 labelMsg = '정류 다이오드 (1N4007)';

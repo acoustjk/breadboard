@@ -807,27 +807,32 @@ export class BreadboardCanvas {
             const pBase = this.getPinPos(comp.pinBase);
             const pC = this.getPinPos(comp.pinCollector || comp.pinB);
 
-            // Draw 3 Metallic Silver Leads
+            const isVertical = (Math.abs(pE.x - pC.x) < 5);
+            const midX = (pE.x + pBase.x + pC.x) / 3;
+            const midY = (pE.y + pBase.y + pC.y) / 3;
+
+            // Body offset so TO-92 package does not obscure hole labels
+            const bodyX = isVertical ? midX - 25 : midX;
+            const bodyY = isVertical ? midY : midY - 20;
+
+            // Draw 3 Silver Metallic Lead Lines from Pin Holes to Package Body
             this.ctx.strokeStyle = '#cbd5e1';
             this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(pE.x, pE.y);
-            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.lineTo(bodyX, bodyY);
             this.ctx.moveTo(pBase.x, pBase.y);
-            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.lineTo(bodyX, bodyY);
             this.ctx.moveTo(pC.x, pC.y);
-            this.ctx.lineTo((pE.x + pBase.x + pC.x) / 3, (pE.y + pBase.y + pC.y) / 3 - 8);
+            this.ctx.lineTo(bodyX, bodyY);
             this.ctx.stroke();
-
-            const midX = (pE.x + pBase.x + pC.x) / 3;
-            const midY = (pE.y + pBase.y + pC.y) / 3 - 14;
 
             // TO-92 Black Plastic D-Shape Package Body
             this.ctx.fillStyle = '#1e272e';
             this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 13, Math.PI, 0);
-            this.ctx.lineTo(midX + 13, midY + 8);
-            this.ctx.lineTo(midX - 13, midY + 8);
+            this.ctx.arc(bodyX, bodyY, 13, Math.PI, 0);
+            this.ctx.lineTo(bodyX + 13, bodyY + 8);
+            this.ctx.lineTo(bodyX - 13, bodyY + 8);
             this.ctx.closePath();
             this.ctx.fill();
             this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
@@ -838,14 +843,29 @@ export class BreadboardCanvas {
             this.ctx.fillStyle = '#f8fafc';
             this.ctx.font = 'bold 8px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(comp.transType || '2N3904', midX, midY + 3);
+            this.ctx.fillText(comp.transType || '2N3904', bodyX, bodyY + 3);
 
-            // E, B, C Pin Label Tags on Pin Holes
+            // Bold Clear E, C, B Pin Labels Right Next To Pin Holes (Matching User's Red Diagram)
+            this.ctx.font = 'bold 11px sans-serif';
+            this.ctx.textBaseline = 'middle';
+
+            const tagOffsetX = isVertical ? 12 : 0;
+            const tagOffsetY = isVertical ? 0 : -10;
+
+            // Emitter Label (E) - Bright Red
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.textAlign = isVertical ? 'left' : 'center';
+            this.ctx.fillText('E', pE.x + tagOffsetX, pE.y + tagOffsetY);
+
+            // Collector Label (C) - Bright Yellow
             this.ctx.fillStyle = '#facc15';
-            this.ctx.font = 'bold 9px sans-serif';
-            this.ctx.fillText('E', pE.x, pE.y - 4);
-            this.ctx.fillText('B', pBase.x, pBase.y - 4);
-            this.ctx.fillText('C', pC.x, pC.y - 4);
+            this.ctx.textAlign = isVertical ? 'left' : 'center';
+            this.ctx.fillText('C', pC.x + tagOffsetX, pC.y + tagOffsetY);
+
+            // Base Label (B) - Bright Cyan
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.textAlign = isVertical ? 'left' : 'center';
+            this.ctx.fillText('B', pBase.x + tagOffsetX, pBase.y + tagOffsetY);
 
         } else if (comp.type === 'R') {
             this.ctx.strokeStyle = '#636e72';
