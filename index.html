@@ -185,7 +185,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 캔버스 마우스 휠 독립 확대/축소(PreventDefault) & 초고대비 원형 핀 뱃지 적용 v=1061!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ (0,0) 좌상단 쏠림 완전 원상 복구 & 깔끔한 IC 핀 번호 표시 완료 v=1062!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -202,7 +202,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>마우스 휠 스크롤 시 <strong>사이트 전체 스크롤을 막고 브레드보드만 독립 확대/축소</strong>되며, IC 핀 번호가 <strong>선명한 원형 뱃지(Cyan 1번 핀 & Yellow 핀)</strong>로 시원하게 표시됩니다!</p>
+                <p>(0,0) 좌표로 쏠리던 점퍼선들이 모두 정상 좌표로 깔끔히 원상 복구되었으며, IC 핀 번호도 칩 위에서 정갈하고 예쁘게 표시됩니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -394,7 +394,7 @@
                         <option value="0.00001">0.01 ms (10µs)</option>
                         <option value="0.00002">0.02 ms (20µs)</option>
                         <option value="0.00005">0.05 ms (50µs)</option>
-                        <option value="0.001">0.1 ms (100µs)</option>
+                        <option value="0.0001">0.1 ms (100µs)</option>
                         <option value="0.0002">0.2 ms (200µs)</option>
                         <option value="0.0005">0.5 ms (500µs)</option>
                         <option value="0.001">1.0 ms</option>
@@ -458,6 +458,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1061"></script>
+    <script type="module" src="./app.js?v=1062"></script>
 </body>
 </html>

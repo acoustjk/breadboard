@@ -1,15 +1,15 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Canvas Mouse Wheel Independent Zoom & High-Contrast Circular IC Pin Badges (1..N) v=1061.
+ * Safe Pin Coordinates Resolution & Clamped Rail Fallback v=1062.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1061';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1062';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = canvas ? canvas.getContext('2d') : null;
         this.grid = grid;
 
         this.zoomLevel = 1.0;
@@ -34,10 +34,14 @@ export class BreadboardCanvas {
         this.numBlocks = 4;
         this.pinCoords = new Map();
         this.initPinCoordinates();
-        this.initEvents();
+        if (canvas) {
+            this.initEvents();
+        }
     }
 
     initEvents() {
+        if (!this.canvas) return;
+
         // Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -87,13 +91,20 @@ export class BreadboardCanvas {
             const bX = startX + (blk - 1) * (blockWidth + blockGap);
             const prefix = `B${blk}_`;
 
-            // Top Power Rails
-            for (let c = 1; c <= 50; c++) {
-                const x = bX + 31 + (c - 1) * 2.8;
+            // Top Power Rails (Columns 1..60)
+            for (let c = 1; c <= 60; c++) {
+                const x = bX + 31 + (Math.min(50, c) - 1) * 2.8;
                 setCoord(`${prefix}VCC_TOP1_${c}`, x, startY - 24);
                 setCoord(`${prefix}VCC_TOP2_${c}`, x, startY - 18);
                 setCoord(`${prefix}GND_TOP1_${c}`, x, startY - 12);
                 setCoord(`${prefix}GND_TOP2_${c}`, x, startY - 6);
+
+                if (blk === 1) {
+                    setCoord(`VCC_TOP1_${c}`, x, startY - 24);
+                    setCoord(`VCC_TOP2_${c}`, x, startY - 18);
+                    setCoord(`GND_TOP1_${c}`, x, startY - 12);
+                    setCoord(`GND_TOP2_${c}`, x, startY - 6);
+                }
             }
 
             // Dual Vertical Power Rails
@@ -103,6 +114,13 @@ export class BreadboardCanvas {
                 setCoord(`${prefix}GND_L_${r}`, bX + 22, y);
                 setCoord(`${prefix}VCC_R_${r}`, bX + 164, y);
                 setCoord(`${prefix}GND_R_${r}`, bX + 176, y);
+
+                if (blk === 1) {
+                    setCoord(`VCC_L_${r}`, bX + 10, y);
+                    setCoord(`GND_L_${r}`, bX + 22, y);
+                    setCoord(`VCC_R_${r}`, bX + 164, y);
+                    setCoord(`GND_R_${r}`, bX + 176, y);
+                }
             }
 
             // Terminal Strips (Rows 1..60, Cols A..E and F..J)
@@ -127,7 +145,19 @@ export class BreadboardCanvas {
 
     getPinPos(pinKey) {
         if (!pinKey) return { x: 0, y: 0 };
-        return this.pinCoords.get(pinKey) || { x: 0, y: 0 };
+        if (this.pinCoords.has(pinKey)) return this.pinCoords.get(pinKey);
+        if (this.pinCoords.has(`B1_${pinKey}`)) return this.pinCoords.get(`B1_${pinKey}`);
+        if (this.pinCoords.has(`B2_${pinKey}`)) return this.pinCoords.get(`B2_${pinKey}`);
+
+        // Safe Fallback for Power Rails
+        if (pinKey.includes('_TOP')) {
+            const parts = pinKey.split('_');
+            const railType = `${parts[0]}_${parts[1]}`;
+            if (this.pinCoords.has(`${railType}_50`)) return this.pinCoords.get(`${railType}_50`);
+            if (this.pinCoords.has(`B1_${railType}_50`)) return this.pinCoords.get(`B1_${railType}_50`);
+        }
+
+        return { x: 0, y: 0 };
     }
 
     getNearestPin(worldX, worldY, maxDist = 12.0) {
@@ -147,6 +177,7 @@ export class BreadboardCanvas {
     }
 
     render(components = []) {
+        if (!this.ctx) return;
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
@@ -642,14 +673,14 @@ export class BreadboardCanvas {
             const numPinsTotal = comp.pins || 8;
             const pinsPerSide = numPinsTotal / 2;
             const pitchY = 11.2;
-            const chipWidth = Math.abs(pB.x - pA.x) + 36;
-            const chipHeight = (pinsPerSide - 1) * pitchY + 34;
-            const topY = pA.y - 17;
+            const chipWidth = Math.abs(pB.x - pA.x) + 26;
+            const chipHeight = (pinsPerSide - 1) * pitchY + 28;
+            const topY = pA.y - 14;
 
-            // DIP Chip Body
+            // DIP Chip Body (Clean Professional Dark Slate)
             this.ctx.fillStyle = '#1e272e';
             this.ctx.beginPath();
-            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 5);
+            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
             this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
             this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
@@ -658,22 +689,25 @@ export class BreadboardCanvas {
             // Pin 1 Notch
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
-            this.ctx.arc(midX, topY, 6, 0, Math.PI);
+            this.ctx.arc(midX, topY, 5, 0, Math.PI);
             this.ctx.fill();
 
             // Pin 1 Cyan Dot Indicator
             this.ctx.fillStyle = '#38bdf8';
             this.ctx.beginPath();
-            this.ctx.arc(midX - chipWidth / 2 + 8, topY + 10, 3.0, 0, Math.PI * 2);
+            this.ctx.arc(midX - chipWidth / 2 + 6, topY + 8, 2.5, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Printed IC Name Text
-            this.ctx.fillStyle = '#f5f6fa';
+            // Printed IC Name Text (White)
+            this.ctx.fillStyle = '#ffffff';
             this.ctx.font = 'bold 11px monospace';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(comp.icType || 'LF356', midX, topY + chipHeight / 2 + 3);
 
-            // Render Metallic Pins & High-Contrast Pin Number Badges (1..8 / 1..14 / 1..16)
+            // Clean Metallic Silver Pins & Subtle Yellow Pin Numbers
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textBaseline = 'middle';
+
             for (let i = 0; i < pinsPerSide; i++) {
                 const legY = pA.y + i * pitchY;
 
@@ -681,48 +715,27 @@ export class BreadboardCanvas {
                 const leftPinNum = i + 1;
                 const leftLegX = midX - chipWidth / 2;
 
-                // Silver Metallic Lead/Leg
+                // Silver Metallic Lead
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(leftLegX - 6, legY - 2, 7, 4);
+                this.ctx.fillRect(leftLegX - 4, legY - 2, 5, 4);
 
-                // Left Pin Badge (High Contrast Dark Circle + Bright Text)
-                const isPin1 = (leftPinNum === 1);
-                this.ctx.fillStyle = isPin1 ? '#0284c7' : '#0f172a';
-                this.ctx.beginPath();
-                this.ctx.arc(leftLegX + 11, legY, 7.0, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.strokeStyle = isPin1 ? '#38bdf8' : '#facc15';
-                this.ctx.lineWidth = 1.2;
-                this.ctx.stroke();
-
-                this.ctx.fillStyle = isPin1 ? '#ffffff' : '#facc15';
-                this.ctx.font = 'bold 10px sans-serif';
+                // Subtle Yellow Text
+                this.ctx.fillStyle = (leftPinNum === 1) ? '#38bdf8' : '#facc15';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`${leftPinNum}`, leftLegX + 11, legY);
+                this.ctx.fillText(`${leftPinNum}`, leftLegX + 7, legY);
 
                 // Right Pin Leg (Pin N..N/2+1)
                 const rightPinNum = numPinsTotal - i;
                 const rightLegX = midX + chipWidth / 2;
 
-                // Silver Metallic Lead/Leg
+                // Silver Metallic Lead
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(rightLegX - 1, legY - 2, 7, 4);
+                this.ctx.fillRect(rightLegX - 1, legY - 2, 5, 4);
 
-                // Right Pin Badge (High Contrast Dark Circle + Bright Text)
-                this.ctx.fillStyle = '#0f172a';
-                this.ctx.beginPath();
-                this.ctx.arc(rightLegX - 11, legY, 7.0, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.strokeStyle = '#facc15';
-                this.ctx.lineWidth = 1.2;
-                this.ctx.stroke();
-
+                // Subtle Yellow Text
                 this.ctx.fillStyle = '#facc15';
-                this.ctx.font = 'bold 10px sans-serif';
                 this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`${rightPinNum}`, rightLegX - 11, legY);
+                this.ctx.fillText(`${rightPinNum}`, rightLegX - 7, legY);
             }
 
         } else if (comp.type === 'DIODE' || comp.type === 'ZENER') {
