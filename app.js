@@ -288,6 +288,14 @@ class AppController {
                 this.renderAll();
             }
         } else if (comp.type === 'C') {
+            if (comp.capType === 'ELEC') {
+                const choice = confirm(`🔋 전해 콘덴서 극성 및 용량 설정:\n\n[확인]: 🔄 극성 반전 (+ ↔ - 뒤집기)\n[취소]: ⚡ 용량(µF) 수정하기`);
+                if (choice) {
+                    this.breadboardCanvas.selectedComponent = comp;
+                    this.flipSelectedComponentPolarity();
+                    return;
+                }
+            }
             const defaultVal = (comp.capacitance * 1e6).toFixed(0);
             const valStr = prompt(`🔋 ${comp.capType || ''} 커패시터(C) 용량을 µF 단위로 입력하세요 (예: 10, 100, 0.1, 1u, 47u):`, comp.isConfigured ? defaultVal : '10');
             const parsed = this.parseValue(valStr);
@@ -334,6 +342,29 @@ class AppController {
             this.breadboardCanvas.toastMsg = isOpen ? '🔴 스위치 열림 (OFF)' : '🟢 스위치 닫힘 (ON)';
             this.renderAll();
         }
+    }
+
+    flipSelectedComponentPolarity() {
+        const selected = this.breadboardCanvas.selectedComponent;
+        if (!selected) {
+            alert('극성/방향을 반전시킬 부품을 먼저 브레드보드에서 클릭하여 선택하세요.');
+            return;
+        }
+
+        const tmpA = selected.pinA;
+        selected.pinA = selected.pinB;
+        selected.pinB = tmpA;
+
+        if (selected.type === 'BJT') {
+            const tmpE = selected.pinEmitter;
+            selected.pinEmitter = selected.pinCollector;
+            selected.pinCollector = tmpE;
+        }
+
+        this.warmupSimulationBuffer(1200);
+        const nameMsg = selected.type === 'C' ? '전해 콘덴서 (+ ↔ -)' : (selected.type === 'BJT' ? '트랜지스터 (E ↔ C)' : '소자');
+        this.breadboardCanvas.toastMsg = `🔄 ${nameMsg} 극성/핀 방향이 180도 뒤집혔습니다!`;
+        this.renderAll();
     }
 
     initEmptyBoard() {
@@ -1283,6 +1314,16 @@ class AppController {
             this.renderAll();
         });
 
+        const btnFlip = document.getElementById('btnFlipPolarity');
+        if (btnFlip) {
+            btnFlip.addEventListener('click', () => this.flipSelectedComponentPolarity());
+        }
+
+        const btnToolbarFlip = document.getElementById('btnToolbarFlipPolarity');
+        if (btnToolbarFlip) {
+            btnToolbarFlip.addEventListener('click', () => this.flipSelectedComponentPolarity());
+        }
+
         document.getElementById('btnDeleteSelected').addEventListener('click', () => {
             const selected = this.breadboardCanvas.selectedComponent;
             if (selected) {
@@ -1306,6 +1347,10 @@ class AppController {
                     this.breadboardCanvas.selectedComponent = null;
                     this.breadboardCanvas.toastMsg = '🗑️ 선택한 부품이 삭제되었습니다.';
                     this.renderAll();
+                }
+            } else if (e.key === 'r' || e.key === 'R' || e.key === 'f' || e.key === 'F') {
+                if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                    this.flipSelectedComponentPolarity();
                 }
             }
         });
