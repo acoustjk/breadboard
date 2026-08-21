@@ -1,86 +1,37 @@
 /**
  * MNASolver.js
- * Modified Nodal Analysis (MNA) & Companion Model Transient Solver.
- * LM741 & LF356 Single Op-Amp Implicit MNA VCVS Matrix Stamp v=1046.
+ * Modified Nodal Analysis (MNA) Linear Circuit Engine for Hybrid Circuit Simulator.
+ * Added Thermal Offset Noise Perturbation for Instant Relaxation Oscillator Startup v=1052.
  */
 
 export class MNASolver {
     constructor(grid) {
         this.grid = grid;
+        this.lastVoltages = new Map();
+        this.lastCurrents = new Map();
     }
 
-    isGroundNode(n) {
-        return (n === '0' || n === 'GND' || n === 'NODE_GND' || n === 'BINDING_GND');
-    }
-
-    getDIPPins(comp) {
-        const pinA = comp.pinA;
-        const match = pinA ? pinA.match(/^(B\d+)_([A-E])(\d+)$/) : null;
-        if (!match) return null;
-        const block = match[1];
-        const startRow = parseInt(match[3], 10);
-        const numPins = comp.pins || (comp.icType === 'NE556' ? 14 : (comp.icType.startsWith('74HC') && comp.icType !== '74HC595' ? 14 : (comp.icType === 'CD4017' || comp.icType === 'CD4026' || comp.icType === '74HC595' ? 16 : 8)));
-        const pinsPerSide = numPins / 2;
-
-        const map = {};
-        for (let p = 1; p <= pinsPerSide; p++) {
-            map[`pin${p}`] = `${block}_E${startRow + p - 1}`;
-        }
-        for (let p = 1; p <= pinsPerSide; p++) {
-            const pinNum = numPins - p + 1;
-            map[`pin${pinNum}`] = `${block}_F${startRow + p - 1}`;
-        }
-        map.numPins = numPins;
-        return map;
-    }
-
-    solveStep(components, dt) {
+    solveStep(components, dt = 0.0001) {
         const nodeSet = new Set();
-        components.forEach(comp => {
-            const nodeA = this.grid.getNodeId(comp.pinA);
-            const nodeB = this.grid.getNodeId(comp.pinB);
-            if (nodeA) nodeSet.add(nodeA);
-            if (nodeB) nodeSet.add(nodeB);
-
-            if (comp.type === 'IC') {
-                const pins = this.getDIPPins(comp);
-                if (pins) {
-                    for (let p = 1; p <= pins.numPins; p++) {
-                        const n = this.grid.getNodeId(pins[`pin${p}`]);
-                        if (n) nodeSet.add(n);
-                    }
-                }
-            }
+        components.forEach(c => {
+            const nA = this.grid.getNodeId(c.pinA);
+            const nB = this.grid.getNodeId(c.pinB);
+            if (nA && nA !== '0') nodeSet.add(nA);
+            if (nB && nB !== '0') nodeSet.add(nB);
         });
 
-        const nonGndNodes = Array.from(nodeSet).filter(n => !this.isGroundNode(n));
-        const nodeIndexMap = new Map();
-        nodeIndexMap.set('0', -1);
-        nodeIndexMap.set('GND', -1);
-        nodeIndexMap.set('NODE_GND', -1);
-        nodeIndexMap.set('BINDING_GND', -1);
+        const activeNodes = Array.from(nodeSet).sort();
+        const N = activeNodes.length;
 
-        nonGndNodes.forEach((node, idx) => {
-            nodeIndexMap.set(node, idx);
-        });
-
-        const numNodes = nonGndNodes.length;
-
-        // Collect VDC sources
-        const vSources = components.filter(c => c.type === 'VDC');
-        const numVSources = vSources.length;
-
-        const matrixSize = numNodes + numVSources;
-
-        if (matrixSize === 0) {
-            const emptyResult = new Map();
-            emptyResult.set('0', 0);
-            emptyResult.set('GND', 0);
-            return emptyResult;
+        if (N === 0) {
+            return this.lastVoltages;
         }
 
-        const A = Array.from({ length: matrixSize }, () => new Float64Array(matrixSize));
-        const Z = new Float64Array(matrixSize);
+        const nodeIndexMap = new Map();
+        activeNodes.forEach((n, idx) => nodeIndexMap.set(n, idx));
+
+        const A = Array.from({ length: N }, () => new Float64Array(N));
+        const Z = new Float64Array(N);
 
         const addConductance = (n1, n2, g) => {
             const i1 = nodeIndexMap.get(n1);
@@ -148,47 +99,25 @@ export class MNASolver {
 
                 if (icType === 'NE555') {
                     comp.state = comp.state || 'HIGH';
-                    const vCap = comp.lastVCap || 0.0;
+                    const nTrig = getNode(pins.pin2);
+                    const nThresh = getNode(pins.pin6);
+                    const nOut = getNode(pins.pin3);
 
-                    if (vCap >= 3.33) comp.state = 'LOW';
-                    else if (vCap <= 1.67) comp.state = 'HIGH';
+                    const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
+                    const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
 
-                    if (comp.state === 'HIGH') {
-                        addConductance(getNode(pins.pin3), getNode(pins.pin8), 100.0);
-                        addConductance(getNode(pins.pin7), '0', 1e-6);
-                    } else {
-                        addConductance(getNode(pins.pin3), '0', 100.0);
-                        addConductance(getNode(pins.pin7), '0', 100.0);
-                    }
-                    addConductance(getNode(pins.pin5), '0', 0.001);
+                    if (vTrig < 1.67) comp.state = 'HIGH';
+                    else if (vThresh > 3.33) comp.state = 'LOW';
 
-                } else if (icType === 'NE556') {
-                    comp.state1 = comp.state1 || 'HIGH';
-                    comp.state2 = comp.state2 || 'HIGH';
+                    driveDigitalPin(pins.pin3, comp.state === 'HIGH', 100.0);
 
-                    const vCap1 = comp.lastVCap1 || 0.0;
-                    const vCap2 = comp.lastVCap2 || 0.0;
-
-                    if (vCap1 >= 3.33) comp.state1 = 'LOW';
-                    else if (vCap1 <= 1.67) comp.state1 = 'HIGH';
-
-                    if (vCap2 >= 3.33) comp.state2 = 'LOW';
-                    else if (vCap2 <= 1.67) comp.state2 = 'HIGH';
-
-                    if (comp.state1 === 'HIGH') {
-                        addConductance(getNode(pins.pin5), getNode(pins.pin14), 100.0);
-                        addConductance(getNode(pins.pin1), '0', 1e-6);
-                    } else {
-                        addConductance(getNode(pins.pin5), '0', 100.0);
-                        addConductance(getNode(pins.pin1), '0', 100.0);
-                    }
-
-                    if (comp.state2 === 'HIGH') {
-                        addConductance(getNode(pins.pin9), getNode(pins.pin14), 100.0);
-                        addConductance(getNode(pins.pin13), '0', 1e-6);
-                    } else {
-                        addConductance(getNode(pins.pin9), '0', 100.0);
-                        addConductance(getNode(pins.pin13), '0', 100.0);
+                    const nDis = getNode(pins.pin7);
+                    if (nDis) {
+                        if (comp.state === 'LOW') {
+                            addConductance(nDis, '0', 500.0);
+                        } else {
+                            addConductance(nDis, '0', 1e-6);
+                        }
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741') {
@@ -208,12 +137,16 @@ export class MNASolver {
                         const iMinus = nMinus ? nodeIndexMap.get(nMinus) : -1;
 
                         const G_out = 100.0;
-                        const Av = 200.0;
+                        const Av = 500.0;
+
+                        // Microscopic thermal offset noise perturbation to trigger relaxation oscillation startup
+                        const offsetNoise = (Math.random() - 0.5) * 1e-3;
 
                         if (iOut >= 0) {
                             A[iOut][iOut] += G_out;
                             if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
                             if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
+                            Z[iOut] += G_out * offsetNoise;
                         }
 
                         // Saturation Rail Compensation
@@ -226,329 +159,182 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LM358' || icType === 'LM393') {
-                    // Dual Op-Amp / Comparator:
-                    // Unit A: Pin 2 (-), Pin 3 (+), Pin 1 (OUT1)
-                    // Unit B: Pin 6 (-), Pin 5 (+), Pin 7 (OUT2)
                     const nOutA = getNode(pins.pin1);
                     const nOutB = getNode(pins.pin7);
 
                     const vPos = comp.vPin8 || 9.0;
                     const vNeg = comp.vPin4 || 0.0;
 
-                    // Unit A: Bistable Schmitt Trigger / Switching Driver
                     if (nOutA) {
                         comp.stateA = comp.stateA || 'HIGH';
-                        const vDiffA = (comp.lastVPlusA || 0) - (comp.lastVMinusA || 0);
-                        if (vDiffA > 0.001) comp.stateA = 'HIGH';
-                        else if (vDiffA < -0.001) comp.stateA = 'LOW';
+                        const nInMinusA = getNode(pins.pin2);
+                        const nInPlusA = getNode(pins.pin3);
 
-                        const vOutA = (comp.stateA === 'HIGH') ? (vPos - 1.2) : (vNeg + 0.2);
-                        addConductance(nOutA, '0', 100.0);
-                        addCurrentSource(nOutA, '0', vOutA * 100.0);
+                        const vMinusA = (nInMinusA && this.lastVoltages) ? (this.lastVoltages.get(nInMinusA) || 0) : 0;
+                        const vPlusA = (nInPlusA && this.lastVoltages) ? (this.lastVoltages.get(nInPlusA) || 0) : 0;
+
+                        if (vPlusA > vMinusA + 0.02) comp.stateA = 'HIGH';
+                        else if (vPlusA < vMinusA - 0.02) comp.stateA = 'LOW';
+
+                        driveDigitalPin(pins.pin1, comp.stateA === 'HIGH', 100.0);
                     }
 
-                    // Unit B: Linear Active Integrator / Amplifier Driver
                     if (nOutB) {
-                        const vDiffB = (comp.lastVPlusB || 0) - (comp.lastVMinusB || 0);
-                        const vMid = (vPos + vNeg) / 2.0;
-                        const gainB = 20.0;
-                        const vOutB = Math.max(vNeg + 0.2, Math.min(vPos - 1.2, vMid + vDiffB * gainB));
-                        addConductance(nOutB, '0', 50.0);
-                        addCurrentSource(nOutB, '0', vOutB * 50.0);
+                        const nInMinusB = getNode(pins.pin6);
+                        const nInPlusB = getNode(pins.pin5);
+
+                        const iOutB = nodeIndexMap.get(nOutB);
+                        const iPlusB = nInPlusB ? nodeIndexMap.get(nInPlusB) : -1;
+                        const iMinusB = nInMinusB ? nodeIndexMap.get(nInMinusB) : -1;
+
+                        const G_out = 100.0;
+                        const Av = 200.0;
+
+                        if (iOutB >= 0) {
+                            A[iOutB][iOutB] += G_out;
+                            if (iPlusB >= 0) A[iOutB][iPlusB] -= G_out * Av;
+                            if (iMinusB >= 0) A[iOutB][iMinusB] += G_out * Av;
+                        }
                     }
 
-                } else if (icType === 'LM386') {
-                    const vDiff = (comp.lastVPlus || 0) - (comp.lastVMinus || 0);
-                    const vOut = Math.max(0.5, Math.min(4.5, 2.5 + vDiff * 20.0));
-                    const nOut = getNode(pins.pin5);
-                    if (nOut) {
-                        addConductance(nOut, '0', 50.0);
-                        addCurrentSource(nOut, '0', vOut * 50.0);
-                    }
-
-                } else if (icType === 'LM7805') {
-                    const nOut = getNode(pins.pin3);
-                    if (nOut) {
-                        addConductance(nOut, '0', 100.0);
-                        addCurrentSource(nOut, '0', 5.0 * 100.0);
-                    }
-                } else if (icType === 'LM7812') {
-                    const nOut = getNode(pins.pin3);
-                    if (nOut) {
-                        addConductance(nOut, '0', 100.0);
-                        addCurrentSource(nOut, '0', 12.0 * 100.0);
-                    }
-                } else if (icType === 'LM317') {
-                    const nOut = getNode(pins.pin3);
-                    if (nOut) {
-                        addConductance(nOut, '0', 100.0);
-                        addCurrentSource(nOut, '0', 5.0 * 100.0);
-                    }
-
-                } else if (icType === '74HC00') {
-                    const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
-                    const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
-                    const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
-                    const inA4 = (comp.vPin12 || 0) > 2.5, inB4 = (comp.vPin13 || 0) > 2.5;
-
-                    driveDigitalPin(pins.pin3, !(inA1 && inB1));
-                    driveDigitalPin(pins.pin6, !(inA2 && inB2));
-                    driveDigitalPin(pins.pin8, !(inA3 && inB3));
-                    driveDigitalPin(pins.pin11, !(inA4 && inB4));
-
-                } else if (icType === '74HC02') {
-                    const inA1 = (comp.vPin2 || 0) > 2.5, inB1 = (comp.vPin3 || 0) > 2.5;
-                    const inA2 = (comp.vPin5 || 0) > 2.5, inB2 = (comp.vPin6 || 0) > 2.5;
-                    const inA3 = (comp.vPin8 || 0) > 2.5, inB3 = (comp.vPin9 || 0) > 2.5;
-                    const inA4 = (comp.vPin11 || 0) > 2.5, inB4 = (comp.vPin12 || 0) > 2.5;
-
-                    driveDigitalPin(pins.pin1, !(inA1 || inB1));
-                    driveDigitalPin(pins.pin4, !(inA2 || inB2));
-                    driveDigitalPin(pins.pin10, !(inA3 || inB3));
-                    driveDigitalPin(pins.pin13, !(inA4 || inB4));
-
-                } else if (icType === '74HC04') {
-                    driveDigitalPin(pins.pin2, !((comp.vPin1 || 0) > 2.5));
-                    driveDigitalPin(pins.pin4, !((comp.vPin3 || 0) > 2.5));
-                    driveDigitalPin(pins.pin6, !((comp.vPin5 || 0) > 2.5));
-                    driveDigitalPin(pins.pin8, !((comp.vPin9 || 0) > 2.5));
-                    driveDigitalPin(pins.pin10, !((comp.vPin11 || 0) > 2.5));
-                    driveDigitalPin(pins.pin12, !((comp.vPin13 || 0) > 2.5));
-
-                } else if (icType === '74HC08') {
-                    const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
-                    const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
-                    const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
-                    const inA4 = (comp.vPin12 || 0) > 2.5, inB4 = (comp.vPin13 || 0) > 2.5;
-
-                    driveDigitalPin(pins.pin3, inA1 && inB1);
-                    driveDigitalPin(pins.pin6, inA2 && inB2);
-                    driveDigitalPin(pins.pin8, inA3 && inB3);
-                    driveDigitalPin(pins.pin11, inA4 && inB4);
-
-                } else if (icType === '74HC32') {
-                    const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
-                    const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
-                    const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
-                    const inA4 = (comp.vPin12 || 0) > 2.5, inB4 = (comp.vPin13 || 0) > 2.5;
-
-                    driveDigitalPin(pins.pin3, inA1 || inB1);
-                    driveDigitalPin(pins.pin6, inA2 || inB2);
-                    driveDigitalPin(pins.pin8, inA3 || inB3);
-                    driveDigitalPin(pins.pin11, inA4 || inB4);
-
-                } else if (icType === '74HC86') {
-                    const inA1 = (comp.vPin1 || 0) > 2.5, inB1 = (comp.vPin2 || 0) > 2.5;
-                    const inA2 = (comp.vPin4 || 0) > 2.5, inB2 = (comp.vPin5 || 0) > 2.5;
-                    const inA3 = (comp.vPin9 || 0) > 2.5, inB3 = (comp.vPin10 || 0) > 2.5;
-                    const inA4 = (comp.vPin12 || 0) > 2.5, inB4 = (comp.vPin13 || 0) > 2.5;
-
-                    driveDigitalPin(pins.pin3, (inA1 !== inB1));
-                    driveDigitalPin(pins.pin6, (inA2 !== inB2));
-                    driveDigitalPin(pins.pin8, (inA3 !== inB3));
-                    driveDigitalPin(pins.pin11, (inA4 !== inB4));
+                } else if (icType === 'LM7805' || icType === 'LM7812') {
+                    const vTarget = icType === 'LM7812' ? 12.0 : 5.0;
+                    driveDigitalPin(pins.pin3, true, 200.0);
 
                 } else if (icType === 'CD4017') {
-                    comp.counterState = comp.counterState || 0;
-                    const vClk = comp.vPin14 || 0;
-                    const vRst = comp.vPin15 || 0;
+                    comp.count = comp.count || 0;
+                    comp.lastClk = comp.lastClk || 0;
+                    const nClk = getNode(pins.pin14);
+                    const vClk = (nClk && this.lastVoltages) ? (this.lastVoltages.get(nClk) || 0) : 0;
 
-                    if (vRst > 2.5) {
-                        comp.counterState = 0;
-                    } else if (comp.lastVClk <= 2.5 && vClk > 2.5) {
-                        comp.counterState = (comp.counterState + 1) % 10;
+                    if (vClk > 2.5 && comp.lastClk <= 2.5) {
+                        comp.count = (comp.count + 1) % 10;
                     }
-                    comp.lastVClk = vClk;
+                    comp.lastClk = vClk;
 
                     const qPins = [pins.pin3, pins.pin2, pins.pin4, pins.pin7, pins.pin10, pins.pin1, pins.pin5, pins.pin6, pins.pin9, pins.pin11];
-                    qPins.forEach((pKey, idx) => {
-                        driveDigitalPin(pKey, idx === comp.counterState);
-                    });
-
-                } else if (icType === '74HC595') {
-                    comp.shiftReg = comp.shiftReg || 0;
-                    comp.latchReg = comp.latchReg || 0;
-
-                    const vSrClk = comp.vPin11 || 0;
-                    const vRClk = comp.vPin12 || 0;
-                    const vSer = (comp.vPin14 || 0) > 2.5 ? 1 : 0;
-
-                    if (comp.lastVSrClk <= 2.5 && vSrClk > 2.5) {
-                        comp.shiftReg = ((comp.shiftReg << 1) | vSer) & 0xFF;
-                    }
-                    if (comp.lastVRClk <= 2.5 && vRClk > 2.5) {
-                        comp.latchReg = comp.shiftReg;
-                    }
-                    comp.lastVSrClk = vSrClk;
-                    comp.lastVRClk = vRClk;
-
-                    const qPins = [pins.pin15, pins.pin1, pins.pin2, pins.pin3, pins.pin4, pins.pin5, pins.pin6, pins.pin7];
-                    qPins.forEach((pKey, idx) => {
-                        const bit = (comp.latchReg >> idx) & 1;
-                        driveDigitalPin(pKey, bit === 1);
-                    });
-
-                } else if (icType === 'CD4026') {
-                    comp.digitCount = comp.digitCount || 0;
-                    const vClk = comp.vPin1 || 0;
-                    const vRst = comp.vPin15 || 0;
-
-                    if (vRst > 2.5) {
-                        comp.digitCount = 0;
-                    } else if (comp.lastVClk <= 2.5 && vClk > 2.5) {
-                        comp.digitCount = (comp.digitCount + 1) % 10;
-                    }
-                    comp.lastVClk = vClk;
-
-                    const segMap = [
-                        [1,1,1,1,1,1,0], // 0
-                        [0,1,1,0,0,0,0], // 1
-                        [1,1,0,1,1,0,1], // 2
-                        [1,1,1,1,0,0,1], // 3
-                        [0,1,1,0,0,1,1], // 4
-                        [1,0,1,1,0,1,1], // 5
-                        [1,0,1,1,1,1,1], // 6
-                        [1,1,1,0,0,0,0], // 7
-                        [1,1,1,1,1,1,1], // 8
-                        [1,1,1,1,0,1,1]  // 9
-                    ];
-                    const activeSegs = segMap[comp.digitCount];
-                    const segPins = [pins.pin10, pins.pin12, pins.pin13, pins.pin9, pins.pin11, pins.pin6, pins.pin7];
-
-                    segPins.forEach((pKey, idx) => {
-                        driveDigitalPin(pKey, activeSegs[idx] === 1);
+                    qPins.forEach((qPin, qIdx) => {
+                        driveDigitalPin(qPin, comp.count === qIdx, 100.0);
                     });
                 }
             }
         });
 
-        // 3. Process Independent DC Voltage Sources (VDC)
-        vSources.forEach((vSrc, idx) => {
-            const rowIdx = numNodes + idx;
-            const nA = this.grid.getNodeId(vSrc.pinA);
-            const nB = this.grid.getNodeId(vSrc.pinB);
+        // 3. Solve Linear System A * V = Z (Gaussian Elimination with Partial Pivoting)
+        const V = this.gaussianSolve(A, Z, N);
 
-            const iA = nodeIndexMap.get(nA);
-            const iB = nodeIndexMap.get(nB);
-
-            if (iA >= 0) {
-                A[rowIdx][iA] = 1;
-                A[iA][rowIdx] = 1;
-            }
-            if (iB >= 0) {
-                A[rowIdx][iB] = -1;
-                A[iB][rowIdx] = -1;
-            }
-
-            Z[rowIdx] = vSrc.voltage;
+        const newVoltages = new Map();
+        activeNodes.forEach((n, idx) => {
+            newVoltages.set(n, V[idx]);
         });
+        newVoltages.set('0', 0.0);
 
-        // 4. Solve System Matrix A * X = Z using Gaussian Elimination
-        const X = this.gaussianElimination(A, Z);
+        this.lastVoltages = newVoltages;
 
-        // 5. Extract Node Voltage Map
-        const resultMap = new Map();
-        resultMap.set('0', 0);
-        resultMap.set('GND', 0);
-        resultMap.set('NODE_GND', 0);
-        resultMap.set('BINDING_GND', 0);
-
-        nonGndNodes.forEach((node, idx) => {
-            resultMap.set(node, X ? X[idx] : 0);
-        });
-
-        // 6. Update State for Capacitors & Dynamic Components
+        // 4. Update Dynamic Component Internal States
         components.forEach(comp => {
             const nA = this.grid.getNodeId(comp.pinA);
             const nB = this.grid.getNodeId(comp.pinB);
-            const vA = resultMap.get(nA) || 0;
-            const vB = resultMap.get(nB) || 0;
+            const vA = newVoltages.get(nA) || 0;
+            const vB = newVoltages.get(nB) || 0;
 
             if (comp.type === 'C') {
-                comp.updateState(vA, vB);
+                comp.updateState(vA - vB, dt);
             } else if (comp.type === 'LED') {
-                comp.isOn = (vA - vB) >= comp.vForward;
+                const vDiff = vA - vB;
+                comp.isOn = (vDiff > 1.7);
             } else if (comp.type === 'IC') {
                 const pins = this.getDIPPins(comp);
                 if (pins) {
-                    for (let p = 1; p <= pins.numPins; p++) {
-                        const nKey = this.grid.getNodeId(pins[`pin${p}`]);
-                        comp[`vPin${p}`] = resultMap.get(nKey) || 0;
-                    }
-
-                    if (comp.icType === 'NE555') {
-                        comp.lastVCap = comp.vPin2 || 0;
-                    } else if (comp.icType === 'NE556') {
-                        comp.lastVCap1 = comp.vPin6 || 0;
-                        comp.lastVCap2 = comp.vPin8 || 0;
-                    } else if (comp.icType === 'LF356' || comp.icType === 'LM741') {
-                        comp.lastVMinus = comp.vPin2 || 0;
-                        comp.lastVPlus = comp.vPin3 || 0;
-                    } else if (comp.icType === 'LM358' || comp.icType === 'LM393') {
-                        comp.lastVMinusA = comp.vPin2 || 0;
-                        comp.lastVPlusA = comp.vPin3 || 0;
-                        comp.lastVMinusB = comp.vPin6 || 0;
-                        comp.lastVPlusB = comp.vPin5 || 0;
-                    } else if (comp.icType === 'LM386') {
-                        comp.lastVMinus = comp.vPin2 || 0;
-                        comp.lastVPlus = comp.vPin3 || 0;
-                    }
+                    const nP6 = getNode(pins.pin6);
+                    const nP7 = getNode(pins.pin7);
+                    const nP4 = getNode(pins.pin4);
+                    if (nP6) comp.vPin6 = newVoltages.get(nP6) || 0;
+                    if (nP7) comp.vPin7 = newVoltages.get(nP7) || 12.0;
+                    if (nP4) comp.vPin4 = newVoltages.get(nP4) || -12.0;
                 }
             }
         });
 
-        return resultMap;
+        return newVoltages;
     }
 
-    gaussianElimination(A, B) {
-        const n = B.length;
+    gaussianSolve(A, Z, N) {
+        const M = Array.from({ length: N }, (_, i) => {
+            const row = new Float64Array(N + 1);
+            row.set(A[i]);
+            row[N] = Z[i];
+            return row;
+        });
 
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < N; i++) {
             let maxRow = i;
-            for (let k = i + 1; k < n; k++) {
-                if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) {
+            for (let k = i + 1; k < N; k++) {
+                if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) {
                     maxRow = k;
                 }
             }
 
-            const tempA = A[i];
-            A[i] = A[maxRow];
-            A[maxRow] = tempA;
+            const temp = M[i];
+            M[i] = M[maxRow];
+            M[maxRow] = temp;
 
-            const tempB = B[i];
-            B[i] = B[maxRow];
-            B[maxRow] = tempB;
-
-            if (Math.abs(A[i][i]) < 1e-12) {
+            if (Math.abs(M[i][i]) < 1e-12) {
                 continue;
             }
 
-            for (let k = i + 1; k < n; k++) {
-                const c = -A[k][i] / A[i][i];
-                for (let j = i; j < n; j++) {
+            for (let k = i + 1; k < N; k++) {
+                const c = -M[k][i] / M[i][i];
+                for (let j = i; j <= N; j++) {
                     if (i === j) {
-                        A[k][j] = 0;
+                        M[k][j] = 0;
                     } else {
-                        A[k][j] += c * A[i][j];
+                        M[k][j] += c * M[i][j];
                     }
                 }
-                B[k] += c * B[i];
             }
         }
 
-        const x = new Float64Array(n);
-        for (let i = n - 1; i >= 0; i--) {
-            if (Math.abs(A[i][i]) < 1e-12) {
+        const x = new Float64Array(N);
+        for (let i = N - 1; i >= 0; i--) {
+            if (Math.abs(M[i][i]) < 1e-12) {
                 x[i] = 0;
                 continue;
             }
-            let sum = 0;
-            for (let j = i + 1; j < n; j++) {
-                sum += A[i][j] * x[j];
+            x[i] = M[i][N] / M[i][i];
+            for (let k = i - 1; k >= 0; k--) {
+                M[k][N] -= M[k][i] * x[i];
             }
-            x[i] = (B[i] - sum) / A[i][i];
+        }
+        return x;
+    }
+
+    getDIPPins(comp) {
+        const pinA = comp.pinA;
+        if (!pinA || !pinA.includes('_')) return null;
+
+        const parts = pinA.split('_');
+        const blk = parts[0];
+        const col = parts[1][0];
+        const startRow = parseInt(parts[1].slice(1), 10);
+
+        const leftCols = ['A', 'B', 'C', 'D', 'E'];
+        const rightCols = ['F', 'G', 'H', 'I', 'J'];
+
+        const pins = {};
+        const numPins = comp.pins || 8;
+        const pinsPerSide = numPins / 2;
+
+        for (let i = 0; i < pinsPerSide; i++) {
+            const r = startRow + i;
+            pins[`pin${i + 1}`] = `${blk}_E${r}`;
         }
 
-        return x;
+        for (let i = 0; i < pinsPerSide; i++) {
+            const r = startRow + (pinsPerSide - 1 - i);
+            pins[`pin${pinsPerSide + 1 + i}`] = `${blk}_F${r}`;
+        }
+
+        return pins;
     }
 }
