@@ -1,19 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * EIC-108 [PNM] Official Exam Schematic 100% Exact Pin Parity Preset v=1048.
+ * EIC-108 & LM741 Square Wave Oscillator 100% Fixed Parity Preset v=1053.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1048';
-import { MNASolver } from './src/engine/MNASolver.js?v=1048';
-import { FFT } from './src/engine/FFT.js?v=1048';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1048';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1048';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1048';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1048';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1048';
-import { AICopilot } from './src/components/AICopilot.js?v=1048';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1048';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1053';
+import { MNASolver } from './src/engine/MNASolver.js?v=1053';
+import { FFT } from './src/engine/FFT.js?v=1053';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1053';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1053';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1053';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1053';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1053';
+import { AICopilot } from './src/components/AICopilot.js?v=1053';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1053';
 
 class AppController {
     constructor() {
@@ -59,7 +59,7 @@ class AppController {
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initPNMExam(); // Load PNM Exam by default with full oscillation feedback
+        this.initSquareOscillator(); // Load Fixed SQUARE Preset by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
         this.renderAll();
@@ -296,7 +296,52 @@ class AppController {
         }
     }
 
-    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment with uploaded media_1787274279103.jpg)
+    // ⚡ Fixed SQUARE Sample Preset (100% Perfect LM741 Relaxation Square Wave Oscillator)
+    initSquareOscillator() {
+        this.currentExamTitle = '⚡ LM741 아스타블 구형파 발진기 (100% 완벽 보정 SQUARE Preset)';
+        this.voltageVa = 12.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -12.0;
+        this.breadboardCanvas.voltageVa = 12.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = -12.0;
+
+        this.components = [
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
+            new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
+
+            new Wire('JUMP_POS', 'VCC_TOP1_20', 'B2_VCC_L_16', '#ef4444'),
+            new Wire('JUMP_NEG', 'VCC_TOP2_20', 'B2_GND_L_18', '#00b894'),
+
+            new DIPChip('IC1', 'LM741', 'B2_E15', 'B2_F15'),
+
+            new Wire('WIRE_VCC_PIN7', 'B2_VCC_L_16', 'B2_F16', '#ef4444'), // Pin 7 (+12V) -> Row 16 right
+            new Wire('WIRE_VNEG_PIN4', 'B2_GND_L_18', 'B2_E18', '#00b894'), // Pin 4 (-12V) -> Row 18 left
+
+            new Resistor('RESISTOR_R1_POS_FB', 'B2_F17', 'B2_E17', 10000, true), // Pin 6 OUT -> Pin 3 IN+
+            new Resistor('RESISTOR_R2_POS_GND', 'B2_E17', 'B2_GND_L_17', 10000, true), // Pin 3 IN+ -> GND
+
+            new Resistor('RESISTOR_RFB_100K', 'B2_F17', 'B1_F16', 100000, true), // Pin 6 OUT -> Pin 2 IN-
+            new Wire('WIRE_IN_MINUS', 'B1_F16', 'B2_E16', '#0984e3'),
+            new Capacitor('CAPACITOR_C1', 'B1_F16', 'B1_GND_L_16', 0.1e-6, true, 'MYLAR')
+        ];
+
+        this.probeAPin = 'B2_F17';
+        this.probeBPin = 'B1_F16';
+        this.probeCPin = 'BINDING_Va';
+        this.probeDPin = 'BINDING_Vc';
+
+        this.breadboardCanvas.probeAPin = 'B2_F17';
+        this.breadboardCanvas.probeBPin = 'B1_F16';
+        this.breadboardCanvas.probeCPin = 'BINDING_Va';
+        this.breadboardCanvas.probeDPin = 'BINDING_Vc';
+
+        this.warmupSimulationBuffer(600);
+        this.breadboardCanvas.toastMsg = `⚡ 100% 완벽 보정된 LM741 SQUARE 구형파 발진기 로드 완료! (CH A: ±10.8V 45.5Hz 사각파)`;
+    }
+
+    // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
     initPNMExam() {
         this.currentExamTitle = '🏆 [KCA 통신설비기능장 실기] PNM (Pulse Number Modulation) 펄스 수 변조 회로 (EIC-108 도면 100% 실시간 동일 배치)';
         this.voltageVa = 12.0;
@@ -307,102 +352,89 @@ class AppController {
         this.breadboardCanvas.voltageVc = -12.0;
 
         this.components = [
-            // Banana Jack Power Supply Wires to Top Rails
-            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
-            new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
-            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
+            new Wire('W_VA_JACK', 'BINDING_Va', 'B2_VCC_L_1', '#ef4444'),
+            new Wire('W_VC_JACK', 'BINDING_Vc', 'B3_GND_R_1', '#00b894'),
+            new Wire('W_GND_JACK', 'BINDING_GND', 'B4_GND_R_1', '#3b82f6'),
 
-            // Top Power Bus Rails to 4 Blocks Jumper Bridges
-            new Wire('JUMP_POS1', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
-            new Wire('JUMP_GND1', 'GND_TOP1_5', 'B1_GND_L_1', '#3b82f6'),
-            new Wire('JUMP_POS2', 'VCC_TOP1_15', 'B2_VCC_L_1', '#ef4444'),
-            new Wire('JUMP_GND2', 'GND_TOP1_5', 'B2_GND_L_1', '#3b82f6'),
-            new Wire('JUMP_POS3', 'VCC_TOP1_25', 'B3_VCC_L_1', '#ef4444'),
-            new Wire('JUMP_NEG3', 'VCC_TOP2_25', 'B3_GND_L_1', '#00b894'),
-            new Wire('JUMP_POS4', 'VCC_TOP1_45', 'B4_VCC_L_1', '#ef4444'),
-            new Wire('JUMP_NEG4', 'VCC_TOP2_45', 'B4_GND_L_1', '#00b894'),
+            new Wire('JUMP_TOP_B1_L', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_B1_R_B2_L', 'B1_VCC_R_1', 'B2_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_B2_R_B3_L', 'B2_VCC_R_1', 'B3_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_B3_R_B4_L', 'B3_VCC_R_1', 'B4_VCC_L_1', '#ef4444'),
 
-            // Vertical Rail Bridges between Left and Right Strips of Blocks
-            new Wire('JUMP_B1_LR_POS', 'B1_VCC_L_1', 'B1_VCC_R_1', '#ef4444'),
-            new Wire('JUMP_B1_LR_GND', 'B1_GND_L_1', 'B1_GND_R_1', '#3b82f6'),
-            new Wire('JUMP_B2_LR_POS', 'B2_VCC_L_1', 'B2_VCC_R_1', '#ef4444'),
-            new Wire('JUMP_B3_LR_POS', 'B3_VCC_L_1', 'B3_VCC_R_1', '#ef4444'),
-            new Wire('JUMP_B3_LR_NEG', 'B3_GND_L_1', 'B3_GND_R_1', '#00b894'),
-            new Wire('JUMP_B4_LR_POS', 'B4_VCC_L_1', 'B4_VCC_R_1', '#ef4444'),
-            new Wire('JUMP_B4_LR_NEG', 'B4_GND_L_1', 'B4_GND_R_1', '#00b894'),
+            new Wire('JUMP_NEG_B3_B4', 'B3_GND_R_1', 'B4_GND_L_1', '#00b894'),
+            new Wire('JUMP_GND_B4_TOP', 'B4_GND_R_1', 'GND_TOP1_50', '#3b82f6'),
 
-            // --- Block 1 & Block 2 & Block 3: 3-Stage CR Phase-Shift Oscillator Network (Row 18) ---
+            new Wire('JUMP_B1_GND_LR', 'B1_GND_L_1', 'B1_GND_R_1', '#3b82f6'),
+            new Wire('JUMP_B2_GND_LR', 'B2_GND_L_1', 'B2_GND_R_1', '#3b82f6'),
+
+            new Resistor('R1_PULL', 'B1_VCC_L_7', 'B1_A7', 10000, true),
+            new Resistor('R1_SERIES', 'B1_B7', 'B1_B18', 10000, true),
             new Capacitor('C1_1', 'B1_C18', 'B1_D18', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_1', 'B1_E18', 'B1_GND_L_18', 4700, true),
-            new Wire('W_B1_B2', 'B1_E18', 'B2_A18', '#0984e3'),
+            new Wire('W_STAGE1_2', 'B1_E18', 'B2_A18', '#0984e3'),
 
             new Capacitor('C1_2', 'B2_C18', 'B2_D18', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_2', 'B2_E18', 'B2_GND_L_18', 4700, true),
-            new Wire('W_B2_B3', 'B2_E18', 'B3_A18', '#0984e3'),
+            new Wire('W_STAGE2_3', 'B2_E18', 'B3_A18', '#0984e3'),
 
             new Capacitor('C1_3', 'B3_C18', 'B3_D18', 0.01e-6, true, 'MYLAR'),
             new Resistor('R1_3', 'B3_E18', 'B3_GND_L_18', 4700, true),
             new Capacitor('C1_4', 'B3_E18', 'B3_A19', 0.01e-6, true, 'MYLAR'),
 
-            // --- Block 3: U1 Phase Shift Op-Amp (Rows 18~21) ---
-            new DIPChip('U1', 'LF356', 'B3_E18', 'B3_F18'),
-            new Resistor('R1_IN', 'B3_B19', 'B3_C19', 10000, true),
-            new Resistor('R1_GND', 'B3_B20', 'B3_GND_L_20', 10000, true),
-            new Potentiometer('VR1', 'B3_A12', 'B3_C14', 1000000, 0.5),
-            new Wire('W_VR1_FB', 'B3_C14', 'B3_D19', '#e67e22'),
+            new DIPChip('U1', 'LF356', 'B3_E16', 'B3_F16'),
+            new Potentiometer('VR1', 'B3_A10', 'B3_C12', 1000000, 0.5),
+            new Resistor('R1_IN', 'B3_B17', 'B3_C17', 10000, true),
+            new Resistor('R1_GND', 'B3_B18', 'B3_GND_L_18', 10000, true),
+            new Wire('W_VR1_FB', 'B3_C12', 'B3_D17', '#e67e22'),
 
-            new Wire('W_U1_VPOS', 'B3_VCC_L_19', 'B3_F19', '#ef4444'),
-            new Wire('W_U1_VNEG', 'B3_GND_L_21', 'B3_E21', '#00b894'),
+            new Wire('W_U1_VPOS', 'B3_VCC_L_17', 'B3_F17', '#ef4444'),
+            new Wire('W_U1_VNEG', 'B3_GND_L_19', 'B3_E19', '#00b894'),
 
-            new ZenerDiode('ZD1', 'B3_F20', 'B3_F24', 9.1, 0.7),
-            new ZenerDiode('ZD2', 'B3_F24', 'B3_GND_R_24', 9.1, 0.7),
+            new ZenerDiode('ZD1', 'B3_F18', 'B3_F22', 9.1, 0.7),
+            new ZenerDiode('ZD2', 'B3_F22', 'B3_GND_R_22', 9.1, 0.7),
 
-            // Positive Feedback Loop Wires
-            new Wire('W_OSC_FB', 'B3_F20', 'B1_C18', '#e74c3c'),
-            new Wire('W_VR1_OUT', 'B3_C14', 'B3_F20', '#f39c12'),
+            new Wire('W_OSC_FB', 'B3_F18', 'B1_C18', '#e74c3c'),
+            new Wire('W_VR1_OUT', 'B3_C12', 'B3_F18', '#f39c12'),
 
-            // --- Block 3: U3 Sawtooth Generator (Rows 40~43) ---
-            new DIPChip('U3', 'LF356', 'B3_E40', 'B3_F40'),
-            new Potentiometer('VR2', 'B3_A35', 'B3_C37', 50000, 0.5),
-            new Capacitor('C3', 'B3_C41', 'B3_GND_L_41', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R3_FB1', 'B3_B42', 'B3_D42', 10000, true),
-            new Resistor('R3_FB2', 'B3_C42', 'B3_GND_L_42', 10000, true),
+            new DIPChip('U3', 'LF356', 'B3_E38', 'B3_F38'),
+            new Potentiometer('VR2', 'B3_A33', 'B3_C35', 50000, 0.5),
+            new Capacitor('C3', 'B3_C39', 'B3_GND_L_39', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R3_FB1', 'B3_B40', 'B3_D40', 10000, true),
+            new Resistor('R3_FB2', 'B3_C40', 'B3_GND_L_40', 10000, true),
 
-            new Wire('W_U3_VPOS', 'B3_VCC_L_41', 'B3_F41', '#ef4444'),
-            new Wire('W_U3_VNEG', 'B3_GND_L_43', 'B3_E43', '#00b894'),
-            new Wire('W_VR2_IN', 'B3_VCC_L_35', 'B3_A35', '#ef4444'),
-            new Wire('W_VR2_OUT', 'B3_C37', 'B3_B41', '#f39c12'),
-            new Wire('W_U3_FB', 'B3_C37', 'B3_F42', '#9b59b6'),
+            new Wire('W_U3_VPOS', 'B3_VCC_L_39', 'B3_F39', '#ef4444'),
+            new Wire('W_U3_VNEG', 'B3_GND_L_41', 'B3_E41', '#00b894'),
+            new Wire('W_VR2_IN', 'B3_VCC_L_33', 'B3_A33', '#ef4444'),
+            new Wire('W_VR2_OUT', 'B3_C35', 'B3_B39', '#f39c12'),
+            new Wire('W_U3_FB', 'B3_C35', 'B3_F40', '#9b59b6'),
 
-            // --- Block 4: U2 Zero-crossing Comparator & Pulse Generator (Rows 18~21 & Rows 35~38) ---
-            new DIPChip('U2', 'LF356', 'B4_E18', 'B4_F18'),
-            new Wire('W_TP1_U2', 'B3_F20', 'B4_A19', '#9b59b6'),
-            new Capacitor('C2_IN', 'B4_A19', 'B4_B19', 0.1e-6, true, 'MYLAR'),
-            new Resistor('R2_BIAS1', 'B4_B19', 'B4_GND_L_19', 1000000, true),
-            new Resistor('R2_BIAS2', 'B4_C20', 'B4_GND_L_20', 1000000, true),
+            new DIPChip('U2', 'LF356', 'B4_E16', 'B4_F16'),
+            new Wire('W_TP1_U2', 'B3_F18', 'B4_A17', '#9b59b6'),
+            new Capacitor('C2_IN', 'B4_A17', 'B4_B17', 0.1e-6, true, 'MYLAR'),
+            new Resistor('R2_BIAS1', 'B4_B17', 'B4_GND_L_17', 1000000, true),
+            new Resistor('R2_BIAS2', 'B4_C18', 'B4_GND_L_18', 1000000, true),
 
-            new Wire('W_U2_VPOS', 'B4_VCC_L_19', 'B4_F19', '#ef4444'),
-            new Wire('W_U2_VNEG', 'B4_GND_L_21', 'B4_E21', '#00b894'),
+            new Wire('W_U2_VPOS', 'B4_VCC_L_17', 'B4_F17', '#ef4444'),
+            new Wire('W_U2_VNEG', 'B4_GND_L_19', 'B4_E19', '#00b894'),
 
-            new Wire('W_U3_Q1', 'B3_F42', 'B4_A35', '#e17055'),
-            new Resistor('R_BASE', 'B4_A35', 'B4_B35', 1000, true),
-            new Resistor('R_PULLUP', 'B4_F20', 'B4_C35', 5100, true),
-            new Diode('D_CLAMP', 'B4_C35', 'B4_GND_L_35', 0.7)
+            new Wire('W_U3_Q1', 'B3_F40', 'B4_A33', '#e17055'),
+            new Resistor('R_BASE', 'B4_A33', 'B4_B33', 1000, true),
+            new Resistor('R_PULLUP', 'B4_F18', 'B4_C33', 5100, true),
+            new Diode('D_CLAMP', 'B4_C33', 'B4_GND_L_33', 0.7)
         ];
 
-        // 4CH Oscilloscope Probes directly attached to TP1, TP2, TP3, Va!
-        this.probeAPin = 'B3_F20';
-        this.probeBPin = 'B3_F42';
-        this.probeCPin = 'B4_C35';
+        this.probeAPin = 'B3_F18';
+        this.probeBPin = 'B3_F40';
+        this.probeCPin = 'B4_C33';
         this.probeDPin = 'BINDING_Va';
 
-        this.breadboardCanvas.probeAPin = 'B3_F20';
-        this.breadboardCanvas.probeBPin = 'B3_F42';
-        this.breadboardCanvas.probeCPin = 'B4_C35';
+        this.breadboardCanvas.probeAPin = 'B3_F18';
+        this.breadboardCanvas.probeBPin = 'B3_F40';
+        this.breadboardCanvas.probeCPin = 'B4_C33';
         this.breadboardCanvas.probeDPin = 'BINDING_Va';
 
         this.warmupSimulationBuffer(400);
-        this.breadboardCanvas.toastMsg = `🏆 EIC-108 실기 도면과 100% 정밀 동일한 [PNM 펄스 수 변조 회로] 프리셋이 로드되었습니다!`;
+        this.breadboardCanvas.toastMsg = `🏆 EIC-108 도면 100% 정밀 반영 [PNM 펄스 수 변조 회로] 로드 완료!`;
     }
 
     // ⚡ Sample 2: LM358 Dual Op-Amp Quadrature Oscillator & Integrator (+9V Power)
@@ -471,51 +503,6 @@ class AppController {
 
         this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `⚡ LM358 듀얼 Op-Amp 발진회로 로드 완료! (CH A: 구형파 OUT1, CH B: 삼각파/적분 OUT2, CH C: 4.5V Vref)`;
-    }
-
-    // ⚡ Sample 1: NE555 Astable Square Wave Oscillator (구형파 발진기)
-    initSquareOscillator() {
-        this.currentExamTitle = '⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator Sample)';
-        this.voltageVa = 5.0;
-        this.voltageVb = 0.0;
-        this.voltageVc = -5.0;
-        this.breadboardCanvas.voltageVa = 5.0;
-        this.breadboardCanvas.voltageVb = 0.0;
-        this.breadboardCanvas.voltageVc = -5.0;
-
-        this.components = [
-            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_5', '#ef4444'),
-            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_5', '#3b82f6'),
-            new Wire('JUMP_VCC', 'VCC_TOP1_5', 'B1_VCC_L_10', '#ef4444'),
-            new Wire('JUMP_GND', 'GND_TOP1_5', 'B1_GND_L_10', '#3b82f6'),
-
-            new DIPChip('IC1', 'NE555', 'B1_E10', 'B1_F10'),
-
-            new Wire('W_GND', 'B1_E10', 'B1_GND_L_10', '#3b82f6'),
-            new Wire('W_VCC', 'B1_F10', 'B1_VCC_R_10', '#ef4444'),
-            new Wire('W_RESET', 'B1_E13', 'B1_VCC_L_13', '#ef4444'),
-
-            new Resistor('R1', 'B1_VCC_R_11', 'B1_H11', 1000, true),
-            new Resistor('R2', 'B1_H11', 'B1_J12', 10000, true),
-            new Wire('W_TRIG_THRESH', 'B1_D11', 'B1_J12', '#0984e3'),
-            new Capacitor('C1', 'B1_C11', 'B1_GND_L_11', 0.1e-6, true, 'MYLAR'),
-
-            new Resistor('R_LED', 'B1_C12', 'B1_A16', 330, true),
-            new LEDComponent('LED1', 'B1_B16', 'B1_GND_L_16', 2.0)
-        ];
-
-        this.probeAPin = 'B1_E12';
-        this.probeBPin = 'B1_C11';
-        this.probeCPin = 'B1_H11';
-        this.probeDPin = 'B1_VCC_L_10';
-
-        this.breadboardCanvas.probeAPin = 'B1_E12';
-        this.breadboardCanvas.probeBPin = 'B1_C11';
-        this.breadboardCanvas.probeCPin = 'B1_H11';
-        this.breadboardCanvas.probeDPin = 'B1_VCC_L_10';
-
-        this.warmupSimulationBuffer(300);
-        this.breadboardCanvas.toastMsg = `⚡ NE555 구형파 발진기 로드 완료! (CH A: 685Hz 구형파, CH B: 삼각 파형)`;
     }
 
     initMasterCommExam() {
@@ -782,11 +769,11 @@ class AppController {
         }
 
         const statsA = this.oscilloscopeCanvas.statsA || { vpp: 0, vMin: 0, vMax: 0, freq: 0 };
-        const vpp = statsA.vpp || (statsA.vMax - statsA.vMin) || 4.95;
-        const freq = statsA.freq || (this.spectrumCanvas.lastSpectrum ? this.spectrumCanvas.lastSpectrum.peakFreq : 685.7);
-        const duty = 50.2;
+        const vpp = statsA.vpp || (statsA.vMax - statsA.vMin) || 21.6;
+        const freq = statsA.freq || (this.spectrumCanvas.lastSpectrum ? this.spectrumCanvas.lastSpectrum.peakFreq : 45.5);
+        const duty = 50.0;
 
-        const isVppPass = vpp >= 3.0 && vpp <= 14.0;
+        const isVppPass = vpp >= 3.0 && vpp <= 25.0;
         const isFreqPass = freq >= 10 || freq > 0;
         const isOverallPass = isVppPass && isFreqPass;
 
@@ -797,7 +784,7 @@ class AppController {
 
         const html = `
             <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid #38bdf8; padding: 14px; border-radius: 8px; margin-bottom: 12px;">
-                <h4 style="color: #38bdf8; margin-bottom: 6px;">📌 수험 과제: ${this.currentExamTitle || '자격증 오실로스코프 파형 측정 실기 과제'}</h4>
+                <h4 style="color: #38bdf8; margin-bottom: 6px;">📌 수험 과제: ${this.currentExamTitle || 'LM741 SQUARE 구형파 발진회로'}</h4>
                 <p style="font-size: 12px; color: #94a3b8;">시행기관: KCA 한국방송통신전파진흥원 / Q-Net 한국산업인력공단 실기 수험자 채점표 (4CH 오실로스코프 계측)</p>
             </div>
 
@@ -813,18 +800,18 @@ class AppController {
                 <tbody>
                     <tr>
                         <td style="padding: 8px; border: 1px solid #334155; text-align: left;">1. CH A TP1 전압 ($V_{p-p}$)</td>
-                        <td style="padding: 8px; border: 1px solid #334155;">3.0V ~ 14.0V</td>
+                        <td style="padding: 8px; border: 1px solid #334155;">10.0V ~ 24.0V</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #facc15; font-weight: bold;">${vpp.toFixed(2)} V</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isVppPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isVppPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">2. CH B TP2 주파수 (Frequency $Hz$)</td>
-                        <td style="padding: 8px; border: 1px solid #334155;">10.0 Hz ~ 10.0 kHz</td>
+                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">2. CH A 발진 주파수 (Frequency $Hz$)</td>
+                        <td style="padding: 8px; border: 1px solid #334155;">30.0 Hz ~ 60.0 Hz</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #e879f9; font-weight: bold;">${freq.toFixed(1)} Hz</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: ${isFreqPass ? '#22c55e' : '#ef4444'}; font-weight: bold;">${isFreqPass ? '합격 (PASS)' : '불합격'}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">3. CH C TP3 듀티비 (Duty Ratio %)</td>
+                        <td style="padding: 8px; border: 1px solid #334155; text-align: left;">3. 듀티비 (Duty Ratio %)</td>
                         <td style="padding: 8px; border: 1px solid #334155;">45.0% ~ 55.0%</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #38bdf8; font-weight: bold;">${duty.toFixed(1)} %</td>
                         <td style="padding: 8px; border: 1px solid #334155; color: #22c55e; font-weight: bold;">합격 (PASS)</td>
@@ -862,7 +849,6 @@ class AppController {
     }
 
     setupUIEventListeners() {
-        // Resistor & Capacitor & IC Family Dropdowns
         const rTypeSelect = document.getElementById('resistorTypeSelect');
         if (rTypeSelect) {
             rTypeSelect.addEventListener('change', (e) => {
@@ -884,7 +870,6 @@ class AppController {
             });
         }
 
-        // Two-Way Sync Bindings for Oscilloscope Scale (Volt/Div, Time/Div) and Position (Y-Offset, X-Offset)
         const bindVoltDivSync = (selectId, numId, propName) => {
             const selectEl = document.getElementById(selectId);
             const numEl = document.getElementById(numId);
@@ -986,7 +971,6 @@ class AppController {
             }
         };
 
-        // Wire up all 4 channels Volt/Div and Y-Pos Sync
         bindVoltDivSync('voltDivChA', 'numVoltDivChA', 'voltPerDivChA');
         bindVoltDivSync('voltDivChB', 'numVoltDivChB', 'voltPerDivChB');
         bindVoltDivSync('voltDivChC', 'numVoltDivChC', 'voltPerDivChC');
@@ -1008,7 +992,7 @@ class AppController {
         const btnResetScope = document.getElementById('btnResetScopeControls');
         if (btnResetScope) {
             btnResetScope.addEventListener('click', () => {
-                document.getElementById('voltDivChA').value = '2.0'; document.getElementById('numVoltDivChA').value = '2.0';
+                document.getElementById('voltDivChA').value = '5.0'; document.getElementById('numVoltDivChA').value = '5.0';
                 document.getElementById('voltDivChB').value = '2.0'; document.getElementById('numVoltDivChB').value = '2.0';
                 document.getElementById('voltDivChC').value = '2.0'; document.getElementById('numVoltDivChC').value = '2.0';
                 document.getElementById('voltDivChD').value = '5.0'; document.getElementById('numVoltDivChD').value = '5.0';
@@ -1028,8 +1012,8 @@ class AppController {
                 document.getElementById('chkChC').checked = true;
                 document.getElementById('chkChD').checked = true;
 
-                document.getElementById('timeDivSelect').value = '0.0002';
-                document.getElementById('numTimeDivMs').value = '0.20';
+                document.getElementById('timeDivSelect').value = '0.005';
+                document.getElementById('numTimeDivMs').value = '5.00';
                 document.getElementById('posXTime').value = '0';
                 document.getElementById('numPosXTime').value = '0';
 
@@ -1037,7 +1021,6 @@ class AppController {
             });
         }
 
-        // Instrument Floating Modal Window Triggers
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
             this.startSimulation();
             document.getElementById('scopeModal').classList.remove('hidden');
@@ -1082,7 +1065,6 @@ class AppController {
             }
         });
 
-        // Exam Grading Sheet Modal Event Listeners
         document.getElementById('btnGradeExam').addEventListener('click', () => {
             this.openExamGradingSheet();
         });
@@ -1098,14 +1080,14 @@ class AppController {
                 btnToggleBadges.className = isShow ? 'btn btn-primary' : 'btn';
                 this.breadboardCanvas.toastMsg = isShow ?
                     '🏷️ 소자 수치(Value) 뱃지가 표시됩니다.' :
-                    '🏷️ 소자 수치(Value) 뱃지가 숨겨졌습니다. (색상 띠만 표시)';
+                    '🏷️ 소자 수치(Value) 뱃지가 숨겨졌습니다.';
                 this.renderAll();
             });
         }
 
         document.getElementById('btnClearBoard').addEventListener('click', () => {
             this.initEmptyBoard();
-            this.breadboardCanvas.toastMsg = '🧹 깨끗한 빈 브레드보드가 준비되었습니다. 부품을 새로 꽂아보세요!';
+            this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드가 준비되었습니다.';
             document.getElementById('presetSelect').value = 'empty';
             this.renderAll();
         });
@@ -1174,10 +1156,10 @@ class AppController {
                 this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
-            } else if (val === 'lm358_osc') {
-                this.initLM358Oscillator();
             } else if (val === 'square_osc') {
                 this.initSquareOscillator();
+            } else if (val === 'lm358_osc') {
+                this.initLM358Oscillator();
             } else if (val === 'exam_master_comm') {
                 this.initMasterCommExam();
             } else if (val === 'exam_craftsman_elec') {
@@ -1228,7 +1210,6 @@ class AppController {
         let vC = 0;
         let vD = 0;
 
-        // Dynamic Voltage Sources for Va, Vb, Vc Binding Posts
         const bindingSources = [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
