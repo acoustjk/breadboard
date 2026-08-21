@@ -39,8 +39,8 @@
                 📂 회로 불러오기
             </button>
 
-            <button id="btnPlayPause" class="btn btn-success">
-                <span id="playIcon">▶</span> 시뮬레이션 시작
+            <button id="btnPlayPause" class="btn btn-primary">
+                <span id="playIcon">⏸️</span> 시뮬레이션 일시정지
             </button>
             <button id="btnGradeExam" class="btn btn-primary" style="background: #8b5cf6;">
                 📝 실기시험 답안지 자동 채점
@@ -177,7 +177,7 @@
         <section class="card breadboard-panel">
             <div class="card-title">
                 <span>Wanjie BB-4T7D Interactive Breadboard Workbench</span>
-                <span style="font-weight: normal; font-size: 12px; color: var(--accent-amber);" id="circuitStatusText">상태: 시뮬레이션 대기 중</span>
+                <span style="font-weight: normal; font-size: 12px; color: var(--accent-green);" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
             <div class="breadboard-toolbar">
@@ -185,7 +185,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 오실로스코프 0V 중앙 자동 정렬 보정 완료! 팝업 열기 시 노란색 파형선이 화면 정중앙에 선명하게 나타납니다.</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 접속 즉시 실시간 시뮬레이션이 자동 구동됩니다! 오실로스코프 팝업을 열면 노란색 CH A 구형파 파형이 실시간으로 춤춥니다.</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -202,7 +202,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>오실로스코프 팝업 열기 시 노란색 CH A 트레이스가 화면 <strong>정중앙(50% Baseline)</strong>에 자동으로 선명하게 정렬되도록 안전 장치가 강화되었습니다!</p>
+                <p>접속 시 실시간 연산(60 FPS)이 <strong>자동 실행(Auto-Start)</strong>되도록 개선되었습니다. 계측기 버튼을 누르면 실시간 펄스 파형을 바로 감상하실 수 있습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -357,7 +357,7 @@
 
                 <!-- CH D Controls (Green) -->
                 <div class="channel-control-card" style="border-left: 3px solid #22c55e; padding: 6px 8px; background: rgba(34, 197, 94, 0.04); border-radius: 6px;">
-                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align- items: center;">
+                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
                         <label><input type="checkbox" id="chkChD" checked> 📍 CH D (VCC)</label>
                         <span id="txtValChD" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
                     </div>
@@ -458,6 +458,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1054"></script>
+    <script type="module" src="./app.js?v=1055"></script>
 </body>
 </html>

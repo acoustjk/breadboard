@@ -1,19 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * EIC-108 & LM741 Square Wave Oscillator 100% Fixed Parity Preset v=1054.
+ * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1054';
-import { MNASolver } from './src/engine/MNASolver.js?v=1054';
-import { FFT } from './src/engine/FFT.js?v=1054';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1054';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1054';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1054';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1054';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1054';
-import { AICopilot } from './src/components/AICopilot.js?v=1054';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1054';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1055';
+import { MNASolver } from './src/engine/MNASolver.js?v=1055';
+import { FFT } from './src/engine/FFT.js?v=1055';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1055';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1055';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1055';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1055';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1055';
+import { AICopilot } from './src/components/AICopilot.js?v=1055';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1055';
 
 class AppController {
     constructor() {
@@ -62,6 +62,7 @@ class AppController {
         this.initUserPreservedSquare(); // Load Preserved User SQUARE Layout by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
+        this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
         this.renderAll();
     }
 
@@ -269,7 +270,7 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
-    warmupSimulationBuffer(steps = 400) {
+    warmupSimulationBuffer(steps = 1200) {
         const bindingSources = [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
@@ -343,7 +344,7 @@ class AppController {
         this.breadboardCanvas.probeCPin = 'BINDING_Va';
         this.breadboardCanvas.probeDPin = 'BINDING_Vc';
 
-        this.warmupSimulationBuffer(600);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `⚡ 직접 그리신 배치 100% 보존 회로 로드 완료! (CH A: LM741 Pin 6 OUT ±10.8V 45.5Hz 사각파)`;
     }
 
@@ -439,7 +440,7 @@ class AppController {
         this.breadboardCanvas.probeCPin = 'B4_C33';
         this.breadboardCanvas.probeDPin = 'BINDING_Va';
 
-        this.warmupSimulationBuffer(400);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `🏆 EIC-108 도면 100% 정밀 반영 [PNM 펄스 수 변조 회로] 로드 완료!`;
     }
 
@@ -531,7 +532,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_D25';
         this.breadboardCanvas.probeCPin = 'B1_VCC_L_1';
         this.breadboardCanvas.probeDPin = 'B1_GND_L_1';
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `🏆 [통신설비기능장 실기 2번 회로] 4CH 오실로스코프 계측 준비!`;
     }
 
@@ -554,7 +555,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_C5';
         this.breadboardCanvas.probeCPin = 'B1_A15';
         this.breadboardCanvas.probeDPin = 'B1_B20';
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `🥇 [전자기능사 실기 1번 회로] 4CH 계측 준비!`;
     }
 
@@ -574,7 +575,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_C10';
         this.breadboardCanvas.probeCPin = 'B1_VCC_L_5';
         this.breadboardCanvas.probeDPin = 'B1_GND_L_10';
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `🥈 [전자산업기사 능동 LPF] 4CH 파형 계측 준비!`;
     }
 
@@ -594,7 +595,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_VCC_L_5';
         this.breadboardCanvas.probeCPin = 'B1_B10';
         this.breadboardCanvas.probeDPin = 'B1_GND_L_10';
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `🥉 [무선설비기능사 Colpitts] 4CH 파형 계측 준비!`;
     }
 
@@ -616,7 +617,7 @@ class AppController {
         this.breadboardCanvas.probeBPin = 'B1_B20';
         this.breadboardCanvas.probeCPin = 'B1_VCC_L_5';
         this.breadboardCanvas.probeDPin = 'B1_GND_L_5';
-        this.warmupSimulationBuffer(300);
+        this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
     }
 
@@ -774,7 +775,8 @@ class AppController {
         this.compCounter = this.components.length + 10;
 
         this.oscilloscopeCanvas.resetControls();
-        this.warmupSimulationBuffer(600);
+        this.warmupSimulationBuffer(1200);
+        this.startSimulation();
         this.renderAll();
     }
 
