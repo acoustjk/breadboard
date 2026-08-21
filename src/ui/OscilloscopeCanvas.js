@@ -1,15 +1,37 @@
-/**
- * OscilloscopeCanvas.js
- * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
- * Left Y-Axis Voltage Ruler Scale & Major/Minor Tick Marks v=1059.
- */
+export class RingBuffer {
+    constructor(capacity = 5000) {
+        this.capacity = capacity;
+        this.data = new Float64Array(capacity);
+        this.head = 0;
+        this.length = 0;
+    }
+
+    reset() {
+        this.data.fill(0);
+        this.head = 0;
+        this.length = 0;
+    }
+
+    push(val) {
+        this.data[this.head] = val;
+        this.head = (this.head + 1) % this.capacity;
+        if (this.length < this.capacity) this.length++;
+    }
+
+    get(i) {
+        if (i < 0 || i >= this.length) return 0;
+        let idx = (this.head - this.length + i) % this.capacity;
+        if (idx < 0) idx += this.capacity;
+        return this.data[idx];
+    }
+}
 
 export class OscilloscopeCanvas {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 10000; // Deep 10,000 sample buffer to prevent horizontal clipping at 50ms/div
+        this.bufferSize = 5000; // Fast 5,000 Float64Array RingBuffer (500ms timebase storage)
         this.dt = 0.0001; // 100us simulation time step
         this.resetBuffer();
 
@@ -42,10 +64,12 @@ export class OscilloscopeCanvas {
     }
 
     resetBuffer() {
-        this.bufferA = new Array(this.bufferSize).fill(0);
-        this.bufferB = new Array(this.bufferSize).fill(0);
-        this.bufferC = new Array(this.bufferSize).fill(0);
-        this.bufferD = new Array(this.bufferSize).fill(0);
+        this.ringA = new RingBuffer(this.bufferSize);
+        this.ringB = new RingBuffer(this.bufferSize);
+        this.ringC = new RingBuffer(this.bufferSize);
+        this.ringD = new RingBuffer(this.bufferSize);
+        // Expose bufferA as Array for FFT & Diagnostic compatibility
+        this.bufferA = [];
     }
 
     resetControls() {
@@ -76,37 +100,36 @@ export class OscilloscopeCanvas {
         let valC = isNaN(vC) || !isFinite(vC) ? 0 : Math.max(-25, Math.min(25, vC));
         let valD = isNaN(vD) || !isFinite(vD) ? 0 : Math.max(-25, Math.min(25, vD));
 
-        this.bufferA.push(valA);
-        if (this.bufferA.length > this.bufferSize) this.bufferA.shift();
-
-        this.bufferB.push(valB);
-        if (this.bufferB.length > this.bufferSize) this.bufferB.shift();
-
-        this.bufferC.push(valC);
-        if (this.bufferC.length > this.bufferSize) this.bufferC.shift();
-
-        this.bufferD.push(valD);
-        if (this.bufferD.length > this.bufferSize) this.bufferD.shift();
-
-        this.calculateStats();
+        this.ringA.push(valA);
+        this.ringB.push(valB);
+        this.ringC.push(valC);
+        this.ringD.push(valD);
     }
 
     calculateStats() {
-        this.statsA = this.computeStatsForBuffer(this.bufferA);
-        this.statsB = this.computeStatsForBuffer(this.bufferB);
-        this.statsC = this.computeStatsForBuffer(this.bufferC);
-        this.statsD = this.computeStatsForBuffer(this.bufferD);
+        this.statsA = this.computeStatsForRing(this.ringA);
+        this.statsB = this.computeStatsForRing(this.ringB);
+        this.statsC = this.computeStatsForRing(this.ringC);
+        this.statsD = this.computeStatsForRing(this.ringD);
+
+        // Synchronize bufferA array for FFT spectrum module
+        const len = Math.min(512, this.ringA.length);
+        this.bufferA = [];
+        for (let i = this.ringA.length - len; i < this.ringA.length; i++) {
+            this.bufferA.push(this.ringA.get(i));
+        }
     }
 
-    computeStatsForBuffer(buffer) {
-        if (!buffer || buffer.length === 0) return { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
+    computeStatsForRing(ring) {
+        if (!ring || ring.length === 0) return { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
 
         let vMin = Infinity;
         let vMax = -Infinity;
-        for (let i = 0; i < buffer.length; i++) {
-            let v = buffer[i];
-            if (isNaN(v) || !isFinite(v)) v = 0;
-            v = Math.max(-25.0, Math.min(25.0, v));
+        const total = ring.length;
+        const step = Math.max(1, Math.floor(total / 500)); // Subsample 500 points for fast stats
+
+        for (let i = 0; i < total; i += step) {
+            let v = ring.get(i);
             if (v < vMin) vMin = v;
             if (v > vMax) vMax = v;
         }
@@ -117,10 +140,13 @@ export class OscilloscopeCanvas {
 
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
-        for (let i = 1; i < buffer.length; i++) {
-            if ((buffer[i - 1] < mid && buffer[i] >= mid) || (buffer[i - 1] >= mid && buffer[i] < mid)) {
+        let prevVal = ring.get(0);
+        for (let i = step; i < total; i += step) {
+            const currVal = ring.get(i);
+            if ((prevVal < mid && currVal >= mid) || (prevVal >= mid && currVal < mid)) {
                 crossings++;
             }
+            prevVal = currVal;
         }
         const freq = (crossings > 1 && vpp > 0.5) ? (crossings / 2) * 50.0 : 0;
 
@@ -128,6 +154,8 @@ export class OscilloscopeCanvas {
     }
 
     render() {
+        this.calculateStats();
+
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
@@ -173,18 +201,18 @@ export class OscilloscopeCanvas {
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom
+        // 2. Render 4 Waveform Traces with RingBuffers
         if (this.showChA) {
-            this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
+            this.renderTrace(this.ringA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
         if (this.showChB) {
-            this.renderTrace(this.bufferB, '#e879f9', this.voltPerDivChB, zeroY, scaleY, this.posOffsetYChB, this.posOffsetX);
+            this.renderTrace(this.ringB, '#e879f9', this.voltPerDivChB, zeroY, scaleY, this.posOffsetYChB, this.posOffsetX);
         }
         if (this.showChC) {
-            this.renderTrace(this.bufferC, '#38bdf8', this.voltPerDivChC, zeroY, scaleY, this.posOffsetYChC, this.posOffsetX);
+            this.renderTrace(this.ringC, '#38bdf8', this.voltPerDivChC, zeroY, scaleY, this.posOffsetYChC, this.posOffsetX);
         }
         if (this.showChD) {
-            this.renderTrace(this.bufferD, '#22c55e', this.voltPerDivChD, zeroY, scaleY, this.posOffsetYChD, this.posOffsetX);
+            this.renderTrace(this.ringD, '#22c55e', this.voltPerDivChD, zeroY, scaleY, this.posOffsetYChD, this.posOffsetX);
         }
 
         // 3. Render Left Y-Axis Voltage Ruler Scale & Major/Minor Tick Marks
@@ -218,8 +246,8 @@ export class OscilloscopeCanvas {
             this.ctx.stroke();
 
             // Voltage Text Label
-            this.ctx.fillStyle = (j === 4) ? '#facc15' : (voltVal > 0 ? '#ef4444' : '#38bdf8');
-            this.ctx.fillText(voltStr, 4, y);
+            this.ctx.fillStyle = (j === 4) ? '#facc15' : '#94a3b8';
+            this.ctx.fillText(voltStr, 8, y);
 
             // Minor Sub-Ticks (5 subdivisions per division)
             if (j < numDivsY) {
@@ -270,8 +298,8 @@ export class OscilloscopeCanvas {
         this.ctx.fillText(`CH D: ${this.voltPerDivChD}V/d (${fmtVpp(this.statsD)}Vpp)`, 530, 21);
     }
 
-    renderTrace(buffer, color, voltPerDiv, zeroY, scaleY, posOffsetY = 0, posOffsetX = 0) {
-        if (!buffer || buffer.length === 0) return;
+    renderTrace(ringBuffer, color, voltPerDiv, zeroY, scaleY, posOffsetY = 0, posOffsetX = 0) {
+        if (!ringBuffer || ringBuffer.length === 0) return;
 
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 2.4;
@@ -285,7 +313,7 @@ export class OscilloscopeCanvas {
         const vDivScale = scaleY / (voltPerDiv || 1.0);
         const traceZeroY = zeroY - posOffsetY;
 
-        const endIdx = Math.min(buffer.length, buffer.length - Math.round(posOffsetX));
+        const endIdx = Math.min(ringBuffer.length, ringBuffer.length - Math.round(posOffsetX));
         const startIdx = Math.max(0, endIdx - samplesOnScreen);
 
         this.ctx.beginPath();
@@ -294,7 +322,7 @@ export class OscilloscopeCanvas {
         for (let i = startIdx; i < endIdx; i++) {
             const screenIdx = i - startIdx;
             const x = screenIdx * stepX;
-            let v = buffer[i];
+            let v = ringBuffer.get(i);
             if (isNaN(v) || !isFinite(v)) v = 0;
             v = Math.max(-25.0, Math.min(25.0, v));
 
