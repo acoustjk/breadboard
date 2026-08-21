@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Visual 2D Canvas Renderer for Wanjie BB-4T7D 3220-Pin Laboratory Breadboard.
- * Renders Official EIC-108 TP1, TP2, TP3 Flag Tags and Curved Bridge Wires v=1049.
+ * Instant Component Selection & Pointer Hover Feedback Fix v=1050.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1049';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1050';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -209,16 +209,20 @@ export class BreadboardCanvas {
                 }
             }
 
-            if (this.hoveredPin) {
-                this.handlePinClick(this.hoveredPin);
+            // 🎯 Priority 1: If in SELECT mode, test component hit FIRST!
+            if (this.activeTool === 'SELECT') {
+                const clickedComp = this.findComponentAt({ x: worldX, y: worldY });
+                if (clickedComp) {
+                    this.selectComponent(clickedComp);
+                } else {
+                    this.selectComponent(null);
+                }
                 return;
             }
 
-            const clickedComp = this.findComponentAt({ x: worldX, y: worldY });
-            if (clickedComp) {
-                this.selectComponent(clickedComp);
-            } else {
-                this.selectComponent(null);
+            // 🎯 Priority 2: Placement Tools (WIRE, R, C, IC, PROBE, etc.)
+            if (this.hoveredPin) {
+                this.handlePinClick(this.hoveredPin);
             }
         });
 
@@ -266,21 +270,27 @@ export class BreadboardCanvas {
             const worldY = (canvasMouseY - this.offsetY) / this.scale;
             this.mouseWorldPos = { x: worldX, y: worldY };
 
-            let closestPin = null;
-            let minDist = 22 / this.scale;
+            // Change cursor style & hover state
+            if (this.activeTool === 'SELECT') {
+                const hoveredComp = this.findComponentAt({ x: worldX, y: worldY });
+                this.canvas.style.cursor = hoveredComp ? 'pointer' : 'default';
+                this.hoveredPin = null;
+            } else {
+                this.canvas.style.cursor = 'crosshair';
+                let closestPin = null;
+                let minDist = 22 / this.scale;
 
-            for (const [pinKey, pos] of this.pinCoords.entries()) {
-                const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestPin = pinKey;
+                for (const [pinKey, pos] of this.pinCoords.entries()) {
+                    const dist = Math.hypot(pos.x - worldX, pos.y - worldY);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPin = pinKey;
+                    }
                 }
+                this.hoveredPin = closestPin;
             }
 
-            if (this.hoveredPin !== closestPin) {
-                this.hoveredPin = closestPin;
-                this.render();
-            }
+            this.render();
         });
     }
 
@@ -297,7 +307,7 @@ export class BreadboardCanvas {
     findComponentAt(mousePos) {
         if (!this.lastComponents || this.lastComponents.length === 0) return null;
         let selected = null;
-        let minHitDist = 20;
+        let minHitDist = 25;
 
         for (const comp of this.lastComponents) {
             const pA = this.getPinPos(comp.pinA);
@@ -314,6 +324,24 @@ export class BreadboardCanvas {
                 if (mousePos.x >= midX - chipWidth / 2 && mousePos.x <= midX + chipWidth / 2 &&
                     mousePos.y >= topY && mousePos.y <= topY + chipHeight) {
                     return comp;
+                }
+            } else if (comp.type === 'WIRE') {
+                const midX = (pA.x + pB.x) / 2;
+                const midY = (pA.y + pB.y) / 2 - 12;
+
+                const curvePts = [];
+                for (let t = 0; t <= 1.0; t += 0.2) {
+                    const cx = (1 - t) ** 2 * pA.x + 2 * (1 - t) * t * midX + t ** 2 * pB.x;
+                    const cy = (1 - t) ** 2 * pA.y + 2 * (1 - t) * t * midY + t ** 2 * pB.y;
+                    curvePts.push({ x: cx, y: cy });
+                }
+
+                for (let k = 0; k < curvePts.length - 1; k++) {
+                    const dist = this.pointToSegmentDist(mousePos.x, mousePos.y, curvePts[k].x, curvePts[k].y, curvePts[k + 1].x, curvePts[k + 1].y);
+                    if (dist < minHitDist) {
+                        minHitDist = dist;
+                        selected = comp;
+                    }
                 }
             } else {
                 const dist = this.pointToSegmentDist(mousePos.x, mousePos.y, pA.x, pA.y, pB.x, pB.y);
