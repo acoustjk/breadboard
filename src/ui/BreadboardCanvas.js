@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * DIP IC Chip Silver Metallic Legs & Crisp Pin Numbers (1..8/14/16) v=1060.
+ * Canvas Mouse Wheel Independent Zoom & High-Contrast Circular IC Pin Badges (1..N) v=1061.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1060';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1061';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -34,6 +34,26 @@ export class BreadboardCanvas {
         this.numBlocks = 4;
         this.pinCoords = new Map();
         this.initPinCoordinates();
+        this.initEvents();
+    }
+
+    initEvents() {
+        // Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
+        this.canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = this.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const zoomFactor = e.deltaY < 0 ? 1.12 : 0.88;
+            const newZoom = Math.max(0.4, Math.min(3.5, this.zoomLevel * zoomFactor));
+
+            this.panOffsetX = mouseX - (mouseX - this.panOffsetX) * (newZoom / this.zoomLevel);
+            this.panOffsetY = mouseY - (mouseY - this.panOffsetY) * (newZoom / this.zoomLevel);
+            this.zoomLevel = newZoom;
+
+            if (this.onNeedsRender) this.onNeedsRender();
+        }, { passive: false });
     }
 
     showToast(msg) {
@@ -41,7 +61,7 @@ export class BreadboardCanvas {
         if (this.toastTimer) clearTimeout(this.toastTimer);
         this.toastTimer = setTimeout(() => {
             this.toastMsg = null;
-            this.render([]);
+            if (this.onNeedsRender) this.onNeedsRender();
         }, 3000);
     }
 
@@ -622,28 +642,29 @@ export class BreadboardCanvas {
             const numPinsTotal = comp.pins || 8;
             const pinsPerSide = numPinsTotal / 2;
             const pitchY = 11.2;
-            const chipWidth = Math.abs(pB.x - pA.x) + 32;
-            const chipHeight = (pinsPerSide - 1) * pitchY + 32;
-            const topY = pA.y - 16;
+            const chipWidth = Math.abs(pB.x - pA.x) + 36;
+            const chipHeight = (pinsPerSide - 1) * pitchY + 34;
+            const topY = pA.y - 17;
 
             // DIP Chip Body
             this.ctx.fillStyle = '#1e272e';
             this.ctx.beginPath();
-            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
+            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 5);
             this.ctx.fill();
             this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
             this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
             this.ctx.stroke();
 
-            // Pin 1 Notch & Dot Indicator
+            // Pin 1 Notch
             this.ctx.fillStyle = '#0f172a';
             this.ctx.beginPath();
             this.ctx.arc(midX, topY, 6, 0, Math.PI);
             this.ctx.fill();
 
-            this.ctx.fillStyle = '#38bdf8'; // Cyan Pin 1 dot
+            // Pin 1 Cyan Dot Indicator
+            this.ctx.fillStyle = '#38bdf8';
             this.ctx.beginPath();
-            this.ctx.arc(midX - chipWidth / 2 + 8, topY + 10, 2.5, 0, Math.PI * 2);
+            this.ctx.arc(midX - chipWidth / 2 + 8, topY + 10, 3.0, 0, Math.PI * 2);
             this.ctx.fill();
 
             // Printed IC Name Text
@@ -652,10 +673,7 @@ export class BreadboardCanvas {
             this.ctx.textAlign = 'center';
             this.ctx.fillText(comp.icType || 'LF356', midX, topY + chipHeight / 2 + 3);
 
-            // Render Metallic Pins & Yellow Pin Numbers (1..8 / 1..14 / 1..16)
-            this.ctx.font = 'bold 9px sans-serif';
-            this.ctx.textBaseline = 'middle';
-
+            // Render Metallic Pins & High-Contrast Pin Number Badges (1..8 / 1..14 / 1..16)
             for (let i = 0; i < pinsPerSide; i++) {
                 const legY = pA.y + i * pitchY;
 
@@ -665,12 +683,23 @@ export class BreadboardCanvas {
 
                 // Silver Metallic Lead/Leg
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(leftLegX - 5, legY - 2, 6, 4);
+                this.ctx.fillRect(leftLegX - 6, legY - 2, 7, 4);
 
-                // Bright Yellow Pin Number Label
-                this.ctx.fillStyle = '#facc15';
+                // Left Pin Badge (High Contrast Dark Circle + Bright Text)
+                const isPin1 = (leftPinNum === 1);
+                this.ctx.fillStyle = isPin1 ? '#0284c7' : '#0f172a';
+                this.ctx.beginPath();
+                this.ctx.arc(leftLegX + 11, legY, 7.0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isPin1 ? '#38bdf8' : '#facc15';
+                this.ctx.lineWidth = 1.2;
+                this.ctx.stroke();
+
+                this.ctx.fillStyle = isPin1 ? '#ffffff' : '#facc15';
+                this.ctx.font = 'bold 10px sans-serif';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${leftPinNum}`, leftLegX + 8, legY);
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(`${leftPinNum}`, leftLegX + 11, legY);
 
                 // Right Pin Leg (Pin N..N/2+1)
                 const rightPinNum = numPinsTotal - i;
@@ -678,12 +707,22 @@ export class BreadboardCanvas {
 
                 // Silver Metallic Lead/Leg
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(rightLegX - 1, legY - 2, 6, 4);
+                this.ctx.fillRect(rightLegX - 1, legY - 2, 7, 4);
 
-                // Bright Yellow Pin Number Label
+                // Right Pin Badge (High Contrast Dark Circle + Bright Text)
+                this.ctx.fillStyle = '#0f172a';
+                this.ctx.beginPath();
+                this.ctx.arc(rightLegX - 11, legY, 7.0, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#facc15';
+                this.ctx.lineWidth = 1.2;
+                this.ctx.stroke();
+
                 this.ctx.fillStyle = '#facc15';
+                this.ctx.font = 'bold 10px sans-serif';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${rightPinNum}`, rightLegX - 8, legY);
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(`${rightPinNum}`, rightLegX - 11, legY);
             }
 
         } else if (comp.type === 'DIODE' || comp.type === 'ZENER') {

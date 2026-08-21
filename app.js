@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1055';
-import { MNASolver } from './src/engine/MNASolver.js?v=1055';
-import { FFT } from './src/engine/FFT.js?v=1055';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1055';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1055';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1055';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1055';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1055';
-import { AICopilot } from './src/components/AICopilot.js?v=1055';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1055';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1061';
+import { MNASolver } from './src/engine/MNASolver.js?v=1061';
+import { FFT } from './src/engine/FFT.js?v=1061';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1061';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1061';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1061';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1061';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1061';
+import { AICopilot } from './src/components/AICopilot.js?v=1061';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1061';
 
 class AppController {
     constructor() {
@@ -188,6 +188,10 @@ class AppController {
 
             this.resetToolState();
             this.breadboardCanvas.toastMsg = `📍 4CH 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
+            this.renderAll();
+        };
+
+        this.breadboardCanvas.onNeedsRender = () => {
             this.renderAll();
         };
     }
