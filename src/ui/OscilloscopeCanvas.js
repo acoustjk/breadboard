@@ -1,11 +1,7 @@
 /**
  * OscilloscopeCanvas.js
  * Real-Time 4-Channel (4CH) Oscilloscope Canvas Renderer.
- * True Time/Div Horizontal Zoom Engine:
- * - Dynamically calculates `samplesOnScreen` from `timePerDiv` and `dt` (100us)
- * - Renders 0.01ms (10us) ~ 50ms Timebase Horizontal Zoom
- * - Independent Per-Channel Volt/Div & Y-Position Shift
- * - Colors: CH A (Yellow #facc15), CH B (Magenta #e879f9), CH C (Cyan #38bdf8), CH D (Green #22c55e)
+ * Centered 0V Baseline (50% height) with Clamped Trace Offsets & Auto-Probe Safety v=1054.
  */
 
 export class OscilloscopeCanvas {
@@ -13,12 +9,12 @@ export class OscilloscopeCanvas {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 1200; // Expanded buffer size for deep horizontal timebase zoom
+        this.bufferSize = 1200; // Deep buffer for smooth horizontal timebase zoom
         this.dt = 0.0001; // 100us simulation time step
         this.resetBuffer();
 
         // Independent Per-Channel Volt/Div Scales
-        this.voltPerDivChA = 2.0;
+        this.voltPerDivChA = 5.0;
         this.voltPerDivChB = 2.0;
         this.voltPerDivChC = 2.0;
         this.voltPerDivChD = 5.0;
@@ -29,9 +25,9 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        // Horizontal Timebase Settings
-        this.timePerDiv = 0.0002; // 0.2 ms / div default for ultra-wide waveform view
-        this.posOffsetX = 0; // Horizontal shift (samples)
+        // Horizontal Timebase Settings (Default 5.0ms / div for 45Hz~1kHz clear view)
+        this.timePerDiv = 0.005;
+        this.posOffsetX = 0;
 
         // Channel ON/OFF Visibility Toggles
         this.showChA = true;
@@ -53,7 +49,7 @@ export class OscilloscopeCanvas {
     }
 
     resetControls() {
-        this.voltPerDivChA = 2.0;
+        this.voltPerDivChA = 5.0;
         this.voltPerDivChB = 2.0;
         this.voltPerDivChC = 2.0;
         this.voltPerDivChD = 5.0;
@@ -63,7 +59,7 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        this.timePerDiv = 0.0002;
+        this.timePerDiv = 0.005;
         this.posOffsetX = 0;
 
         this.showChA = true;
@@ -128,7 +124,7 @@ export class OscilloscopeCanvas {
         const { width, height } = this.canvas;
         this.ctx.clearRect(0, 0, width, height);
 
-        // CRT Dark Background
+        // CRT Dark Professional Background
         this.ctx.fillStyle = '#090d16';
         this.ctx.fillRect(0, 0, width, height);
 
@@ -151,8 +147,8 @@ export class OscilloscopeCanvas {
         }
         this.ctx.stroke();
 
-        // 0V Baseline Reference Line (75% height)
-        const zeroY = height * 0.75;
+        // 0V Symmetrical Center Baseline (50% height)
+        const zeroY = height * 0.5;
 
         this.ctx.strokeStyle = '#334155';
         this.ctx.lineWidth = 1.5;
@@ -163,14 +159,14 @@ export class OscilloscopeCanvas {
         this.ctx.lineTo(width, zeroY);
         this.ctx.stroke();
 
-        this.ctx.fillStyle = '#64748b';
-        this.ctx.font = 'bold 9px monospace';
+        this.ctx.fillStyle = '#94a3b8';
+        this.ctx.font = 'bold 10px monospace';
         const timeFormatted = this.timePerDiv >= 0.001 ? `${(this.timePerDiv * 1000).toFixed(1)}ms/div` : `${(this.timePerDiv * 1000000).toFixed(0)}µs/div`;
-        this.ctx.fillText(`0V GND Baseline (${timeFormatted})`, 5, zeroY - 4);
+        this.ctx.fillText(`0V Center Baseline (${timeFormatted})`, 6, zeroY - 5);
 
         const scaleY = divH;
 
-        // 2. Render 4 Waveform Traces with True Time/Div Horizontal Zoom
+        // 2. Render 4 Waveform Traces with Timebase Horizontal Zoom & Clamped Safety
         if (this.showChA) {
             this.renderTrace(this.bufferA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
@@ -185,7 +181,7 @@ export class OscilloscopeCanvas {
         }
 
         // 3. Channel Telemetry HUD Overlay
-        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
         this.ctx.fillRect(8, 8, width - 16, 26);
         this.ctx.strokeStyle = '#334155';
         this.ctx.strokeRect(8, 8, width - 16, 26);
@@ -214,21 +210,17 @@ export class OscilloscopeCanvas {
         if (!buffer || buffer.length === 0) return;
 
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2.2;
+        this.ctx.lineWidth = 2.4;
         this.ctx.shadowColor = color;
         this.ctx.shadowBlur = 6;
 
-        // True Timebase Horizontal Zoom Calculation:
-        // Screen has 10 divisions. Total screen duration = 10 * timePerDiv
-        // Each sample in buffer is dt = 0.0001s (100us)
-        const totalTimeScreen = 10 * (this.timePerDiv || 0.0002);
+        const totalTimeScreen = 10 * (this.timePerDiv || 0.005);
         const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
 
         const stepX = this.canvas.width / (samplesOnScreen - 1);
         const vDivScale = scaleY / (voltPerDiv || 1.0);
         const traceZeroY = zeroY - posOffsetY;
 
-        // Calculate sample index range to render from buffer
         const endIdx = Math.min(buffer.length, buffer.length - Math.round(posOffsetX));
         const startIdx = Math.max(0, endIdx - samplesOnScreen);
 

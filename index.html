@@ -19,9 +19,9 @@
         <div class="header-controls">
             <!-- Qualification Exam & Sample Preset Selector -->
             <select id="presetSelect" class="select-input" style="border-color: var(--accent-amber); width: auto;">
-                <option value="exam_pnm" selected>🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 100% 정밀 도면)</option>
+                <option value="square_osc" selected>⚡ 직접 그리신 배치 100% 보존 SQUARE 회로</option>
+                <option value="exam_pnm">🏆 [통신설비기능장 실기] PNM (펄스 수 변조) 회로 (EIC-108 100% 정밀 도면)</option>
                 <option value="lm358_osc">⚡ LM358 듀얼 Op-Amp 직교 발진기 (Quadrature Oscillator +9V)</option>
-                <option value="square_osc">⚡ NE555 아스타블 구형파 발진기 (Square Wave Oscillator)</option>
                 <option value="empty">🧹 빈 브레드보드 (자유 조립 모드)</option>
                 <optgroup label="🎓 국가기술자격증 실기시험 기출 프리셋">
                     <option value="exam_master_comm">🏆 [통신설비기능장 2번] NE555 + LM741 복합 펄스/발진회로</option>
@@ -185,7 +185,7 @@
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn">🎯 화면 맞춤</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 발진기 오프셋 노이즈 시드 적용! 오실로스코프 '스케일/포지션 리셋' 및 Time/Div 5ms 설정 시 구형파가 선명하게 보입니다.</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ 오실로스코프 0V 중앙 자동 정렬 보정 완료! 팝업 열기 시 노란색 파형선이 화면 정중앙에 선명하게 나타납니다.</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -202,7 +202,7 @@
 
             <div id="copilotChat" class="copilot-chat">
                 <p>안녕하세요! <strong>브레드보드 회로 시뮬레이터</strong>입니다.</p>
-                <p>오실로스코프 창 하단의 <strong>[🎯 스케일/포지션 리셋]</strong> 버튼을 누르시거나 <strong>Time/Div를 5.0ms</strong>로 설정하시면 $45.5\text{Hz}$ 구형파를 명확히 관찰하실 수 있습니다!</p>
+                <p>오실로스코프 팝업 열기 시 노란색 CH A 트레이스가 화면 <strong>정중앙(50% Baseline)</strong>에 자동으로 선명하게 정렬되도록 안전 장치가 강화되었습니다!</p>
             </div>
 
             <div class="copilot-actions">
@@ -357,7 +357,7 @@
 
                 <!-- CH D Controls (Green) -->
                 <div class="channel-control-card" style="border-left: 3px solid #22c55e; padding: 6px 8px; background: rgba(34, 197, 94, 0.04); border-radius: 6px;">
-                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="color: #22c55e; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between; align- items: center;">
                         <label><input type="checkbox" id="chkChD" checked> 📍 CH D (VCC)</label>
                         <span id="txtValChD" style="font-size: 10px; color: #94a3b8;">Y: 0px</span>
                     </div>
@@ -458,6 +458,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1052"></script>
+    <script type="module" src="./app.js?v=1054"></script>
 </body>
 </html>

@@ -1,19 +1,19 @@
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
- * EIC-108 & LM741 Square Wave Oscillator 100% Fixed Parity Preset v=1053.
+ * EIC-108 & LM741 Square Wave Oscillator 100% Fixed Parity Preset v=1054.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1053';
-import { MNASolver } from './src/engine/MNASolver.js?v=1053';
-import { FFT } from './src/engine/FFT.js?v=1053';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1053';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1053';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1053';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1053';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1053';
-import { AICopilot } from './src/components/AICopilot.js?v=1053';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1053';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1054';
+import { MNASolver } from './src/engine/MNASolver.js?v=1054';
+import { FFT } from './src/engine/FFT.js?v=1054';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1054';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1054';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1054';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1054';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1054';
+import { AICopilot } from './src/components/AICopilot.js?v=1054';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1054';
 
 class AppController {
     constructor() {
@@ -59,7 +59,7 @@ class AppController {
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initSquareOscillator(); // Load Fixed SQUARE Preset by Default
+        this.initUserPreservedSquare(); // Load Preserved User SQUARE Layout by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
         this.renderAll();
@@ -296,9 +296,9 @@ class AppController {
         }
     }
 
-    // ⚡ Fixed SQUARE Sample Preset (100% Perfect LM741 Relaxation Square Wave Oscillator)
-    initSquareOscillator() {
-        this.currentExamTitle = '⚡ LM741 아스타블 구형파 발진기 (100% 완벽 보정 SQUARE Preset)';
+    // 🎯 User's Exact Layout Preserved SQUARE Preset
+    initUserPreservedSquare() {
+        this.currentExamTitle = '⚡ 직접 그리신 배치 100% 보존 SQUARE 회로';
         this.voltageVa = 12.0;
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
@@ -307,24 +307,30 @@ class AppController {
         this.breadboardCanvas.voltageVc = -12.0;
 
         this.components = [
-            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_20', '#ef4444'),
-            new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_20', '#00b894'),
-            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_20', '#3b82f6'),
+            new DIPChip('IC_CATALOG_14', 'LM741', 'B2_E15', 'B2_F18'),
 
-            new Wire('JUMP_POS', 'VCC_TOP1_20', 'B2_VCC_L_16', '#ef4444'),
-            new Wire('JUMP_NEG', 'VCC_TOP2_20', 'B2_GND_L_18', '#00b894'),
+            new Resistor('RESISTOR_CATALOG_15', 'B1_A1', 'B1_A5', 10000, true),
+            new Resistor('RESISTOR_CATALOG_16', 'B1_B5', 'B1_B10', 10000, true),
 
-            new DIPChip('IC1', 'LM741', 'B2_E15', 'B2_F15'),
+            new Wire('WIRE_18', 'VCC_TOP1_1', 'B1_B1', '#ef4444'),
+            new Wire('WIRE_19', 'B1_D10', 'GND_TOP2_4', '#0984e3'),
+            new Wire('WIRE_22', 'B1_E5', 'B2_E17', '#0984e3'),
 
-            new Wire('WIRE_VCC_PIN7', 'B2_VCC_L_16', 'B2_F16', '#ef4444'), // Pin 7 (+12V) -> Row 16 right
-            new Wire('WIRE_VNEG_PIN4', 'B2_GND_L_18', 'B2_E18', '#00b894'), // Pin 4 (-12V) -> Row 18 left
+            new Resistor('RESISTOR_CATALOG_24', 'B2_F17', 'B2_E17', 10000, true),
+            new Capacitor('CAPACITOR_CATALOG_25', 'B1_F16', 'B1_GND_L_16', 1e-7, true, 'MYLAR'),
 
-            new Resistor('RESISTOR_R1_POS_FB', 'B2_F17', 'B2_E17', 10000, true), // Pin 6 OUT -> Pin 3 IN+
-            new Resistor('RESISTOR_R2_POS_GND', 'B2_E17', 'B2_GND_L_17', 10000, true), // Pin 3 IN+ -> GND
+            new Wire('WIRE_28', 'VCC_TOP1_1', 'VCC_TOP1_9', '#ef4444'),
+            new Wire('WIRE_29', 'B1_J18', 'B1_GND_L_18', '#0984e3'),
 
-            new Resistor('RESISTOR_RFB_100K', 'B2_F17', 'B1_F16', 100000, true), // Pin 6 OUT -> Pin 2 IN-
-            new Wire('WIRE_IN_MINUS', 'B1_F16', 'B2_E16', '#0984e3'),
-            new Capacitor('CAPACITOR_C1', 'B1_F16', 'B1_GND_L_16', 0.1e-6, true, 'MYLAR')
+            new Resistor('RESISTOR_CATALOG_30', 'B2_F17', 'B1_F16', 100000, true),
+            new Wire('WIRE_31', 'B1_F16', 'B2_E16', '#0984e3'),
+
+            new Wire('WIRE_33', 'B2_E18', 'VCC_TOP2_24', '#00b894'),
+            new Wire('WIRE_38', 'B2_F16', 'VCC_TOP1_27', '#ef4444'),
+
+            new Wire('WIRE_39', 'BINDING_Va', 'VCC_TOP1_31', '#ef4444'),
+            new Wire('WIRE_40', 'BINDING_Vc', 'VCC_TOP2_41', '#00b894'),
+            new Wire('WIRE_41', 'BINDING_GND', 'GND_TOP1_51', '#3b82f6')
         ];
 
         this.probeAPin = 'B2_F17';
@@ -338,7 +344,7 @@ class AppController {
         this.breadboardCanvas.probeDPin = 'BINDING_Vc';
 
         this.warmupSimulationBuffer(600);
-        this.breadboardCanvas.toastMsg = `⚡ 100% 완벽 보정된 LM741 SQUARE 구형파 발진기 로드 완료! (CH A: ±10.8V 45.5Hz 사각파)`;
+        this.breadboardCanvas.toastMsg = `⚡ 직접 그리신 배치 100% 보존 회로 로드 완료! (CH A: LM741 Pin 6 OUT ±10.8V 45.5Hz 사각파)`;
     }
 
     // 🎓 Qualification Exam Presets (EIC-108 Standard Layout 100% Exact Alignment)
@@ -744,21 +750,31 @@ class AppController {
             this.breadboardCanvas.voltageVc = this.voltageVc;
         }
 
-        if (restored.probes) {
-            this.probeAPin = restored.probes.probeAPin || null;
-            this.probeBPin = restored.probes.probeBPin || null;
-            this.probeCPin = restored.probes.probeCPin || null;
-            this.probeDPin = restored.probes.probeDPin || null;
-
-            this.breadboardCanvas.probeAPin = this.probeAPin;
-            this.breadboardCanvas.probeBPin = this.probeBPin;
-            this.breadboardCanvas.probeCPin = this.probeCPin;
-            this.breadboardCanvas.probeDPin = this.probeDPin;
+        // Auto-Probe Assignment Safety: Ensure Probe A is anchored to IC output if missing
+        const icComp = this.components.find(c => c.type === 'IC');
+        let defaultPin = 'B2_F17';
+        if (icComp && icComp.pinA) {
+            const parts = icComp.pinA.split('_');
+            const blk = parts[0];
+            const row = parseInt(parts[1].slice(1), 10);
+            defaultPin = `${blk}_F${row + 2}`; // Pin 6 OUT (row + 2)
         }
+
+        this.probeAPin = (restored.probes && restored.probes.probeAPin) ? restored.probes.probeAPin : defaultPin;
+        this.probeBPin = (restored.probes && restored.probes.probeBPin) ? restored.probes.probeBPin : null;
+        this.probeCPin = (restored.probes && restored.probes.probeCPin) ? restored.probes.probeCPin : null;
+        this.probeDPin = (restored.probes && restored.probes.probeDPin) ? restored.probes.probeDPin : null;
+
+        this.breadboardCanvas.probeAPin = this.probeAPin;
+        this.breadboardCanvas.probeBPin = this.probeBPin;
+        this.breadboardCanvas.probeCPin = this.probeCPin;
+        this.breadboardCanvas.probeDPin = this.probeDPin;
 
         this.currentExamTitle = restored.title || '사용자 회로';
         this.compCounter = this.components.length + 10;
-        this.warmupSimulationBuffer(400);
+
+        this.oscilloscopeCanvas.resetControls();
+        this.warmupSimulationBuffer(600);
         this.renderAll();
     }
 
@@ -1023,6 +1039,13 @@ class AppController {
 
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
             this.startSimulation();
+            // Auto Reset Scope Controls to ensure bright yellow trace is centered
+            this.oscilloscopeCanvas.resetControls();
+
+            document.getElementById('posYChA').value = '0';
+            document.getElementById('numPosYChA').value = '0';
+            document.getElementById('txtValChA').innerText = 'Y: 0px';
+
             document.getElementById('scopeModal').classList.remove('hidden');
         });
         document.getElementById('btnCloseScopeModal').addEventListener('click', () => {
@@ -1157,7 +1180,7 @@ class AppController {
             } else if (val === 'exam_pnm') {
                 this.initPNMExam();
             } else if (val === 'square_osc') {
-                this.initSquareOscillator();
+                this.initUserPreservedSquare();
             } else if (val === 'lm358_osc') {
                 this.initLM358Oscillator();
             } else if (val === 'exam_master_comm') {
