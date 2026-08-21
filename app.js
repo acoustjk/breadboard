@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1067';
-import { MNASolver } from './src/engine/MNASolver.js?v=1067';
-import { FFT } from './src/engine/FFT.js?v=1067';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1067';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1067';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1067';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1067';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1067';
-import { AICopilot } from './src/components/AICopilot.js?v=1067';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1067';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1068';
+import { MNASolver } from './src/engine/MNASolver.js?v=1068';
+import { FFT } from './src/engine/FFT.js?v=1068';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, IC_CATALOG } from './src/components/ComponentModels.js?v=1068';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1068';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1068';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1068';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1068';
+import { AICopilot } from './src/components/AICopilot.js?v=1068';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1068';
 
 class AppController {
     constructor() {
@@ -344,18 +344,18 @@ class AppController {
 
             new Wire('WIRE_39', 'BINDING_Va', 'VCC_TOP1_31', '#ef4444'),
             new Wire('WIRE_40', 'BINDING_Vc', 'VCC_TOP2_41', '#00b894'),
-            new Wire('WIRE_41', 'BINDING_GND', 'GND_TOP1_51', '#3b82f6')
+            new Wire('WIRE_41', 'BINDING_GND', 'GND_TOP1_50', '#3b82f6')
         ];
 
         this.probeAPin = 'B2_F17';
         this.probeBPin = 'B1_F16';
-        this.probeCPin = 'BINDING_Va';
-        this.probeDPin = 'BINDING_Vc';
+        this.probeCPin = null;
+        this.probeDPin = null;
 
         this.breadboardCanvas.probeAPin = 'B2_F17';
         this.breadboardCanvas.probeBPin = 'B1_F16';
-        this.breadboardCanvas.probeCPin = 'BINDING_Va';
-        this.breadboardCanvas.probeDPin = 'BINDING_Vc';
+        this.breadboardCanvas.probeCPin = null;
+        this.breadboardCanvas.probeDPin = null;
 
         this.warmupSimulationBuffer(1200);
         this.breadboardCanvas.toastMsg = `⚡ 직접 그리신 배치 100% 보존 회로 로드 완료! (CH A: LM741 Pin 6 OUT ±10.8V 45.5Hz 사각파)`;

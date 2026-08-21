@@ -1,10 +1,10 @@
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
- * Oscilloscope Probe Plugging & Pin Assignment Engine v=1067.
+ * Binding Post Y-Coord Fix, Dynamic Voltage Display & Clamped Rail Pin Mapping v=1068.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1067';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1068';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {
@@ -18,6 +18,10 @@ export class BreadboardCanvas {
 
         this.showValueBadges = true;
 
+        this.voltageVa = 12.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -12.0;
+
         this.selectedComponent = null;
         this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
         this.placementPinA = null;
@@ -26,10 +30,11 @@ export class BreadboardCanvas {
         this.toastMsg = null;
         this.toastTimer = null;
 
+        // Probes: CH A & CH B active by default; CH C & CH D null by default
         this.probeAPin = 'B2_F17';
         this.probeBPin = 'B1_F16';
-        this.probeCPin = 'BINDING_Va';
-        this.probeDPin = 'BINDING_Vc';
+        this.probeCPin = null;
+        this.probeDPin = null;
 
         this.componentsRef = [];
 
@@ -242,11 +247,11 @@ export class BreadboardCanvas {
         this.canvas.addEventListener('dblclick', (e) => {
             const { worldX, worldY } = this.getMouseWorldPos(e);
 
-            // Check Binding Posts
+            // Check Binding Posts (Radius 30px tolerance at y = 72)
             const bindingPosts = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
             for (const bpKey of bindingPosts) {
                 const pos = this.getPinPos(bpKey);
-                if (Math.hypot(pos.x - worldX, pos.y - worldY) < 25) {
+                if (Math.hypot(pos.x - worldX, pos.y - worldY) < 30) {
                     if (this.onBindingPostDblClicked) this.onBindingPostDblClicked(bpKey);
                     return;
                 }
@@ -299,11 +304,11 @@ export class BreadboardCanvas {
             this.pinCoords.set(key, { x: Math.round(x), y: Math.round(y) });
         };
 
-        // 1. Binding Posts
-        setCoord('BINDING_Va', 70, 50);
-        setCoord('BINDING_Vb', 180, 50);
-        setCoord('BINDING_Vc', 290, 50);
-        setCoord('BINDING_GND', 400, 50);
+        // 1. Binding Posts (Centered exactly at y = 72 matching render())
+        setCoord('BINDING_Va', 70, 72);
+        setCoord('BINDING_Vb', 180, 72);
+        setCoord('BINDING_Vc', 290, 72);
+        setCoord('BINDING_GND', 400, 72);
 
         // 2. Top Horizontal Bus Rails (50 Columns evenly spaced across x = 45..780 inside top white power strip at y = 106..178)
         for (let c = 1; c <= 50; c++) {
@@ -376,9 +381,18 @@ export class BreadboardCanvas {
         if (this.pinCoords.has(`B1_${pinKey}`)) return this.pinCoords.get(`B1_${pinKey}`);
         if (this.pinCoords.has(`B2_${pinKey}`)) return this.pinCoords.get(`B2_${pinKey}`);
 
-        // Safe Fallback for Power Rails
+        // Safe Clamped Fallback for Power Rails out of bounds (e.g. GND_TOP1_51 -> GND_TOP1_50)
         if (pinKey.includes('_TOP')) {
             const parts = pinKey.split('_');
+            if (parts.length >= 3) {
+                const railPrefix = `${parts[0]}_${parts[1]}`;
+                let colNum = parseInt(parts[2], 10);
+                if (!isNaN(colNum)) {
+                    colNum = Math.max(1, Math.min(50, colNum));
+                    const clampedKey = `${railPrefix}_${colNum}`;
+                    if (this.pinCoords.has(clampedKey)) return this.pinCoords.get(clampedKey);
+                }
+            }
             const railType = `${parts[0]}_${parts[1]}`;
             if (this.pinCoords.has(`${railType}_15`)) return this.pinCoords.get(`${railType}_15`);
         }
@@ -443,18 +457,18 @@ export class BreadboardCanvas {
         this.ctx.font = '12px sans-serif';
         this.ctx.fillText('3220 Tie-Points | 4-Block Terminal Matrix | Quad Bus Rails | 4CH Oscilloscope Engine', 30, 56);
 
-        // 3. 4 Heavy Metal Binding Posts
+        // 3. 4 Heavy Metal Binding Posts with Dynamic Voltage Values
         const bindingPosts = [
-            { id: 'BINDING_Va', label: 'Va (+12V)', color: '#ef4444', x: 70, valText: '+12.0V' },
-            { id: 'BINDING_Vb', label: 'Vb (0V/GND)', color: '#10b981', x: 180, valText: '0.0V' },
-            { id: 'BINDING_Vc', label: 'Vc (-12V)', color: '#0284c7', x: 290, valText: '-12.0V' },
-            { id: 'BINDING_GND', label: 'GND', color: '#64748b', x: 400, valText: 'GND' }
+            { id: 'BINDING_Va', label: 'Va', color: '#ef4444', x: 70, y: 72, valText: `${(this.voltageVa || 12.0) > 0 ? '+' : ''}${(this.voltageVa || 12.0).toFixed(1)}V` },
+            { id: 'BINDING_Vb', label: 'Vb', color: '#10b981', x: 180, y: 72, valText: `${(this.voltageVb || 0.0) > 0 ? '+' : ''}${(this.voltageVb || 0.0).toFixed(1)}V` },
+            { id: 'BINDING_Vc', label: 'Vc', color: '#0284c7', x: 290, y: 72, valText: `${(this.voltageVc || -12.0) > 0 ? '+' : ''}${(this.voltageVc || -12.0).toFixed(1)}V` },
+            { id: 'BINDING_GND', label: 'GND', color: '#64748b', x: 400, y: 72, valText: 'GND' }
         ];
 
         bindingPosts.forEach(bp => {
             this.ctx.fillStyle = bp.color;
             this.ctx.beginPath();
-            this.ctx.arc(bp.x, 72, 14, 0, Math.PI * 2);
+            this.ctx.arc(bp.x, bp.y, 14, 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.strokeStyle = '#f8fafc';
             this.ctx.lineWidth = 2;
@@ -467,7 +481,7 @@ export class BreadboardCanvas {
 
             this.ctx.fillStyle = '#facc15';
             this.ctx.font = 'bold 10px monospace';
-            this.ctx.fillText(bp.valText, bp.x, 86);
+            this.ctx.fillText(bp.valText, bp.x, 92);
         });
 
         // 4. Render Top 4 Horizontal Bus Lines Panel
