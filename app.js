@@ -384,7 +384,7 @@ class AppController {
         this.updateCutoffFreqDisplay();
     }
 
-    warmupSimulationBuffer(steps = 1200) {
+    warmupSimulationBuffer(steps = 5000) {
         const bindingSources = [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
@@ -1145,6 +1145,11 @@ class AppController {
                 const msVal = secVal * 1000.0;
                 if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
                 if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(50.0, msVal));
+                if (selectEl) {
+                    const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
+                    if (matchedOption) selectEl.value = matchedOption.value;
+                }
+                this.warmupSimulationBuffer(10000); // Deep fill buffer to prevent clipping at large Time/Div scales
                 this.oscilloscopeCanvas.render();
             };
 

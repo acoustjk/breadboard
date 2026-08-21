@@ -9,7 +9,7 @@ export class OscilloscopeCanvas {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 1200; // Deep buffer for smooth horizontal timebase zoom
+        this.bufferSize = 10000; // Deep 10,000 sample buffer to prevent horizontal clipping at 50ms/div
         this.dt = 0.0001; // 100us simulation time step
         this.resetBuffer();
 
