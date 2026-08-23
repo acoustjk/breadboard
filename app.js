@@ -367,6 +367,46 @@ class AppController {
         this.renderAll();
     }
 
+    toggleScopeFreeze() {
+        const isFrozen = this.oscilloscopeCanvas.toggleFreeze();
+        const btnHeader = document.getElementById('btnToggleScopeFreezeHeader');
+        const btnToolbar = document.getElementById('btnToggleScopeFreeze');
+
+        const labelHeaderStr = isFrozen ? '▶️ RUN (실시간)' : '⏸️ STOP (화면 멈춤)';
+        const labelToolbarStr = isFrozen ? '▶️ RUN (Space)' : '⏸️ STOP (Space)';
+        const bgStr = isFrozen ? '#22c55e' : '#ef4444';
+
+        if (btnHeader) {
+            btnHeader.innerText = labelHeaderStr;
+            btnHeader.style.background = bgStr;
+        }
+        if (btnToolbar) {
+            btnToolbar.innerText = labelToolbarStr;
+            btnToolbar.style.background = bgStr;
+        }
+
+        this.breadboardCanvas.toastMsg = isFrozen ? '⏸️ 오실로스코프 파형이 멈췄습니다. (Space로 재개)' : '▶️ 오실로스코프 실시간 파형이 재개되었습니다.';
+        this.oscilloscopeCanvas.render();
+    }
+
+    updateScopeTelemetryUI() {
+        const updateCh = (chKey, stats) => {
+            const telVpp = document.getElementById(`telVpp${chKey}`);
+            const telFreq = document.getElementById(`telFreq${chKey}`);
+            if (telVpp && telFreq && stats) {
+                let vpp = (isNaN(stats.vpp) || !isFinite(stats.vpp)) ? 0 : stats.vpp;
+                let freq = stats.freq || 0;
+                let fStr = freq >= 1000 ? `${(freq / 1000).toFixed(1)}kHz` : (freq > 0 ? `${freq.toFixed(0)}Hz` : '-- Hz');
+                telVpp.innerText = `Vpp: ${vpp.toFixed(2)}V`;
+                telFreq.innerText = `Freq: ${fStr}`;
+            }
+        };
+        updateCh('ChA', this.oscilloscopeCanvas.statsA);
+        updateCh('ChB', this.oscilloscopeCanvas.statsB);
+        updateCh('ChC', this.oscilloscopeCanvas.statsC);
+        updateCh('ChD', this.oscilloscopeCanvas.statsD);
+    }
+
     initEmptyBoard() {
         this.components = [];
         this.currentExamTitle = null;
@@ -1251,6 +1291,16 @@ class AppController {
 
             document.getElementById('scopeModal').classList.remove('hidden');
         });
+        const btnHeaderFreeze = document.getElementById('btnToggleScopeFreezeHeader');
+        if (btnHeaderFreeze) {
+            btnHeaderFreeze.addEventListener('click', () => this.toggleScopeFreeze());
+        }
+
+        const btnToolbarFreeze = document.getElementById('btnToggleScopeFreeze');
+        if (btnToolbarFreeze) {
+            btnToolbarFreeze.addEventListener('click', () => this.toggleScopeFreeze());
+        }
+
         document.getElementById('btnCloseScopeModal').addEventListener('click', () => {
             document.getElementById('scopeModal').classList.add('hidden');
         });
@@ -1356,6 +1406,14 @@ class AppController {
             } else if (e.key === 'r' || e.key === 'R' || e.key === 'f' || e.key === 'F') {
                 if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                     this.flipSelectedComponentPolarity();
+                }
+            } else if (e.key === ' ' || e.key === 'Spacebar' || e.key === 's' || e.key === 'S') {
+                const scopeModal = document.getElementById('scopeModal');
+                if (scopeModal && !scopeModal.classList.contains('hidden')) {
+                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        this.toggleScopeFreeze();
+                    }
                 }
             }
         });
@@ -1501,6 +1559,7 @@ class AppController {
     renderAll() {
         this.breadboardCanvas.render(this.components);
         this.oscilloscopeCanvas.render();
+        this.updateScopeTelemetryUI();
     }
 
     async triggerAiDiagnostic(queryType = null) {

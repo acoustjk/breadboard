@@ -285,7 +285,10 @@
         <div class="modal-content" style="max-width: 960px;">
             <div class="modal-header">
                 <h3 style="color: var(--accent-amber);">📊 4-Channel (4CH) Real-Time Oscilloscope Console</h3>
-                <button id="btnCloseScopeModal" class="btn">✖</button>
+                <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+                    <button id="btnToggleScopeFreezeHeader" class="btn btn-primary" style="background: #ef4444; font-weight: bold; font-size: 12px; padding: 4px 12px;">⏸️ STOP (화면 멈춤)</button>
+                    <button id="btnCloseScopeModal" class="btn">✖</button>
+                </div>
             </div>
             <div class="canvas-wrapper">
                 <canvas id="oscilloscopeCanvas" width="900" height="290"></canvas>
@@ -319,6 +322,10 @@
                         <input type="range" id="posYChA" min="-300" max="300" value="0" step="1" style="flex: 1; vertical-align: middle;">
                         <input type="number" id="numPosYChA" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;">
                     </div>
+                    <div id="telemetryChA" style="font-size: 10px; color: #facc15; margin-top: 6px; border-top: 1px dashed rgba(250, 204, 21, 0.25); padding-top: 4px; display: flex; justify-content: space-between; font-family: monospace;">
+                        <span id="telVppChA">Vpp: -- V</span>
+                        <span id="telFreqChA">Freq: -- Hz</span>
+                    </div>
                 </div>
 
                 <!-- CH B Controls (Magenta) -->
@@ -345,6 +352,10 @@
                         <label style="color: #94a3b8; width: 42px;">Y-Pos:</label>
                         <input type="range" id="posYChB" min="-300" max="300" value="0" step="1" style="flex: 1; vertical-align: middle;">
                         <input type="number" id="numPosYChB" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;">
+                    </div>
+                    <div id="telemetryChB" style="font-size: 10px; color: #e879f9; margin-top: 6px; border-top: 1px dashed rgba(232, 121, 249, 0.25); padding-top: 4px; display: flex; justify-content: space-between; font-family: monospace;">
+                        <span id="telVppChB">Vpp: -- V</span>
+                        <span id="telFreqChB">Freq: -- Hz</span>
                     </div>
                 </div>
 
@@ -373,6 +384,10 @@
                         <input type="range" id="posYChC" min="-300" max="300" value="0" step="1" style="flex: 1; vertical-align: middle;">
                         <input type="number" id="numPosYChC" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;">
                     </div>
+                    <div id="telemetryChC" style="font-size: 10px; color: #38bdf8; margin-top: 6px; border-top: 1px dashed rgba(56, 189, 248, 0.25); padding-top: 4px; display: flex; justify-content: space-between; font-family: monospace;">
+                        <span id="telVppChC">Vpp: -- V</span>
+                        <span id="telFreqChC">Freq: -- Hz</span>
+                    </div>
                 </div>
 
                 <!-- CH D Controls (Green) -->
@@ -400,16 +415,21 @@
                         <input type="range" id="posYChD" min="-300" max="300" value="0" step="1" style="flex: 1; vertical-align: middle;">
                         <input type="number" id="numPosYChD" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;">
                     </div>
+                    <div id="telemetryChD" style="font-size: 10px; color: #22c55e; margin-top: 6px; border-top: 1px dashed rgba(34, 197, 94, 0.25); padding-top: 4px; display: flex; justify-content: space-between; font-family: monospace;">
+                        <span id="telVppChD">Vpp: -- V</span>
+                        <span id="telFreqChD">Freq: -- Hz</span>
+                    </div>
                 </div>
 
             </div>
 
-            <!-- Horizontal Timebase & X-Position Controls (Time/Div Slider + Fine Input, X-Pos Shift + Fine Input) -->
+            <!-- Horizontal Timebase & X-Position Controls (Time/Div Slider + Fine Input, X-Pos Shift + Fine Input, STOP Button) -->
             <div style="display: flex; gap: 14px; margin-top: 8px; background: #0f172a; padding: 8px 12px; border-radius: 8px; border: 1px solid #1e293b; align-items: center; font-size: 11px;">
-                <div style="color: #38bdf8; font-weight: bold;">🔍 Time/Div (가로 확대):</div>
+                <button id="btnToggleScopeFreeze" class="btn btn-primary" style="background: #ef4444; font-weight: bold; padding: 4px 12px; font-size: 11px;">⏸️ STOP (Space)</button>
+
+                <div style="color: #38bdf8; font-weight: bold; margin-left: 4px;">🔍 Time/Div:</div>
 
                 <div style="display: flex; gap: 6px; align-items: center;">
-                    <label for="timeDivSelect" style="color: #94a3b8;">Scale:</label>
                     <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 85px; font-size: 11px;">
                         <option value="0.00001">0.01 ms</option>
                         <option value="0.00002">0.02 ms</option>
@@ -425,19 +445,18 @@
                         <option value="0.050">50.0 ms</option>
                     </select>
 
-                    <label for="rangeTimeDivMs" style="color: #94a3b8; margin-left: 4px;">Slider:</label>
-                    <input type="range" id="rangeTimeDivMs" min="0.01" max="50.0" step="0.01" value="5.0" style="width: 130px; vertical-align: middle;">
+                    <input type="range" id="rangeTimeDivMs" min="0.01" max="50.0" step="0.01" value="5.0" style="width: 110px; vertical-align: middle;">
 
-                    <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="100" style="width: 52px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
+                    <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="100" style="width: 50px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
                 </div>
 
                 <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
-                    <label for="posXTime" style="color: #94a3b8;">X-Pos Shift:</label>
-                    <input type="range" id="posXTime" min="-300" max="300" value="0" step="1" style="width: 100px; vertical-align: middle;">
-                    <input type="number" id="numPosXTime" value="0" step="1" min="-300" max="300" style="width: 44px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">px</span>
+                    <label for="posXTime" style="color: #94a3b8;">X-Shift:</label>
+                    <input type="range" id="posXTime" min="-300" max="300" value="0" step="1" style="width: 80px; vertical-align: middle;">
+                    <input type="number" id="numPosXTime" value="0" step="1" min="-300" max="300" style="width: 40px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">px</span>
                 </div>
 
-                <button id="btnResetScopeControls" class="btn" style="padding: 3px 10px; font-size: 11px; background: #334155;">🎯 스케일/포지션 리셋</button>
+                <button id="btnResetScopeControls" class="btn" style="padding: 3px 10px; font-size: 11px; background: #334155;">🎯 리셋</button>
             </div>
         </div>
     </div>
@@ -484,6 +503,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1081"></script>
+    <script type="module" src="./app.js?v=1085"></script>
 </body>
 </html>

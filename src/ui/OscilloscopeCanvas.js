@@ -57,10 +57,22 @@ export class OscilloscopeCanvas {
         this.showChC = true;
         this.showChD = true;
 
-        this.statsA = { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
-        this.statsB = { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
-        this.statsC = { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
-        this.statsD = { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
+        // Freeze (STOP / RUN) State Flag
+        this.isFrozen = false;
+
+        this.statsA = { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+        this.statsB = { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+        this.statsC = { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+        this.statsD = { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+    }
+
+    toggleFreeze() {
+        this.isFrozen = !this.isFrozen;
+        return this.isFrozen;
+    }
+
+    setFreeze(frozen) {
+        this.isFrozen = !!frozen;
     }
 
     resetBuffer() {
@@ -90,11 +102,14 @@ export class OscilloscopeCanvas {
         this.showChB = true;
         this.showChC = true;
         this.showChD = true;
+        this.isFrozen = false;
 
         this.render();
     }
 
     addSample(vA, vB, vC = 0, vD = 0) {
+        if (this.isFrozen) return; // Waveform Freeze (STOP Mode)
+
         let valA = isNaN(vA) || !isFinite(vA) ? 0 : Math.max(-25, Math.min(25, vA));
         let valB = isNaN(vB) || !isFinite(vB) ? 0 : Math.max(-25, Math.min(25, vB));
         let valC = isNaN(vC) || !isFinite(vC) ? 0 : Math.max(-25, Math.min(25, vC));
@@ -121,22 +136,29 @@ export class OscilloscopeCanvas {
     }
 
     computeStatsForRing(ring) {
-        if (!ring || ring.length === 0) return { vMin: 0, vMax: 0, vpp: 0, freq: 0 };
+        if (!ring || ring.length === 0) return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
 
         let vMin = Infinity;
         let vMax = -Infinity;
+        let sumSq = 0;
         const total = ring.length;
         const step = Math.max(1, Math.floor(total / 500)); // Subsample 500 points for fast stats
+        let count = 0;
 
         for (let i = 0; i < total; i += step) {
             let v = ring.get(i);
+            if (isNaN(v) || !isFinite(v)) v = 0;
+            v = Math.max(-25.0, Math.min(25.0, v));
             if (v < vMin) vMin = v;
             if (v > vMax) vMax = v;
+            sumSq += v * v;
+            count++;
         }
 
         if (vMin === Infinity) vMin = 0;
         if (vMax === -Infinity) vMax = 0;
         const vpp = Math.max(0, Math.min(50.0, vMax - vMin));
+        const vrms = count > 0 ? Math.sqrt(sumSq / count) : 0;
 
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
@@ -149,8 +171,9 @@ export class OscilloscopeCanvas {
             prevVal = currVal;
         }
         const freq = (crossings > 1 && vpp > 0.5) ? (crossings / 2) * 50.0 : 0;
+        const period = freq > 0 ? 1.0 / freq : 0;
 
-        return { vMin, vMax, vpp, freq };
+        return { vMin, vMax, vpp, vrms, freq, period };
     }
 
     render() {
@@ -267,35 +290,50 @@ export class OscilloscopeCanvas {
         }
 
         // 4. Channel Telemetry HUD Overlay
-        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
         this.ctx.fillRect(8, 8, width - 16, 26);
         this.ctx.strokeStyle = '#334155';
         this.ctx.strokeRect(8, 8, width - 16, 26);
 
-        this.ctx.font = 'bold 11px monospace';
+        this.ctx.font = 'bold 10px monospace';
         this.ctx.textBaseline = 'middle';
 
-        const fmtVpp = (stats) => {
-            let v = stats ? stats.vpp : 0;
-            if (isNaN(v) || !isFinite(v) || v > 50) v = 21.6;
-            return v.toFixed(2);
+        const fmtStats = (stats, vDiv) => {
+            if (!stats) return `${vDiv}V/d`;
+            let vpp = (isNaN(stats.vpp) || !isFinite(stats.vpp)) ? 0 : stats.vpp;
+            let freq = stats.freq || 0;
+            let fStr = freq >= 1000 ? `${(freq / 1000).toFixed(1)}kHz` : (freq > 0 ? `${freq.toFixed(0)}Hz` : '');
+            return `${vDiv}V/d (${vpp.toFixed(2)}Vpp${fStr ? ' ' + fStr : ''})`;
         };
 
         // CH A Stats
         this.ctx.fillStyle = this.showChA ? '#facc15' : '#475569';
-        this.ctx.fillText(`CH A: ${this.voltPerDivChA}V/d (${fmtVpp(this.statsA)}Vpp)`, 16, 21);
+        this.ctx.fillText(`CH A: ${fmtStats(this.statsA, this.voltPerDivChA)}`, 16, 21);
 
         // CH B Stats
         this.ctx.fillStyle = this.showChB ? '#e879f9' : '#475569';
-        this.ctx.fillText(`CH B: ${this.voltPerDivChB}V/d (${fmtVpp(this.statsB)}Vpp)`, 190, 21);
+        this.ctx.fillText(`CH B: ${fmtStats(this.statsB, this.voltPerDivChB)}`, 230, 21);
 
         // CH C Stats
         this.ctx.fillStyle = this.showChC ? '#38bdf8' : '#475569';
-        this.ctx.fillText(`CH C: ${this.voltPerDivChC}V/d (${fmtVpp(this.statsC)}Vpp)`, 360, 21);
+        this.ctx.fillText(`CH C: ${fmtStats(this.statsC, this.voltPerDivChC)}`, 440, 21);
 
         // CH D Stats
         this.ctx.fillStyle = this.showChD ? '#22c55e' : '#475569';
-        this.ctx.fillText(`CH D: ${this.voltPerDivChD}V/d (${fmtVpp(this.statsD)}Vpp)`, 530, 21);
+        this.ctx.fillText(`CH D: ${fmtStats(this.statsD, this.voltPerDivChD)}`, 650, 21);
+
+        // 5. Waveform Freeze STOP Badge Overlay
+        if (this.isFrozen) {
+            this.ctx.fillStyle = '#ef4444';
+            this.ctx.beginPath();
+            this.ctx.roundRect(width - 110, 11, 95, 20, 4);
+            this.ctx.fill();
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 11px sans-serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText('⏸️ STOPPED', width - 62, 21);
+            this.ctx.textAlign = 'left';
+        }
     }
 
     renderTrace(ringBuffer, color, voltPerDiv, zeroY, scaleY, posOffsetY = 0, posOffsetX = 0) {
