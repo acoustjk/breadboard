@@ -258,10 +258,11 @@ export class MNASolver {
                             const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                             const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            const rawTarget = (vP - vM) * Av + (Math.random() - 0.5) * 1e-2;
-                            // Smooth Soft Saturation via Hyperbolic Tangent (tanh)
-                            // Prevents sharp triangular hard-clipping and produces 100% smooth, pure Sine Waves!
-                            let vTarget = vMax * Math.tanh(rawTarget / vMax);
+                            const diffV = vP - vM;
+                            const noise = (Math.random() - 0.5) * 1e-3;
+                            // Smooth Sigmoidal AGC (Automatic Gain Control)
+                            // Provides gradual sinusoidal transition around 0V to produce 100% pure Sine Waves!
+                            let vTarget = vMax * (2.0 / (1.0 + Math.exp(-(diffV + noise) * 1.8)) - 1.0);
 
                             Z[iOut] += G_out * vTarget;
                             comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
