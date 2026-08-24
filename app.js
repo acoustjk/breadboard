@@ -389,10 +389,40 @@ class AppController {
         this.oscilloscopeCanvas.render();
     }
 
+    syncScopeChannelVisibility() {
+        const hasA = !!(this.breadboardCanvas && this.breadboardCanvas.probeAPin);
+        const hasB = !!(this.breadboardCanvas && this.breadboardCanvas.probeBPin);
+        const hasC = !!(this.breadboardCanvas && this.breadboardCanvas.probeCPin);
+        const hasD = !!(this.breadboardCanvas && this.breadboardCanvas.probeDPin);
+
+        this.oscilloscopeCanvas.showChA = hasA;
+        this.oscilloscopeCanvas.showChB = hasB;
+        this.oscilloscopeCanvas.showChC = hasC;
+        this.oscilloscopeCanvas.showChD = hasD;
+
+        const chkA = document.getElementById('chkChA');
+        const chkB = document.getElementById('chkChB');
+        const chkC = document.getElementById('chkChC');
+        const chkD = document.getElementById('chkChD');
+
+        if (chkA) chkA.checked = hasA;
+        if (chkB) chkB.checked = hasB;
+        if (chkC) chkC.checked = hasC;
+        if (chkD) chkD.checked = hasD;
+    }
+
     updateScopeTelemetryUI() {
-        const updateCh = (chKey, stats) => {
+        const updateCh = (chKey, probePin, stats) => {
             const telVpp = document.getElementById(`telVpp${chKey}`);
             const telFreq = document.getElementById(`telFreq${chKey}`);
+            const cardEl = telVpp ? telVpp.closest('.card') : null;
+            if (!probePin) {
+                if (telVpp) telVpp.innerText = 'Vpp: -- V (미연결)';
+                if (telFreq) telFreq.innerText = 'Freq: -- Hz';
+                if (cardEl) cardEl.style.opacity = '0.45';
+                return;
+            }
+            if (cardEl) cardEl.style.opacity = '1.0';
             if (telVpp && telFreq && stats) {
                 let vpp = (isNaN(stats.vpp) || !isFinite(stats.vpp)) ? 0 : stats.vpp;
                 let freq = stats.freq || 0;
@@ -401,10 +431,10 @@ class AppController {
                 telFreq.innerText = `Freq: ${fStr}`;
             }
         };
-        updateCh('ChA', this.oscilloscopeCanvas.statsA);
-        updateCh('ChB', this.oscilloscopeCanvas.statsB);
-        updateCh('ChC', this.oscilloscopeCanvas.statsC);
-        updateCh('ChD', this.oscilloscopeCanvas.statsD);
+        updateCh('ChA', this.breadboardCanvas.probeAPin, this.oscilloscopeCanvas.statsA);
+        updateCh('ChB', this.breadboardCanvas.probeBPin, this.oscilloscopeCanvas.statsB);
+        updateCh('ChC', this.breadboardCanvas.probeCPin, this.oscilloscopeCanvas.statsC);
+        updateCh('ChD', this.breadboardCanvas.probeDPin, this.oscilloscopeCanvas.statsD);
     }
 
     initEmptyBoard() {
@@ -1291,7 +1321,6 @@ class AppController {
                     const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
                     if (matchedOption) selectEl.value = matchedOption.value;
                 }
-                this.warmupSimulationBuffer(10000); // Deep fill buffer to prevent clipping at large Time/Div scales
                 this.oscilloscopeCanvas.render();
             };
 
