@@ -832,6 +832,108 @@ class AppController {
         this.breadboardCanvas.toastMsg = `📊 [전자계산기기능사 CD4017] 4CH 파형 계측 준비!`;
     }
 
+    // 🏆 Official KCA Comm Master Exam 1: 3-Stage RC Phase-Shift Sine Wave Oscillator & Pulse Generator Preset
+    initPhaseShiftExam() {
+        this.currentExamTitle = '🏆 [KCA 통신설비기능장 1번] 3단 RC 위상변위 정현파 발진기 & 펄스 성형회로';
+        this.voltageVa = 12.0;
+        this.voltageVb = 0.0;
+        this.voltageVc = -12.0;
+        this.breadboardCanvas.voltageVa = 12.0;
+        this.breadboardCanvas.voltageVb = 0.0;
+        this.breadboardCanvas.voltageVc = -12.0;
+
+        this.components = [
+            // Power Distribution Bus Wires
+            new Wire('WIRE_VA_BUS', 'BINDING_Va', 'VCC_TOP1_1', '#ef4444'),
+            new Wire('WIRE_GND_BUS', 'BINDING_GND', 'GND_TOP1_1', '#00b894'),
+            new Wire('WIRE_VC_BUS', 'BINDING_Vc', 'VCC_TOP2_1', '#3b82f6'),
+
+            // Block Power Jumpers
+            new Wire('JUMP_VCC_B1', 'VCC_TOP1_5', 'B1_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_GND_B1', 'GND_TOP1_5', 'B1_GND_L_1', '#00b894'),
+            new Wire('JUMP_VCC_B3', 'VCC_TOP1_15', 'B3_VCC_L_1', '#ef4444'),
+            new Wire('JUMP_VEE_B3', 'VCC_TOP2_15', 'B3_GND_L_1', '#3b82f6'),
+            new Wire('JUMP_VCC_B4', 'VCC_TOP1_25', 'B4_VCC_R_1', '#ef4444'),
+            new Wire('JUMP_GND_B4', 'GND_TOP1_25', 'B4_GND_R_1', '#00b894'),
+            new Wire('JUMP_VEE_B4', 'VCC_TOP2_25', 'B4_GND_L_1', '#3b82f6'),
+
+            // 1. 3-Stage RC Phase-Shift Filter Network (Block 1 & Block 2)
+            new Capacitor('C_PS1', 'B1_C15', 'B1_D15', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R_PS1', 'B1_E15', 'B1_GND_L_15', 4700, true),
+            new Wire('W_PS1_2', 'B1_E15', 'B2_A15', '#0984e3'),
+
+            new Capacitor('C_PS2', 'B2_C15', 'B2_D15', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R_PS2', 'B2_E15', 'B2_GND_L_15', 4700, true),
+            new Wire('W_PS2_3', 'B2_E15', 'B2_H15', '#0984e3'),
+
+            new Capacitor('C_PS3', 'B2_I15', 'B2_J15', 0.01e-6, true, 'MYLAR'),
+            new Resistor('R_PS3', 'B3_A17', 'B3_GND_L_17', 4700, true),
+            new Wire('W_PS3_U1', 'B2_J15', 'B3_A17', '#0984e3'),
+            new Resistor('R_IN1', 'B3_B17', 'B3_C17', 10000, true), // 10k input to IN-
+
+            // 2. U1 LF356 Sine Wave Oscillator Stage (Block 3 Top)
+            new DIPChip('U1', 'LF356', 'B3_E16', 'B3_F16'),
+            new Potentiometer('VR1', 'B3_C11', 'B3_C17', 1000000, 0.4), // 1M Potentiometer set to 40% (400k)
+            new Wire('W_VR1_OUT', 'B3_C11', 'B3_D18', '#e67e22'), // VR1 to Pin 6 OUT
+            new Resistor('R_GND_IN3', 'B3_D18', 'B3_GND_L_18', 10000, true), // Pin 3 IN+ to GND via 10k
+
+            new Wire('W_U1_VCC', 'B3_VCC_L_17', 'B3_F17', '#ef4444'),
+            new Wire('W_U1_VEE', 'B3_GND_L_19', 'B3_E19', '#3b82f6'),
+
+            new ZenerDiode('ZD1', 'B3_G18', 'B3_G21', 9.1),
+            new ZenerDiode('ZD2', 'B3_G21', 'B3_G24', 9.1),
+            new Wire('W_ZD_GND', 'B3_G24', 'B3_GND_L_24', '#00b894'), // Zener to GND
+
+            // Feedback loop from U1 Pin 6 OUT back to 3-stage filter input
+            new Wire('W_FB_LOOP', 'B3_D18', 'B1_C15', '#9b59b6'),
+
+            // 3. U2 LF356 Square Wave Comparator Stage (Block 4 Top)
+            new Capacitor('C_COUPL', 'B3_H18', 'B4_A17', 0.1e-6, true, 'CERAMIC'),
+            new Resistor('R_HP_GND', 'B4_B17', 'B4_GND_L_17', 1000000, true),
+            new DIPChip('U2', 'LF356', 'B4_E16', 'B4_F16'),
+            new Resistor('R_IN2_GND', 'B4_D18', 'B4_GND_L_18', 1000000, true),
+
+            new Wire('W_U2_VCC', 'B4_VCC_R_17', 'B4_F17', '#ef4444'),
+            new Wire('W_U2_VEE', 'B4_GND_L_19', 'B4_E19', '#3b82f6'),
+
+            // 4. U3 LF356 Hysteresis Comparator (Block 3 Bottom)
+            new DIPChip('U3', 'LF356', 'B3_E45', 'B3_F45'),
+            new Potentiometer('VR2', 'B3_C40', 'B3_C46', 50000, 0.5),
+            new Resistor('R_FB3', 'B3_C46', 'B3_D47', 100000, true),
+            new Capacitor('C_INT3', 'B3_C46', 'B3_GND_L_46', 0.1e-6, true, 'CERAMIC'),
+            new Wire('W_VR2_OUT', 'B3_C40', 'B3_D47', '#e67e22'),
+
+            new Wire('W_U3_VCC', 'B3_VCC_L_46', 'B3_F46', '#ef4444'),
+            new Wire('W_U3_VEE', 'B3_GND_L_48', 'B3_E48', '#3b82f6'),
+
+            // 5. Q1 C1815 BJT Output Buffer (Block 4 Bottom)
+            new BJTTransistor('Q1', 'C1815', 'NPN', 'B4_H26', 'B4_H27', 'B4_H28'), // E, C, B
+            new Resistor('R_BASE', 'B3_D47', 'B4_C28', 1000, true),
+            new Wire('W_BASE_Q1', 'B4_C28', 'B4_G28', '#0984e3'),
+            new Wire('W_EMIT_GND', 'B4_G26', 'B4_GND_R_26', '#00b894'),
+            new Resistor('R_PULL5K', 'B4_F18', 'B4_G27', 5100, true),
+            new Diode('D_1N4148', 'B4_G27', 'B4_GND_R_27', '1N4148')
+        ];
+
+        this.probeAPin = 'B3_D18'; // TP1: Sine Wave (U1 Pin 6)
+        this.probeBPin = 'B3_D47'; // TP2: Square Wave (U3 Pin 6)
+        this.probeCPin = 'B4_G27'; // TP3: TTL Pulse (Q1 Collector)
+        this.probeDPin = 'B4_A17';
+
+        this.breadboardCanvas.probeAPin = this.probeAPin;
+        this.breadboardCanvas.probeBPin = this.probeBPin;
+        this.breadboardCanvas.probeCPin = this.probeCPin;
+        this.breadboardCanvas.probeDPin = this.probeDPin;
+
+        this.oscilloscopeCanvas.voltPerDivChA = 5.0;
+        this.oscilloscopeCanvas.voltPerDivChB = 5.0;
+        this.oscilloscopeCanvas.voltPerDivChC = 2.0;
+        this.oscilloscopeCanvas.timePerDiv = 0.001;
+
+        this.warmupSimulationBuffer(1200);
+        this.breadboardCanvas.toastMsg = `🏆 [KCA 통신설비기능장 1번] 3단 RC 위상변위 발진회로 로드 완료! (CH A: TP1 정현파, CH B: TP2 구형파, CH C: TP3 펄스파)`;
+    }
+
     // 💾 Circuit Save & Load Functionality
     setupSaveLoadHandlers() {
         const btnSaveModal = document.getElementById('btnSaveCircuit');
@@ -1471,6 +1573,8 @@ class AppController {
                 this.initWirelessExam();
             } else if (val === 'exam_computer') {
                 this.initComputerExam();
+            } else if (val === 'exam_phase_shift') {
+                this.initPhaseShiftExam();
             }
             this.renderAll();
         });
