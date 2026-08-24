@@ -133,14 +133,17 @@ export class Capacitor {
     }
 
     getCompanionModel(dt) {
-        const Req = dt / (this.capacitance || 1e-6);
-        const Geq = 1.0 / Req;
-        const Ieq = Geq * this.vCap;
-        return { Geq, Ieq, Req };
+        const Geq = (2.0 * (this.capacitance || 1e-6)) / dt;
+        const Ieq = Geq * this.vCap + this.iCap;
+        return { Geq, Ieq, Req: 1.0 / Geq };
     }
 
-    updateState(vNodeA, vNodeB) {
-        this.vCap = vNodeA - vNodeB;
+    updateState(vDiff, dt) {
+        const capVal = this.capacitance || 1e-6;
+        const Geq = (2.0 * capVal) / dt;
+        const vNew = (isNaN(vDiff) || !isFinite(vDiff)) ? 0 : vDiff;
+        this.iCap = Geq * (vNew - this.vCap) - this.iCap;
+        this.vCap = vNew;
     }
 }
 
