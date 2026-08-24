@@ -250,7 +250,7 @@ export class MNASolver {
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
                         const G_out = 100.0;
-                        const Av = 100.0;
+                        const Av = 29.0; // Theoretical Phase-Shift Linear Gain for Pure Real-World Sine Waves
 
                         if (iOut >= 0) {
                             A[iOut][iOut] += G_out;
@@ -258,11 +258,9 @@ export class MNASolver {
                             const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                             const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            const diffV = vP - vM;
-                            const noise = (Math.random() - 0.5) * 1e-3;
-                            // Smooth Sigmoidal AGC (Automatic Gain Control)
-                            // Provides gradual sinusoidal transition around 0V to produce 100% pure Sine Waves!
-                            let vTarget = vMax * (2.0 / (1.0 + Math.exp(-(diffV + noise) * 1.8)) - 1.0);
+                            let vTarget = (vP - vM) * Av + (Math.random() - 0.5) * 1e-3;
+                            if (vTarget > vMax) vTarget = vMax;
+                            if (vTarget < vMin) vTarget = vMin;
 
                             Z[iOut] += G_out * vTarget;
                             comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
