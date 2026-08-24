@@ -350,7 +350,7 @@ export class OscilloscopeCanvas {
         const startIdx = Math.max(0, endIdx - samplesOnScreen);
 
         this.ctx.beginPath();
-        let isFirstPoint = true;
+        let prevX = 0, prevY = 0;
 
         for (let i = startIdx; i < endIdx; i++) {
             const screenIdx = i - startIdx;
@@ -358,15 +358,20 @@ export class OscilloscopeCanvas {
             let v = ringBuffer.get(i);
             if (isNaN(v) || !isFinite(v)) v = 0;
             v = Math.max(-25.0, Math.min(25.0, v));
-
             const y = traceZeroY - (v * vDivScale);
 
-            if (isFirstPoint) {
+            if (i === startIdx) {
                 this.ctx.moveTo(x, y);
-                isFirstPoint = false;
             } else {
-                this.ctx.lineTo(x, y);
+                const midX = (prevX + x) / 2;
+                const midY = (prevY + y) / 2;
+                this.ctx.quadraticCurveTo(prevX, prevY, midX, midY);
             }
+            prevX = x;
+            prevY = y;
+        }
+        if (startIdx < endIdx) {
+            this.ctx.lineTo(prevX, prevY);
         }
         this.ctx.stroke();
         this.ctx.shadowBlur = 0;
