@@ -35,14 +35,14 @@ export class BreadboardGrid {
         for (let blk = 1; blk <= 4; blk++) {
             for (let r = 1; r <= 63; r++) {
                 // Left Dual Vertical Rails (RED +, BLUE -)
-                this.nodeMap.set(`B${blk}_VCC_${r}`, `NODE_B${blk}_RAIL_VCC`);
-                this.nodeMap.set(`B${blk}_VCC_L_${r}`, `NODE_B${blk}_RAIL_VCC`);
-                this.nodeMap.set(`B${blk}_GND_${r}`, '0');
-                this.nodeMap.set(`B${blk}_GND_L_${r}`, '0');
+                this.nodeMap.set(`B${blk}_VCC_${r}`, `NODE_B${blk}_RAIL_VCC_L`);
+                this.nodeMap.set(`B${blk}_VCC_L_${r}`, `NODE_B${blk}_RAIL_VCC_L`);
+                this.nodeMap.set(`B${blk}_GND_${r}`, `NODE_B${blk}_RAIL_GND_L`);
+                this.nodeMap.set(`B${blk}_GND_L_${r}`, `NODE_B${blk}_RAIL_GND_L`);
 
                 // Right Dual Vertical Rails (RED +, BLUE -)
-                this.nodeMap.set(`B${blk}_VCC_R_${r}`, `NODE_B${blk}_RAIL_VCC`);
-                this.nodeMap.set(`B${blk}_GND_R_${r}`, '0');
+                this.nodeMap.set(`B${blk}_VCC_R_${r}`, `NODE_B${blk}_RAIL_VCC_R`);
+                this.nodeMap.set(`B${blk}_GND_R_${r}`, `NODE_B${blk}_RAIL_GND_R`);
 
                 // Left Row (Cols A, B, C, D, E)
                 const leftNodeId = `NODE_B${blk}_L_ROW_${r}`;
@@ -63,9 +63,12 @@ export class BreadboardGrid {
 
     getNodeId(pinKey) {
         if (!pinKey) return null;
-        if (pinKey === 'GND' || pinKey.includes('GND') || pinKey === 'BINDING_GND') {
+        if (this.nodeMap.has(pinKey)) {
+            return this.nodeMap.get(pinKey);
+        }
+        if (pinKey === '0' || pinKey === 'GND' || pinKey === 'BINDING_GND' || pinKey.startsWith('GND_TOP')) {
             return '0';
         }
-        return this.nodeMap.get(pinKey) || `NODE_${pinKey}`;
+        return `NODE_${pinKey}`;
     }
 }
