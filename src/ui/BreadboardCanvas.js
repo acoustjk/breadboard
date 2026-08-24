@@ -1117,7 +1117,7 @@ export class BreadboardCanvas {
                 this.ctx.fillStyle = '#facc15';
                 this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(comp.type === 'ZENER' ? `${comp.vZener || 5.1}V Zener` : '1N4007', 0, -8);
+                this.ctx.fillText(comp.type === 'ZENER' ? `${comp.vZener || 5.1}V Zener` : (comp.model || '1N4148'), 0, -8);
             }
 
             this.ctx.restore();
