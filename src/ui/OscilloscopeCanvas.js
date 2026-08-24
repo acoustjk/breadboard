@@ -97,11 +97,6 @@ export class OscilloscopeCanvas {
 
         this.timePerDiv = 0.005;
         this.posOffsetX = 0;
-
-        this.showChA = true;
-        this.showChB = true;
-        this.showChC = true;
-        this.showChD = true;
         this.isFrozen = false;
 
         this.render();

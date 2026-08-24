@@ -265,6 +265,7 @@ class AppController {
                 this.breadboardCanvas.probeDPin = pinKey;
             }
 
+            this.syncScopeChannelVisibility();
             this.resetToolState();
             this.breadboardCanvas.toastMsg = `📍 4CH 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
             this.renderAll();
@@ -1118,6 +1119,7 @@ class AppController {
         this.compCounter = this.components.length + 10;
 
         this.oscilloscopeCanvas.resetControls();
+        this.syncScopeChannelVisibility();
         this.warmupSimulationBuffer(1200);
         this.startSimulation();
         this.renderAll();
