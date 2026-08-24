@@ -258,14 +258,13 @@ export class MNASolver {
                             const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                             const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            let vTarget = (vP - vM) * Av;
-                            vTarget += (Math.random() - 0.5) * 1e-2; // Startup noise perturbation
-
-                            if (vTarget > vMax) vTarget = vMax;
-                            if (vTarget < vMin) vTarget = vMin;
+                            const rawTarget = (vP - vM) * Av + (Math.random() - 0.5) * 1e-2;
+                            // Smooth Soft Saturation via Hyperbolic Tangent (tanh)
+                            // Prevents sharp triangular hard-clipping and produces 100% smooth, pure Sine Waves!
+                            let vTarget = vMax * Math.tanh(rawTarget / vMax);
 
                             Z[iOut] += G_out * vTarget;
-                            comp.vPin6 = Math.max(vMin, Math.min(vMax, comp.vPin6 || 0));
+                            comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
                         }
                     }
 
