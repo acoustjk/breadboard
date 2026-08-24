@@ -350,28 +350,45 @@ export class OscilloscopeCanvas {
         const startIdx = Math.max(0, endIdx - samplesOnScreen);
 
         this.ctx.beginPath();
-        let prevX = 0, prevY = 0;
+        let isFirst = true;
 
-        for (let i = startIdx; i < endIdx; i++) {
-            const screenIdx = i - startIdx;
-            const x = screenIdx * stepX;
-            let v = ringBuffer.get(i);
-            if (isNaN(v) || !isFinite(v)) v = 0;
-            v = Math.max(-25.0, Math.min(25.0, v));
-            const y = traceZeroY - (v * vDivScale);
+        for (let i = startIdx; i < endIdx - 1; i++) {
+            const getV = (idx) => {
+                let val = ringBuffer.get(Math.max(0, Math.min(ringBuffer.length - 1, idx)));
+                if (isNaN(val) || !isFinite(val)) val = 0;
+                return Math.max(-25.0, Math.min(25.0, val));
+            };
 
-            if (i === startIdx) {
-                this.ctx.moveTo(x, y);
-            } else {
-                const midX = (prevX + x) / 2;
-                const midY = (prevY + y) / 2;
-                this.ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+            const y0 = traceZeroY - (getV(i - 1) * vDivScale);
+            const y1 = traceZeroY - (getV(i) * vDivScale);
+            const y2 = traceZeroY - (getV(i + 1) * vDivScale);
+            const y3 = traceZeroY - (getV(i + 2) * vDivScale);
+
+            const x1 = (i - startIdx) * stepX;
+            const x2 = (i + 1 - startIdx) * stepX;
+
+            const subSteps = 8;
+            for (let s = 0; s < subSteps; s++) {
+                const t = s / subSteps;
+                const t2 = t * t;
+                const t3 = t2 * t;
+
+                // 8x Catmull-Rom Spline Sub-Step Interpolation for 100% Silky-Smooth Sine Wave Curves
+                const yInterp = 0.5 * (
+                    (2 * y1) +
+                    (-y0 + y2) * t +
+                    (2 * y0 - 5 * y1 + 4 * y2 - y3) * t2 +
+                    (-y0 + 3 * y1 - 3 * y2 + y3) * t3
+                );
+                const xInterp = x1 + t * (x2 - x1);
+
+                if (isFirst) {
+                    this.ctx.moveTo(xInterp, yInterp);
+                    isFirst = false;
+                } else {
+                    this.ctx.lineTo(xInterp, yInterp);
+                }
             }
-            prevX = x;
-            prevY = y;
-        }
-        if (startIdx < endIdx) {
-            this.ctx.lineTo(prevX, prevY);
         }
         this.ctx.stroke();
         this.ctx.shadowBlur = 0;
