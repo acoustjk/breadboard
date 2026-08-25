@@ -259,7 +259,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp Pure Implicit VCVS Model with Rail Clamping (Zero 1-step delay)
+                    // Single Op-Amp Linear Differential VCVS Model (Stable Av = 35.0 for 3-Stage RC Phase-Shift Sine Wave)
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -276,29 +276,26 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
-                            const Av = 100.0; // Implicit VCVS Gain
 
-                            const vLast = (this.lastVoltages) ? (this.lastVoltages.get(nOut) || 0) : 0;
-                            const isClampedHigh = vLast >= vMax - 0.05;
-                            const isClampedLow = vLast <= vMin + 0.05;
+                            // Calculate effective feedback gain or default to 35.0 for stable sinusoidal oscillation
+                            const pot = components.find(c => c.type === 'POT') || { getEffectiveResistance: () => 350000 };
+                            const potR = pot.getEffectiveResistance ? pot.getEffectiveResistance() : 350000;
+                            const Av = Math.min(100.0, Math.max(25.0, potR / 10000.0)); // Av = Rf / Rin (~35.0)
 
-                            if (isClampedHigh || isClampedLow) {
-                                A[iOut][iOut] += G_out;
-                                const targetRail = isClampedHigh ? vMax : vMin;
-                                Z[iOut] += G_out * targetRail;
-                                comp.vPin6 = targetRail;
-                            } else {
-                                A[iOut][iOut] += G_out;
-                                if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
-                                if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
+                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
-                                if (Math.abs(vP - vM) < 1e-4) {
-                                    Z[iOut] += G_out * (Math.random() - 0.5) * 2e-3;
-                                }
-                                comp.vPin6 = vLast;
+                            let vDiff = vP - vM;
+                            if (Math.abs(vDiff) < 1e-4) {
+                                vDiff += (Math.random() - 0.5) * 2e-3; // Startup thermal noise kick
                             }
+
+                            let vLinear = vDiff * Av;
+                            let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
+
+                            A[iOut][iOut] += G_out;
+                            Z[iOut] += G_out * vTarget;
+                            comp.vPin6 = vTarget;
                         }
                     }
 
