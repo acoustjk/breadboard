@@ -137,10 +137,13 @@ export class OscilloscopeCanvas {
         let vMax = -Infinity;
         let sumSq = 0;
         const total = ring.length;
-        const step = Math.max(1, Math.floor(total / 500)); // Subsample 500 points for fast stats
+
+        // Inspect last 2000 samples for real-time telemetry readout
+        const inspectLen = Math.min(total, 2000);
+        const startIdx = total - inspectLen;
         let count = 0;
 
-        for (let i = 0; i < total; i += step) {
+        for (let i = startIdx; i < total; i++) {
             let v = ring.get(i);
             if (isNaN(v) || !isFinite(v)) v = 0;
             v = Math.max(-25.0, Math.min(25.0, v));
@@ -157,15 +160,17 @@ export class OscilloscopeCanvas {
 
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
-        let prevVal = ring.get(0);
-        for (let i = step; i < total; i += step) {
+        let prevVal = ring.get(startIdx);
+        for (let i = startIdx + 1; i < total; i++) {
             const currVal = ring.get(i);
             if ((prevVal < mid && currVal >= mid) || (prevVal >= mid && currVal < mid)) {
                 crossings++;
             }
             prevVal = currVal;
         }
-        const freq = (crossings > 1 && vpp > 0.5) ? (crossings / 2) * 50.0 : 0;
+
+        const totalTime = inspectLen * (this.dt || 0.000005);
+        const freq = (crossings > 1 && vpp > 0.3 && totalTime > 0) ? (crossings / 2) / totalTime : 0;
         const period = freq > 0 ? 1.0 / freq : 0;
 
         return { vMin, vMax, vpp, vrms, freq, period };
