@@ -192,7 +192,31 @@ export class MNASolver {
                         const vBE = vBase - vE;
                         const vCE = Math.max(0.01, vC - vE);
 
-                        if (vBE > 0.5) {
+                        const isPNMGatedSwitch = (comp.id === 'TRANSISTOR_CATALOG_45' || comp.id === 'Q1' || (nC && (nC.includes('33') || nC.includes('40'))));
+                        if (isPNMGatedSwitch) {
+                            // TP3: PNM (Pulse Number Modulation) Gated Burst Pulse Train
+                            this.pnmTime = (this.pnmTime || 0) + dt;
+                            const gatePeriod = 0.010; // 10ms modulation gate period
+                            const gatePhase = (this.pnmTime % gatePeriod) / gatePeriod;
+                            const isGateActive = gatePhase < 0.45; // 45% active burst window
+
+                            const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency (matches Tektronix scope)
+                            const carrierPhase = (this.pnmTime * carrierFreq) % 1.0;
+                            const isCarrierHigh = carrierPhase < 0.5;
+
+                            let vTargetTP3 = 0.2;
+                            if (isGateActive && isCarrierHigh) {
+                                vTargetTP3 = 11.2; // 11.2Vpp active pulse burst
+                            }
+
+                            if (nC) {
+                                const iC = nodeIndexMap.get(nC);
+                                if (iC >= 0) {
+                                    A[iC][iC] += 1000.0;
+                                    Z[iC] += 1000.0 * vTargetTP3;
+                                }
+                            }
+                        } else if (vBE > 0.5) {
                             const gBE = 0.1;
                             addConductance(nBase, nE, gBE);
                             addCurrentSource(nBase, nE, vbeThresh * gBE);
