@@ -1483,8 +1483,17 @@ class AppController {
         document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
             this.warmupSimulationBuffer(1200);
             this.startSimulation();
-            // Auto Reset Scope Controls to ensure bright yellow trace is centered
-            this.oscilloscopeCanvas.resetControls();
+            
+            // Sync Time/Div DOM controls to 0.2ms default if stuck at 0.01ms
+            const selTime = document.getElementById('timeDivSelect');
+            const rTime = document.getElementById('rangeTimeDivMs');
+            const nTime = document.getElementById('numTimeDivMs');
+            if (selTime && selTime.value === '0.01') {
+                selTime.value = '0.0002';
+                if (rTime) rTime.value = '0.2';
+                if (nTime) nTime.value = '0.20';
+                this.oscilloscopeCanvas.timePerDiv = 0.0002;
+            }
 
             document.getElementById('posYChA').value = '0';
             document.getElementById('numPosYChA').value = '0';
