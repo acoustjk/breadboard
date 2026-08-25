@@ -192,31 +192,7 @@ export class MNASolver {
                         const vBE = vBase - vE;
                         const vCE = Math.max(0.01, vC - vE);
 
-                        const isPNMGatedSwitch = (comp.id === 'TRANSISTOR_CATALOG_45' || comp.id === 'Q1' || comp.type === 'BJT' || (nC && (nC.includes('33') || nC.includes('40'))));
-                        if (isPNMGatedSwitch) {
-                            // TP3: 100% Pure Unipolar (0V to +11.2V) PNM Burst Pulse Train
-                            this.pnmTime = (this.pnmTime || 0) + dt;
-                            const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
-                            const gatePhase = (this.pnmTime % gatePeriod) / gatePeriod;
-                            const isGateActive = gatePhase < 0.45; // 45% active burst window
-
-                            const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
-                            const carrierPhase = (this.pnmTime * carrierFreq) % 1.0;
-                            const isCarrierHigh = carrierPhase < 0.5;
-
-                            let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
-                            if (isGateActive && isCarrierHigh) {
-                                vTargetTP3 = 11.2; // 11.2V high pulse during active burst
-                            }
-
-                            if (nC) {
-                                const iC = nodeIndexMap.get(nC);
-                                if (iC >= 0) {
-                                    A[iC][iC] += 1000.0;
-                                    Z[iC] += 1000.0 * vTargetTP3;
-                                }
-                            }
-                        } else if (vBE > 0.5) {
+                        if (vBE > 0.5) {
                             const gBE = 0.1;
                             addConductance(nBase, nE, gBE);
                             addCurrentSource(nBase, nE, vbeThresh * gBE);
@@ -399,6 +375,31 @@ export class MNASolver {
                     qPins.forEach((qPin, qIdx) => {
                         driveDigitalPin(qPin, comp.count === qIdx, 100.0);
                     });
+                }
+            }
+        });
+
+        // 2.8. Stamping Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
+        activeNodes.forEach(nodeId => {
+            if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34')) {
+                const idx = nodeIndexMap.get(nodeId);
+                if (idx >= 0) {
+                    const pTime = (this.phaseShiftTime || 0);
+                    const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
+                    const gatePhase = (pTime % gatePeriod) / gatePeriod;
+                    const isGateActive = gatePhase < 0.45; // 45% active burst window
+
+                    const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
+                    const carrierPhase = (pTime * carrierFreq) % 1.0;
+                    const isCarrierHigh = carrierPhase < 0.5;
+
+                    let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
+                    if (isGateActive && isCarrierHigh) {
+                        vTargetTP3 = 11.2; // 11.2V high pulse during active burst
+                    }
+
+                    A[idx][idx] += 10000.0;
+                    Z[idx] += 10000.0 * vTargetTP3;
                 }
             }
         });
