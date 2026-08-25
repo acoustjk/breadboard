@@ -52,7 +52,8 @@ export const TRANSISTOR_CATALOG = {
     '2N3906': { name: '2N3906 (PNP)', polarity: 'PNP', beta: 100, pinout: 'EBC', desc: '범용 PNP 소신호 트랜지스터 (EBC TO-92)' },
     '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, pinout: 'EBC', desc: '고전류 NPN 스위칭 트랜지스터 (EBC TO-92)' },
     'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, pinout: 'ECB', desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
-    'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' }
+    'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' },
+    '2SK30A': { name: '2SK30A / K30 (N-JFET)', polarity: 'N-JFET', beta: 200, pinout: 'SDG', desc: 'KCA PNM 통신실기 표준 N채널 JFET 아날로그 스위치 (SDG TO-92)' }
 };
 
 export const IC_CATALOG = {
