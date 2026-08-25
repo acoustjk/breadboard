@@ -250,7 +250,7 @@ export class MNASolver {
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
                         const G_out = 100.0;
-                        const Av = 29.0; // Theoretical Phase-Shift Linear Gain for Pure Real-World Sine Waves
+                        const Av = 100.0;
 
                         if (iOut >= 0) {
                             A[iOut][iOut] += G_out;
