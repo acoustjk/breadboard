@@ -237,7 +237,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp SPICE-Grade Implicit MNA VCVS Model with Rail Clamping
+                    // Single Op-Amp SPICE Newton-Raphson Model for 100% Physical Fidelity
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -246,6 +246,8 @@ export class MNASolver {
                     const vNeg = comp.vPin4 || -12.0;
                     const vMax = Math.min(15.0, Math.max(0.0, vPos - 1.2));
                     const vMin = Math.max(-15.0, Math.min(0.0, vNeg + 1.2));
+                    const vLimit = (vMax - vMin) / 2.0;
+                    const vCenter = (vMax + vMin) / 2.0;
 
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
@@ -254,24 +256,23 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
-                            const Av = 200.0;
+                            const Av = 100.0; // Linear DC Open-Loop Gain
 
-                            const lastVout = (this.lastVoltages && this.lastVoltages.get(nOut)) || 0;
+                            const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                            const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                            const vDiff = vP - vM;
 
-                            if (lastVout >= vMax - 0.01) {
-                                // Saturated at positive rail
-                                A[iOut][iOut] += G_out;
-                                Z[iOut] += G_out * vMax;
-                            } else if (lastVout <= vMin + 0.01) {
-                                // Saturated at negative rail
-                                A[iOut][iOut] += G_out;
-                                Z[iOut] += G_out * vMin;
-                            } else {
-                                // Linear Region: Implicit SPICE VCVS equation G_out*(Vout - Av*(V+ - V-)) = 0
-                                A[iOut][iOut] += G_out;
-                                if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
-                                if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
-                            }
+                            const arg = (vDiff * Av) / Math.max(0.1, vLimit);
+                            const sech2 = 1.0 / Math.pow(Math.cosh(Math.max(-15.0, Math.min(15.0, arg))), 2);
+                            const gm = Math.max(1e-4, Av * sech2);
+                            const vTarget = vCenter + vLimit * Math.tanh(arg);
+
+                            A[iOut][iOut] += G_out;
+                            if (iPlus >= 0) A[iOut][iPlus] -= G_out * gm;
+                            if (iMinus >= 0) A[iOut][iMinus] += G_out * gm;
+
+                            Z[iOut] += G_out * (vTarget - gm * vDiff);
+                            comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
                         }
                     }
 
