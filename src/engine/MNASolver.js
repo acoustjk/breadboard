@@ -259,7 +259,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp Pure Linear VCVS Model with Rail Clamping (No tanh distortion)
+                    // Single Op-Amp Pure Implicit VCVS Model with Rail Clamping (Zero 1-step delay)
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -276,18 +276,29 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
-                            const Av = 1000.0; // Open-Loop Gain
+                            const Av = 100.0; // Implicit VCVS Gain
 
-                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                            const vLast = (this.lastVoltages) ? (this.lastVoltages.get(nOut) || 0) : 0;
+                            const isClampedHigh = vLast >= vMax - 0.05;
+                            const isClampedLow = vLast <= vMin + 0.05;
 
-                            const noise = (Math.abs(vP - vM) < 1e-4) ? (Math.random() - 0.5) * 2e-3 : 0.0;
-                            let vLinear = (vP - vM + noise) * Av;
-                            let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
+                            if (isClampedHigh || isClampedLow) {
+                                A[iOut][iOut] += G_out;
+                                const targetRail = isClampedHigh ? vMax : vMin;
+                                Z[iOut] += G_out * targetRail;
+                                comp.vPin6 = targetRail;
+                            } else {
+                                A[iOut][iOut] += G_out;
+                                if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
+                                if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
 
-                            A[iOut][iOut] += G_out;
-                            Z[iOut] += G_out * vTarget;
-                            comp.vPin6 = vTarget;
+                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                                if (Math.abs(vP - vM) < 1e-4) {
+                                    Z[iOut] += G_out * (Math.random() - 0.5) * 2e-3;
+                                }
+                                comp.vPin6 = vLast;
+                            }
                         }
                     }
 
