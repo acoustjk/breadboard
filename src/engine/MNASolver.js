@@ -237,17 +237,15 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp SPICE Newton-Raphson Model for 100% Physical Fidelity
+                    // Single Op-Amp Pure Linear VCVS Model with Rail Clamping (No tanh distortion)
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
 
-                    const vPos = comp.vPin7 || 12.0;
-                    const vNeg = comp.vPin4 || -12.0;
+                    const vPos = comp.vPin7 !== undefined ? comp.vPin7 : 12.0;
+                    const vNeg = comp.vPin4 !== undefined ? comp.vPin4 : -12.0;
                     const vMax = Math.min(15.0, Math.max(0.0, vPos - 1.2));
                     const vMin = Math.max(-15.0, Math.min(0.0, vNeg + 1.2));
-                    const vLimit = (vMax - vMin) / 2.0;
-                    const vCenter = (vMax + vMin) / 2.0;
 
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
@@ -256,23 +254,17 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
-                            const Av = 100.0; // Linear DC Open-Loop Gain
+                            const Av = 1000.0; // Open-Loop Gain
 
-                            const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                            const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
-                            const vDiff = vP - vM;
+                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            const arg = (vDiff * Av) / Math.max(0.1, vLimit);
-                            const sech2 = 1.0 / Math.pow(Math.cosh(Math.max(-15.0, Math.min(15.0, arg))), 2);
-                            const gm = Math.max(1e-4, Av * sech2);
-                            const vTarget = vCenter + vLimit * Math.tanh(arg);
+                            let vLinear = (vP - vM) * Av;
+                            let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
 
                             A[iOut][iOut] += G_out;
-                            if (iPlus >= 0) A[iOut][iPlus] -= G_out * gm;
-                            if (iMinus >= 0) A[iOut][iMinus] += G_out * gm;
-
-                            Z[iOut] += G_out * (vTarget - gm * vDiff);
-                            comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
+                            Z[iOut] += G_out * vTarget;
+                            comp.vPin6 = vTarget;
                         }
                     }
 
