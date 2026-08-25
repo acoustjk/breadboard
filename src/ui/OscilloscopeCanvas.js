@@ -47,8 +47,8 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        // Horizontal Timebase Settings (Default 5.0ms / div)
-        this.timePerDiv = 0.005;
+        // Horizontal Timebase Settings (Default 0.2ms / div for 100% clear 2~3 cycle Sine Waves)
+        this.timePerDiv = 0.0002;
         this.posOffsetX = 0;
 
         // Channel ON/OFF Visibility Toggles

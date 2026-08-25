@@ -1469,10 +1469,10 @@ class AppController {
                 document.getElementById('chkChC').checked = true;
                 document.getElementById('chkChD').checked = true;
 
-                document.getElementById('timeDivSelect').value = '0.005';
+                document.getElementById('timeDivSelect').value = '0.0002';
                 const rSlider = document.getElementById('rangeTimeDivMs');
-                if (rSlider) rSlider.value = '5.0';
-                document.getElementById('numTimeDivMs').value = '5.00';
+                if (rSlider) rSlider.value = '0.2';
+                document.getElementById('numTimeDivMs').value = '0.20';
                 document.getElementById('posXTime').value = '0';
                 document.getElementById('numPosXTime').value = '0';
 
