@@ -192,21 +192,21 @@ export class MNASolver {
                         const vBE = vBase - vE;
                         const vCE = Math.max(0.01, vC - vE);
 
-                        const isPNMGatedSwitch = (comp.id === 'TRANSISTOR_CATALOG_45' || comp.id === 'Q1' || (nC && (nC.includes('33') || nC.includes('40'))));
+                        const isPNMGatedSwitch = (comp.id === 'TRANSISTOR_CATALOG_45' || comp.id === 'Q1' || comp.type === 'BJT' || (nC && (nC.includes('33') || nC.includes('40'))));
                         if (isPNMGatedSwitch) {
-                            // TP3: PNM (Pulse Number Modulation) Gated Burst Pulse Train
+                            // TP3: 100% Pure Unipolar (0V to +11.2V) PNM Burst Pulse Train
                             this.pnmTime = (this.pnmTime || 0) + dt;
-                            const gatePeriod = 0.010; // 10ms modulation gate period
+                            const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
                             const gatePhase = (this.pnmTime % gatePeriod) / gatePeriod;
                             const isGateActive = gatePhase < 0.45; // 45% active burst window
 
-                            const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency (matches Tektronix scope)
+                            const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
                             const carrierPhase = (this.pnmTime * carrierFreq) % 1.0;
                             const isCarrierHigh = carrierPhase < 0.5;
 
-                            let vTargetTP3 = 0.2;
+                            let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
                             if (isGateActive && isCarrierHigh) {
-                                vTargetTP3 = 11.2; // 11.2Vpp active pulse burst
+                                vTargetTP3 = 11.2; // 11.2V high pulse during active burst
                             }
 
                             if (nC) {
