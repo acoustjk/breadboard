@@ -207,7 +207,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">🎛️ 50kΩ & 1MΩ 가변저항 옵션 추가 & 커스텀 용량 수정 기능 탑재 v=1104!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">🎛️ 오실로스코프 창 연 채로 가변저항 노브 실시간(60FPS) 변조 기능 탑재 v=1105!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -453,6 +453,12 @@
                     <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="100" style="width: 50px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
                 </div>
 
+                <div style="display: flex; gap: 4px; align-items: center; background: #0f172a; border: 1px solid #334155; padding: 2px 8px; border-radius: 4px; margin-left: 8px;">
+                    <span style="color: #facc15; font-size: 11px; font-weight: bold;">🎛️ 가변저항:</span>
+                    <input type="range" id="scopePotSlider" min="1" max="99" value="50" step="1" style="width: 85px; vertical-align: middle;">
+                    <span id="scopePotValText" style="color: #facc15; font-size: 11px; font-weight: bold; width: 60px;">50%</span>
+                </div>
+
                 <div style="display: flex; gap: 4px; align-items: center; margin-left: auto;">
                     <label for="posXTime" style="color: #94a3b8;">X-Shift:</label>
                     <input type="range" id="posXTime" min="-300" max="300" value="0" step="1" style="width: 80px; vertical-align: middle;">
@@ -506,6 +512,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1104"></script>
+    <script type="module" src="./app.js?v=1105"></script>
 </body>
 </html>

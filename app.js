@@ -287,9 +287,33 @@ class AppController {
             this.renderAll();
         };
 
+        this.breadboardCanvas.onPotentiometerChanged = (comp) => {
+            this.oscilloscopeCanvas.resetBuffer();
+            this.warmupSimulationBuffer(600);
+            this.updateScopePotSlider(comp);
+            this.renderAll();
+        };
+
         this.breadboardCanvas.onNeedsRender = () => {
             this.renderAll();
         };
+    }
+
+    updateScopePotSlider(comp) {
+        if (!comp || comp.type !== 'POT') {
+            comp = this.components.find(c => c.type === 'POT');
+        }
+        if (!comp) return;
+
+        const potSlider = document.getElementById('scopePotSlider');
+        const potText = document.getElementById('scopePotValText');
+        const valPct = Math.round(comp.ratio * 100);
+
+        if (potSlider) potSlider.value = valPct;
+        const effRes = comp.getEffectiveResistance();
+        const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
+
+        if (potText) potText.textContent = `${formattedEff}Ω (${valPct}%)`;
     }
 
     openPropertyInspector(comp) {
@@ -1403,6 +1427,25 @@ class AppController {
         bindTimeDivSync('timeDivSelect', 'rangeTimeDivMs', 'numTimeDivMs', 'timePerDiv');
         bindPosXSync('posXTime', 'numPosXTime', 'posOffsetX');
 
+        const potSlider = document.getElementById('scopePotSlider');
+        if (potSlider) {
+            potSlider.addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                const pot = this.components.find(c => c.type === 'POT') || (this.breadboardCanvas && this.breadboardCanvas.selectedComponent);
+                if (pot && pot.type === 'POT') {
+                    pot.ratio = Math.max(0.01, Math.min(0.99, val / 100.0));
+                    const effRes = pot.getEffectiveResistance();
+                    const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
+                    const potText = document.getElementById('scopePotValText');
+                    if (potText) potText.textContent = `${formattedEff}Ω (${val}%)`;
+
+                    this.oscilloscopeCanvas.resetBuffer();
+                    this.warmupSimulationBuffer(600);
+                    this.renderAll();
+                }
+            });
+        }
+
         const btnResetScope = document.getElementById('btnResetScopeControls');
         if (btnResetScope) {
             btnResetScope.addEventListener('click', () => {
@@ -1446,6 +1489,8 @@ class AppController {
             document.getElementById('posYChA').value = '0';
             document.getElementById('numPosYChA').value = '0';
             document.getElementById('txtValChA').innerText = 'Y: 0px';
+
+            this.updateScopePotSlider();
 
             document.getElementById('scopeModal').classList.remove('hidden');
         });

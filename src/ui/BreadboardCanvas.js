@@ -265,9 +265,48 @@ export class BreadboardCanvas {
             }
         });
 
-        // 7. Smooth Independent Mouse Wheel Canvas Zoom (prevents entire browser page zoom!)
+        // 7. Smooth Independent Mouse Wheel Canvas Zoom & Potentiometer Knob Tuning
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
+            const { worldX, worldY } = this.getMouseWorldPos(e);
+
+            // Check if mouse wheel is scrolled over a Potentiometer
+            let hoveredPot = null;
+            if (this.componentsRef) {
+                for (const comp of this.componentsRef) {
+                    if (comp.type === 'POT') {
+                        const pA = this.getPinPos(comp.pinA);
+                        const pB = this.getPinPos(comp.pinB);
+                        const midX = (pA.x + pB.x) / 2;
+                        const midY = (pA.y + pB.y) / 2;
+                        if (Math.hypot(midX - worldX, midY - worldY) < 30) {
+                            hoveredPot = comp;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!hoveredPot && this.selectedComponent && this.selectedComponent.type === 'POT') {
+                hoveredPot = this.selectedComponent;
+            }
+
+            if (hoveredPot) {
+                // Scroll Wheel turns Potentiometer Knob +5% / -5%
+                const delta = e.deltaY < 0 ? 0.05 : -0.05;
+                hoveredPot.ratio = Math.max(0.01, Math.min(0.99, hoveredPot.ratio + delta));
+                const effRes = hoveredPot.getEffectiveResistance();
+                const formatted = effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0);
+                this.showToast(`🎛️ 가변저항 휠 조작: [${formatted}Ω (${(hoveredPot.ratio * 100).toFixed(0)}%)]`);
+
+                if (this.onPotentiometerChanged) {
+                    this.onPotentiometerChanged(hoveredPot);
+                }
+                if (this.onNeedsRender) this.onNeedsRender();
+                return;
+            }
+
+            // Normal Canvas Zoom
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = rect.width > 0 ? (this.canvas.width / rect.width) : 1.0;
             const scaleY = rect.height > 0 ? (this.canvas.height / rect.height) : 1.0;
