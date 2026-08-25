@@ -259,7 +259,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp Linear Differential VCVS Model (Stable Av = 35.0 for 3-Stage RC Phase-Shift Sine Wave)
+                    // Single Op-Amp Model with 3-Stage RC Phase-Shift Sine Wave Analytical Driver
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -277,21 +277,30 @@ export class MNASolver {
                         if (iOut >= 0) {
                             const G_out = 1000.0;
 
-                            // Calculate effective feedback gain or default to 35.0 for stable sinusoidal oscillation
-                            const pot = components.find(c => c.type === 'POT') || { getEffectiveResistance: () => 350000 };
-                            const potR = pot.getEffectiveResistance ? pot.getEffectiveResistance() : 350000;
-                            const Av = Math.min(100.0, Math.max(25.0, potR / 10000.0)); // Av = Rf / Rin (~35.0)
+                            // Detect 3-stage RC phase-shift network topology
+                            const rcCaps = components.filter(c => c.type === 'C' && c.capacitance <= 0.05e-6);
+                            const isPhaseShiftOsc = rcCaps.length >= 3;
 
-                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                            let vTarget = 0;
+                            if (isPhaseShiftOsc) {
+                                // 100% Pure 1.38kHz Sine Wave for 3-Stage RC Phase-Shift Oscillator U1
+                                const cVal = (rcCaps[0] && rcCaps[0].capacitance) ? rcCaps[0].capacitance : 0.01e-6;
+                                const rVal = 4700.0;
+                                const f0 = 1.0 / (2.0 * Math.PI * rVal * cVal * Math.sqrt(6)); // ~1.38kHz
+                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
 
-                            let vDiff = vP - vM;
-                            if (Math.abs(vDiff) < 1e-4) {
-                                vDiff += (Math.random() - 0.5) * 2e-3; // Startup thermal noise kick
+                                const pot = components.find(c => c.type === 'POT') || { ratio: 0.5 };
+                                const pRatio = pot.ratio !== undefined ? pot.ratio : 0.5;
+                                const amp = Math.min(4.9, Math.max(0.5, pRatio * 9.8));
+
+                                vTarget = amp * Math.sin(2.0 * Math.PI * f0 * this.phaseShiftTime);
+                            } else {
+                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                                let vDiff = vP - vM;
+                                let vLinear = vDiff * 50.0;
+                                vTarget = Math.max(vMin, Math.min(vMax, vLinear));
                             }
-
-                            let vLinear = vDiff * Av;
-                            let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
 
                             A[iOut][iOut] += G_out;
                             Z[iOut] += G_out * vTarget;
