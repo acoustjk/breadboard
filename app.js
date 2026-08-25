@@ -210,6 +210,8 @@ class AppController {
             if (newComp) {
                 this.components.push(newComp);
                 this.resetToolState();
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(1200);
                 this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
                 this.renderAll();
             }
@@ -226,6 +228,8 @@ class AppController {
                 if (!isNaN(parsed)) {
                     this.voltageVa = parsed;
                     this.breadboardCanvas.voltageVa = parsed;
+                    this.oscilloscopeCanvas.resetBuffer();
+                    this.warmupSimulationBuffer(1200);
                     this.breadboardCanvas.toastMsg = `🔴 Va 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
                     this.renderAll();
                 }
@@ -235,6 +239,8 @@ class AppController {
                 if (!isNaN(parsed)) {
                     this.voltageVb = parsed;
                     this.breadboardCanvas.voltageVb = parsed;
+                    this.oscilloscopeCanvas.resetBuffer();
+                    this.warmupSimulationBuffer(1200);
                     this.breadboardCanvas.toastMsg = `🟢 Vb 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
                     this.renderAll();
                 }
@@ -244,6 +250,8 @@ class AppController {
                 if (!isNaN(parsed)) {
                     this.voltageVc = parsed;
                     this.breadboardCanvas.voltageVc = parsed;
+                    this.oscilloscopeCanvas.resetBuffer();
+                    this.warmupSimulationBuffer(1200);
                     this.breadboardCanvas.toastMsg = `🔵 Vc 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
                     this.renderAll();
                 }
@@ -266,6 +274,8 @@ class AppController {
             }
 
             this.syncScopeChannelVisibility();
+            this.oscilloscopeCanvas.resetBuffer();
+            this.warmupSimulationBuffer(1200);
             this.resetToolState();
             this.breadboardCanvas.toastMsg = `📍 4CH 오실로스코프 프로브 CH ${type} 앵커 (${pinKey})`;
             this.renderAll();
