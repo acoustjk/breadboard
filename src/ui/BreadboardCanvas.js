@@ -891,9 +891,8 @@ export class BreadboardCanvas {
             const tagOffsetX = isVertical ? 12 : 0;
             const tagOffsetY = isVertical ? 0 : -10;
 
-            const tType = (comp.transType || '').toUpperCase();
-            const cId = (comp.id || '').toUpperCase();
-            const isJFET = tType.includes('2SK') || tType.includes('K30') || comp.polarity === 'N-JFET' || comp.polarity === 'P-JFET' || cId === 'Q1';
+            const str = ((comp.transType || '') + ' ' + (comp.id || '') + ' ' + (comp.polarity || '')).toUpperCase();
+            const isJFET = str.includes('2SK') || str.includes('30') || str.includes('JFET') || str.includes('SDG');
 
             const labelPin1 = isJFET ? 'S' : 'E';
             const labelPin2 = isJFET ? 'D' : 'C';
