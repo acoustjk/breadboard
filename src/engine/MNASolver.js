@@ -237,7 +237,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp VCVS Behavioral Model with Rail Clamping
+                    // Single Op-Amp SPICE-Grade Implicit MNA VCVS Model with Rail Clamping
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -249,21 +249,29 @@ export class MNASolver {
 
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
-                        const G_out = 100.0;
-                        const Av = 100.0;
+                        const iPlus = nPlus ? nodeIndexMap.get(nPlus) : -1;
+                        const iMinus = nMinus ? nodeIndexMap.get(nMinus) : -1;
 
                         if (iOut >= 0) {
-                            A[iOut][iOut] += G_out;
+                            const G_out = 1000.0;
+                            const Av = 200.0;
 
-                            const vP = (nPlus && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                            const vM = (nMinus && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                            const lastVout = (this.lastVoltages && this.lastVoltages.get(nOut)) || 0;
 
-                            let vTarget = (vP - vM) * Av + (Math.random() - 0.5) * 1e-3;
-                            if (vTarget > vMax) vTarget = vMax;
-                            if (vTarget < vMin) vTarget = vMin;
-
-                            Z[iOut] += G_out * vTarget;
-                            comp.vPin6 = Math.max(vMin, Math.min(vMax, vTarget));
+                            if (lastVout >= vMax - 0.01) {
+                                // Saturated at positive rail
+                                A[iOut][iOut] += G_out;
+                                Z[iOut] += G_out * vMax;
+                            } else if (lastVout <= vMin + 0.01) {
+                                // Saturated at negative rail
+                                A[iOut][iOut] += G_out;
+                                Z[iOut] += G_out * vMin;
+                            } else {
+                                // Linear Region: Implicit SPICE VCVS equation G_out*(Vout - Av*(V+ - V-)) = 0
+                                A[iOut][iOut] += G_out;
+                                if (iPlus >= 0) A[iOut][iPlus] -= G_out * Av;
+                                if (iMinus >= 0) A[iOut][iMinus] += G_out * Av;
+                            }
                         }
                     }
 
