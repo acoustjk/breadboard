@@ -94,9 +94,15 @@ class AppController {
                 labelMsg = '점퍼 와이어';
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
                 const resType = this.selectedResistorType || 'R';
-                if (resType === 'POT') {
+                if (resType === 'POT_1M') {
+                    newComp = new Potentiometer(id, pinA, pinB, 1000000, 0.5);
+                    labelMsg = '🎛️ 1MΩ 가변저항 (Potentiometer)';
+                } else if (resType === 'POT_50K') {
+                    newComp = new Potentiometer(id, pinA, pinB, 50000, 0.5);
+                    labelMsg = '🎛️ 50kΩ 가변저항 (Potentiometer)';
+                } else if (resType === 'POT') {
                     newComp = new Potentiometer(id, pinA, pinB, 10000, 0.5);
-                    labelMsg = '가변저항 (Potentiometer)';
+                    labelMsg = '🎛️ 10kΩ 가변저항 (Potentiometer)';
                 } else {
                     newComp = new Resistor(id, pinA, pinB, 1000, false);
                     labelMsg = '고정 저항 (더블클릭하여 Ω 수치 변경)';
@@ -330,15 +336,24 @@ class AppController {
                 this.renderAll();
             }
         } else if (comp.type === 'POT') {
-            const pctStr = prompt(`🎛️ 가변저항 다이얼 노브 비율(0% ~ 100%)을 입력하세요:`, (comp.ratio * 100).toFixed(0));
-            const parsed = parseFloat(pctStr);
-            if (!isNaN(parsed)) {
-                comp.ratio = Math.max(0.01, Math.min(0.99, parsed / 100.0));
-                const effRes = comp.getEffectiveResistance();
-                const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
-                this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [${formatted}Ω (${parsed}%)]로 조절되었습니다!`;
-                this.renderAll();
+            const defaultTotal = comp.totalResistance >= 1e6 ? (comp.totalResistance / 1e6) + 'M' : (comp.totalResistance >= 1e3 ? (comp.totalResistance / 1e3) + 'k' : comp.totalResistance);
+            const valStr = prompt(`🎛️ 가변저항 최대 전저항 용량(Max R)을 입력하세요 (예: 50k, 1M, 10k, 100k, 500k):`, defaultTotal);
+            const parsedTotal = this.parseValue(valStr);
+            if (parsedTotal && parsedTotal > 0) {
+                comp.totalResistance = parsedTotal;
             }
+            const pctStr = prompt(`🎛️ 가변저항 다이얼 노브 비율(0% ~ 100%)을 입력하세요:`, (comp.ratio * 100).toFixed(0));
+            const parsedRatio = parseFloat(pctStr);
+            if (!isNaN(parsedRatio)) {
+                comp.ratio = Math.max(0.01, Math.min(0.99, parsedRatio / 100.0));
+            }
+            const effRes = comp.getEffectiveResistance();
+            const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
+            const formattedTotal = comp.totalResistance >= 1000000 ? (comp.totalResistance / 1000000) + 'M' : (comp.totalResistance >= 1000 ? (comp.totalResistance / 1000) + 'k' : comp.totalResistance);
+            this.oscilloscopeCanvas.resetBuffer();
+            this.warmupSimulationBuffer(1200);
+            this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [최대 ${formattedTotal}Ω 중 ${formattedEff}Ω (${(comp.ratio * 100).toFixed(0)}%)]로 설정되었습니다!`;
+            this.renderAll();
         } else if (comp.type === 'VDC') {
             const valStr = prompt(`🔴 DC 전압(V)을 입력하세요 (예: 5.0, 12.0, 3.3):`, comp.voltage || '5.0');
             const parsed = parseFloat(valStr);

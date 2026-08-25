@@ -80,7 +80,9 @@
                 <div class="palette-block-vertical">
                     <select id="resistorTypeSelect" class="select-input">
                         <option value="R" selected>⚡ 고정 저항 (Resistor)</option>
-                        <option value="POT">🎛️ 가변저항 (Potentiometer)</option>
+                        <option value="POT">🎛️ 가변저항 10kΩ (Default)</option>
+                        <option value="POT_50K">🎛️ 가변저항 50kΩ</option>
+                        <option value="POT_1M">🎛️ 가변저항 1MΩ</option>
                     </select>
                     <button id="toolResistorCatalog" class="btn btn-primary">⚡ 선택한 저항 소자 배치</button>
                 </div>
@@ -205,7 +207,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡열잡음(Thermal Noise) 발진 킥스타터 연산 탑재 v=1103!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">🎛️ 50kΩ & 1MΩ 가변저항 옵션 추가 & 커스텀 용량 수정 기능 탑재 v=1104!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -504,6 +506,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1103"></script>
+    <script type="module" src="./app.js?v=1104"></script>
 </body>
 </html>
