@@ -986,8 +986,8 @@ class AppController {
             new Wire('W_U3_VCC', 'B3_VCC_L_46', 'B3_F46', '#ef4444'),
             new Wire('W_U3_VEE', 'B3_GND_L_48', 'B3_E48', '#3b82f6'),
 
-            // 5. Q1 C1815 BJT Output Buffer (Block 4 Bottom)
-            new BJTTransistor('Q1', 'C1815', 'B4_H26', 'B4_H28', 'B4_H27'), // id, model, pinEmitter, pinBase, pinCollector
+            // 5. Q1 2SK30A (K30) N-Channel JFET Output Buffer (Block 4 Bottom)
+            new BJTTransistor('Q1', '2SK30A', 'B4_H26', 'B4_H28', 'B4_H27'), // id, model (2SK30A JFET), pinSource(S), pinGate(G), pinDrain(D)
             new Resistor('R_BASE', 'B3_D47', 'B4_C28', 1000, true),
             new Wire('W_BASE_Q1', 'B4_C28', 'B4_G28', '#0984e3'),
             new Wire('W_EMIT_GND', 'B4_G26', 'B4_GND_R_26', '#00b894'),
