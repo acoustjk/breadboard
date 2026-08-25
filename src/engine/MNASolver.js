@@ -280,7 +280,7 @@ export class MNASolver {
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || pinStr.includes('F17') || pinStr.includes('F18');
+                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('F17') || pinStr.includes('F18') || pinStr.includes('F26')));
                             const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || pinStr.includes('F40') || pinStr.includes('F42');
                             const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2';
 
@@ -302,18 +302,22 @@ export class MNASolver {
 
                             } else if (isU1_SineOsc) {
                                 // TP1 (U1): 100% Pure 1.38kHz Sine Wave (정현파)
-                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && c.totalResistance === 1000000)) || { ratio: 0.5 };
+                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.5 };
                                 const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.5;
                                 const amp = Math.min(4.9, Math.max(0.5, pRatio * 9.8));
                                 this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
                                 vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
                             } else {
-                                // Generic Op-Amp Linear Differential Model
+                                // Generic Op-Amp Linear Differential Model with Dominant Pole Damping (100kHz Nyquist Suppression)
                                 const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                                 const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
                                 let vDiff = vP - vM;
-                                vTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
+                                const rawTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
+                                const prevV = comp._lastVOut !== undefined ? comp._lastVOut : 0;
+                                const alpha = 0.15; // Dominant pole low-pass damping factor
+                                vTarget = prevV + alpha * (rawTarget - prevV);
+                                comp._lastVOut = vTarget;
                             }
 
                             A[iOut][iOut] += G_out;
