@@ -884,27 +884,32 @@ export class BreadboardCanvas {
             this.ctx.textAlign = 'center';
             this.ctx.fillText(comp.transType || '2N3904', bodyX, bodyY + 3);
 
-            // Bold Clear E, C, B Pin Labels Right Next To Pin Holes (Matching User's Red Diagram)
+            // Dynamic Pin Badge Labels: S, D, G for JFETs (2SK30A) vs E, C, B for BJTs
             this.ctx.font = 'bold 11px sans-serif';
             this.ctx.textBaseline = 'middle';
 
             const tagOffsetX = isVertical ? 12 : 0;
             const tagOffsetY = isVertical ? 0 : -10;
 
-            // Emitter Label (E) - Bright Red
+            const isJFET = (comp.transType === '2SK30A' || comp.polarity === 'N-JFET' || comp.polarity === 'P-JFET');
+            const labelPin1 = isJFET ? 'S' : 'E';
+            const labelPin2 = isJFET ? 'D' : 'C';
+            const labelPin3 = isJFET ? 'G' : 'B';
+
+            // Pin 1 Label (S / E) - Bright Red
             this.ctx.fillStyle = '#ef4444';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
-            this.ctx.fillText('E', pE.x + tagOffsetX, pE.y + tagOffsetY);
+            this.ctx.fillText(labelPin1, pE.x + tagOffsetX, pE.y + tagOffsetY);
 
-            // Collector Label (C) - Bright Yellow
+            // Pin 2 Label (D / C) - Bright Yellow
             this.ctx.fillStyle = '#facc15';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
-            this.ctx.fillText('C', pC.x + tagOffsetX, pC.y + tagOffsetY);
+            this.ctx.fillText(labelPin2, pC.x + tagOffsetX, pC.y + tagOffsetY);
 
-            // Base Label (B) - Bright Cyan
+            // Pin 3 Label (G / B) - Bright Cyan
             this.ctx.fillStyle = '#38bdf8';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
-            this.ctx.fillText('B', pBase.x + tagOffsetX, pBase.y + tagOffsetY);
+            this.ctx.fillText(labelPin3, pBase.x + tagOffsetX, pBase.y + tagOffsetY);
 
         } else if (comp.type === 'R') {
             this.ctx.strokeStyle = '#636e72';
