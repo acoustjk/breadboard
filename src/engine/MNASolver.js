@@ -259,7 +259,8 @@ export class MNASolver {
                             const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                             const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            let vLinear = (vP - vM) * Av;
+                            const noise = (Math.random() - 0.5) * 2e-3; // 2mV Thermal Startup Noise Kick
+                            let vLinear = (vP - vM + noise) * Av;
                             let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
 
                             A[iOut][iOut] += G_out;
