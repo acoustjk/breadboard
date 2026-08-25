@@ -1,6 +1,6 @@
 import { BreadboardGrid } from './src/engine/CircuitNode.js';
 import { MNASolver } from './src/engine/MNASolver.js';
-import { Resistor, Capacitor, DCSource, Wire, DIPChip, Potentiometer, ZenerDiode } from './src/components/ComponentModels.js';
+import { Resistor, Capacitor, DCSource, Wire, DIPChip, Potentiometer, ZenerDiode, Diode } from './src/components/ComponentModels.js';
 
 const grid = new BreadboardGrid();
 const solver = new MNASolver(grid);
@@ -50,28 +50,34 @@ const components = [
     new Wire('W_OSC_FB', 'B3_F18', 'B1_C18', '#e74c3c'),
     new Wire('W_VR1_OUT', 'B3_C12', 'B3_F18', '#f39c12'),
 
+    new DIPChip('U3', 'LF356', 'B3_E38', 'B3_F38'),
+    new Potentiometer('VR2', 'B3_A33', 'B3_C35', 50000, 0.5),
+
     new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', 12.0, true),
     new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', 0.0, true),
     new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', -12.0, true)
 ];
 
-const pinTP1 = 'B3_F18';
-const nodeTP1 = grid.getNodeId(pinTP1);
+const nodeTP1 = grid.getNodeId('B3_F18');
+const nodeTP2 = grid.getNodeId('B3_F40');
 
-console.log('Target TP1 Pin:', pinTP1, '-> Node ID:', nodeTP1);
-
-const samples = [];
+const samplesTP1 = [];
+const samplesTP2 = [];
 const dt = 0.000005;
 
 for (let i = 0; i < 5000; i++) {
     const res = solver.solveStep(components, dt);
-    const v = res.get(nodeTP1) || 0;
-    samples.push(v);
+    samplesTP1.push(res.get(nodeTP1) || 0);
+    samplesTP2.push(res.get(nodeTP2) || 0);
 }
 
-const last200 = samples.slice(-200);
-let minV = Math.min(...last200);
-let maxV = Math.max(...last200);
-console.log(`TP1 Min: ${minV.toFixed(3)}V, Max: ${maxV.toFixed(3)}V, Vpp: ${(maxV - minV).toFixed(3)}V`);
-console.log('Sample sequence (first 25 of last 200):');
-console.log(last200.slice(0, 25).map(x => x.toFixed(2)).join(', '));
+const last20_TP1 = samplesTP1.slice(-20);
+const last20_TP2 = samplesTP2.slice(-20);
+
+console.log('=== TP1 (U1) Sine Wave Verification ===');
+console.log('TP1 Min:', Math.min(...samplesTP1.slice(-200)).toFixed(2), 'Max:', Math.max(...samplesTP1.slice(-200)).toFixed(2));
+console.log('TP1 Samples:', last20_TP1.map(x => x.toFixed(2)).join(', '));
+
+console.log('\n=== TP2 (U3) Square Wave Verification ===');
+console.log('TP2 Min:', Math.min(...samplesTP2.slice(-200)).toFixed(2), 'Max:', Math.max(...samplesTP2.slice(-200)).toFixed(2));
+console.log('TP2 Samples:', last20_TP2.map(x => x.toFixed(2)).join(', '));

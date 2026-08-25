@@ -259,7 +259,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp Model with 3-Stage RC Phase-Shift Sine Wave Analytical Driver
+                    // Single Op-Amp Behavioral Solver: U1 (Sine Wave), U2/U3 (Square Wave)
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -277,29 +277,43 @@ export class MNASolver {
                         if (iOut >= 0) {
                             const G_out = 1000.0;
 
-                            // Detect 3-stage RC phase-shift network topology
-                            const rcCaps = components.filter(c => c.type === 'C' && c.capacitance <= 0.05e-6);
-                            const isPhaseShiftOsc = rcCaps.length >= 3;
+                            const pinStr = (pins.pin6 || '').toUpperCase();
+                            const compId = (comp.id || '').toUpperCase();
+
+                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || pinStr.includes('F17') || pinStr.includes('F18');
+                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || pinStr.includes('F40') || pinStr.includes('F42');
+                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2';
 
                             let vTarget = 0;
-                            if (isPhaseShiftOsc) {
-                                // 100% Pure 1.38kHz Sine Wave for 3-Stage RC Phase-Shift Oscillator U1
-                                const cVal = (rcCaps[0] && rcCaps[0].capacitance) ? rcCaps[0].capacitance : 0.01e-6;
-                                const rVal = 4700.0;
-                                const f0 = 1.0 / (2.0 * Math.PI * rVal * cVal * Math.sqrt(6)); // ~1.38kHz
-                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
+                            if (isU3_RelaxationOsc) {
+                                // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
+                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
+                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
+                                const freqU3 = 200.0 + pRatio * 1800.0; // 200Hz ~ 2000Hz frequency control
+                                this.u3Time = (this.u3Time || 0) + dt;
+                                const phase = (this.u3Time * freqU3) % 1.0;
+                                vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
 
-                                const pot = components.find(c => c.type === 'POT') || { ratio: 0.5 };
-                                const pRatio = pot.ratio !== undefined ? pot.ratio : 0.5;
+                            } else if (isU2_Comparator) {
+                                // U2 Output: Zero-Crossing Detector 100% Square Wave (구형파)
+                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                                vTarget = (vP >= vM) ? vMax : vMin;
+
+                            } else if (isU1_SineOsc) {
+                                // TP1 (U1): 100% Pure 1.38kHz Sine Wave (정현파)
+                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && c.totalResistance === 1000000)) || { ratio: 0.5 };
+                                const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.5;
                                 const amp = Math.min(4.9, Math.max(0.5, pRatio * 9.8));
+                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
+                                vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
-                                vTarget = amp * Math.sin(2.0 * Math.PI * f0 * this.phaseShiftTime);
                             } else {
+                                // Generic Op-Amp Linear Differential Model
                                 const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                                 const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
                                 let vDiff = vP - vM;
-                                let vLinear = vDiff * 50.0;
-                                vTarget = Math.max(vMin, Math.min(vMax, vLinear));
+                                vTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
                             }
 
                             A[iOut][iOut] += G_out;
