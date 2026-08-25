@@ -85,9 +85,31 @@ export class MNASolver {
                 addConductance(nA, nB, gSrc);
                 addCurrentSource(nA, nB, vVal * gSrc);
             } else if (comp.type === 'DIODE') {
-                addConductance(nA, nB, 50.0);
+                const vA = (nA && this.lastVoltages) ? (this.lastVoltages.get(nA) || 0) : 0;
+                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
+                const vDiff = vA - vB;
+                const vF = comp.vForward || 0.7;
+                if (vDiff > vF) {
+                    addConductance(nA, nB, 10.0);
+                    addCurrentSource(nA, nB, vF * 10.0);
+                } else {
+                    addConductance(nA, nB, 1e-6); // Off State (1M High Impedance)
+                }
             } else if (comp.type === 'ZENER') {
-                addConductance(nA, nB, 50.0);
+                const vA = (nA && this.lastVoltages) ? (this.lastVoltages.get(nA) || 0) : 0;
+                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
+                const vDiff = vA - vB;
+                const vZener = comp.vZener || 9.1;
+                const vF = comp.vForward || 0.7;
+                if (vDiff > vZener) {
+                    addConductance(nA, nB, 10.0);
+                    addCurrentSource(nA, nB, vZener * 10.0);
+                } else if (vDiff < -vF) {
+                    addConductance(nA, nB, 10.0);
+                    addCurrentSource(nA, nB, -vF * 10.0);
+                } else {
+                    addConductance(nA, nB, 1e-6); // Off State (1M High Impedance)
+                }
             } else if (comp.type === 'SWITCH') {
                 addConductance(nA, nB, comp.isOpen ? 1e-9 : 1000.0);
             } else if (comp.type === 'LED') {
@@ -259,7 +281,7 @@ export class MNASolver {
                             const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                             const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            const noise = (Math.random() - 0.5) * 2e-3; // 2mV Thermal Startup Noise Kick
+                            const noise = (Math.abs(vP - vM) < 1e-4) ? (Math.random() - 0.5) * 2e-3 : 0.0;
                             let vLinear = (vP - vM + noise) * Av;
                             let vTarget = Math.max(vMin, Math.min(vMax, vLinear));
 
