@@ -33,7 +33,7 @@ class AppController {
         );
 
         this.isRunning = false;
-        this.dt = 0.0001; // 100us step size for high precision
+        this.dt = 0.000005; // 5us high-resolution timestep for 100% silky-smooth Sine Waves
         this.components = [];
         this.simTime = 0;
         this.animFrameId = null;

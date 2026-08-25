@@ -31,8 +31,8 @@ export class OscilloscopeCanvas {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 5000; // Fast 5,000 Float64Array RingBuffer (500ms timebase storage)
-        this.dt = 0.0001; // 100us simulation time step
+        this.bufferSize = 10000; // 10,000 Float64Array RingBuffer
+        this.dt = 0.000005; // 5us high-resolution simulation time step
         this.resetBuffer();
 
         // Independent Per-Channel Volt/Div Scales
