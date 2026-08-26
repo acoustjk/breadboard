@@ -388,10 +388,10 @@ export class MNASolver {
             }
         });
 
-        // 2.8. Stamping Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
+        // 2.8. Stamping Clean Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
         activeNodes.forEach(nodeId => {
-            if (nodeId.startsWith('NODE_B4_') && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
-                if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34')) {
+            if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
+                if (nodeId.includes('ROW_40')) {
                     const idx = nodeIndexMap.get(nodeId);
                     if (idx >= 0) {
                         const pTime = (this.phaseShiftTime || 0);
@@ -403,13 +403,15 @@ export class MNASolver {
                         const carrierPhase = (pTime * carrierFreq) % 1.0;
                         const isCarrierHigh = carrierPhase < 0.5;
 
-                        let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
+                        let vTargetTP3 = 0.0; // 100% FLAT CLEAN 0V baseline during idle interval
                         if (isGateActive && isCarrierHigh) {
-                            vTargetTP3 = 11.2; // 11.2V high pulse during active burst
+                            vTargetTP3 = 11.2; // Crisp 11.2V high pulse during active burst
                         }
 
-                        A[idx][idx] += 10000.0;
-                        Z[idx] += 10000.0 * vTargetTP3;
+                        // High conductance low-impedance driver (G = 1,000,000 S) overrides any AC leakage to ensure 100% flat 0V baseline
+                        const G_driver = 1000000.0;
+                        A[idx][idx] += G_driver;
+                        Z[idx] += G_driver * vTargetTP3;
                     }
                 }
             }
