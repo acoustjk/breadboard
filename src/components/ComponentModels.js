@@ -76,7 +76,10 @@ export const IC_CATALOG = {
     '74HC86': { name: '74HC86 Quad XOR Gate', pins: 14, desc: '4채널 2입력 XOR 논리 게이트' },
     '74HC595': { name: '74HC595 8-Bit Shift Register', pins: 16, desc: '8비트 시리얼-인/패러렐-아웃 시프트 레지스터' },
     'CD4017': { name: 'CD4017 Decade Counter', pins: 16, desc: '10진 디케이드 카운터 / 존슨 시퀀서' },
-    'CD4026': { name: 'CD4026 7-Seg Counter', pins: 16, desc: '7세그먼트 디스플레이 카운터 드라이버' }
+    'CD4026': { name: 'CD4026 7-Seg Counter', pins: 16, desc: '7세그먼트 디스플레이 카운터 드라이버' },
+    'CD4049': { name: 'CD4049 Hex Inverting Buffer', pins: 16, desc: '6채널 CMOS 반전 버퍼 / 컨버터 (DIP-16)' },
+    'CD4510': { name: 'CD4510 BCD Up/Down Counter', pins: 16, desc: 'BCD 10진 업/다운 프리셋 카운터 (DIP-16)' },
+    'CD4027': { name: 'CD4027 Dual J-K Flip-Flop', pins: 16, desc: '듀얼 J-K 플립플롭 (Set/Reset 포함 DIP-16)' }
 };
 
 export class BJTTransistor {

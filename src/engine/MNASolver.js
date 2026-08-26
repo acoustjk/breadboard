@@ -384,6 +384,94 @@ export class MNASolver {
                     qPins.forEach((qPin, qIdx) => {
                         driveDigitalPin(qPin, comp.count === qIdx, 100.0);
                     });
+
+                } else if (icType === 'CD4049') {
+                    // CD4049 (DIP-16) Hex Inverting Buffer
+                    const pairs = [
+                        { in: pins.pin3, out: pins.pin2 },
+                        { in: pins.pin5, out: pins.pin4 },
+                        { in: pins.pin7, out: pins.pin6 },
+                        { in: pins.pin9, out: pins.pin10 },
+                        { in: pins.pin11, out: pins.pin12 },
+                        { in: pins.pin14, out: pins.pin15 }
+                    ];
+                    pairs.forEach(pair => {
+                        const nIn = getNode(pair.in);
+                        const vIn = (nIn && this.lastVoltages) ? (this.lastVoltages.get(nIn) || 0) : 0;
+                        driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
+                    });
+
+                } else if (icType === 'CD4510') {
+                    // CD4510 (DIP-16) BCD Up/Down Presettable Counter
+                    comp.count = comp.count || 0;
+                    comp.lastClk = comp.lastClk || 0;
+
+                    const nRst = getNode(pins.pin9);  const vRst = (nRst && this.lastVoltages) ? (this.lastVoltages.get(nRst) || 0) : 0;
+                    const nPE  = getNode(pins.pin1);  const vPE  = (nPE && this.lastVoltages)  ? (this.lastVoltages.get(nPE) || 0)  : 0;
+                    const nClk = getNode(pins.pin15); const vClk = (nClk && this.lastVoltages) ? (this.lastVoltages.get(nClk) || 0) : 0;
+                    const nUd  = getNode(pins.pin10); const vUd  = (nUd && this.lastVoltages)  ? (this.lastVoltages.get(nUd) || 0)  : 0;
+
+                    if (vRst > 2.5) {
+                        comp.count = 0;
+                    } else if (vPE > 2.5) {
+                        const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                        const p1 = getV(pins.pin4) > 2.5 ? 1 : 0;
+                        const p2 = getV(pins.pin12) > 2.5 ? 2 : 0;
+                        const p3 = getV(pins.pin13) > 2.5 ? 4 : 0;
+                        const p4 = getV(pins.pin3) > 2.5 ? 8 : 0;
+                        comp.count = (p1 + p2 + p3 + p4) % 10;
+                    } else if (vClk > 2.5 && comp.lastClk <= 2.5) {
+                        const isUp = vUd > 2.5;
+                        if (isUp) {
+                            comp.count = (comp.count + 1) % 10;
+                        } else {
+                            comp.count = (comp.count + 9) % 10;
+                        }
+                    }
+                    comp.lastClk = vClk;
+
+                    const qPins = [pins.pin6, pins.pin11, pins.pin14, pins.pin2];
+                    qPins.forEach((qPin, bIdx) => {
+                        const bitVal = (comp.count & (1 << bIdx)) !== 0;
+                        driveDigitalPin(qPin, bitVal, 100.0);
+                    });
+
+                    const isUp = vUd > 2.5;
+                    const carryActive = (isUp && comp.count === 9) || (!isUp && comp.count === 0);
+                    driveDigitalPin(pins.pin7, !carryActive, 100.0);
+
+                } else if (icType === 'CD4027') {
+                    // CD4027 (DIP-16) Dual J-K Master-Slave Flip-Flop
+                    const ffs = [
+                        { qPin: pins.pin1, qBarPin: pins.pin2, clkPin: pins.pin3, rstPin: pins.pin4, kPin: pins.pin5, jPin: pins.pin6, setPin: pins.pin7, stateKey: 'q1State', clkKey: 'lastClk1' },
+                        { qPin: pins.pin15, qBarPin: pins.pin14, clkPin: pins.pin13, rstPin: pins.pin12, kPin: pins.pin11, jPin: pins.pin10, setPin: pins.pin9, stateKey: 'q2State', clkKey: 'lastClk2' }
+                    ];
+                    ffs.forEach(ff => {
+                        comp[ff.stateKey] = comp[ff.stateKey] || false;
+                        comp[ff.clkKey] = comp[ff.clkKey] || 0;
+
+                        const nSet = getNode(ff.setPin); const vSet = (nSet && this.lastVoltages) ? (this.lastVoltages.get(nSet) || 0) : 0;
+                        const nRst = getNode(ff.rstPin); const vRst = (nRst && this.lastVoltages) ? (this.lastVoltages.get(nRst) || 0) : 0;
+                        const nClk = getNode(ff.clkPin); const vClk = (nClk && this.lastVoltages) ? (this.lastVoltages.get(nClk) || 0) : 0;
+                        const nJ = getNode(ff.jPin);     const vJ   = (nJ && this.lastVoltages)   ? (this.lastVoltages.get(nJ) || 0) : 0;
+                        const nK = getNode(ff.kPin);     const vK   = (nK && this.lastVoltages)   ? (this.lastVoltages.get(nK) || 0) : 0;
+
+                        if (vSet > 2.5) {
+                            comp[ff.stateKey] = true;
+                        } else if (vRst > 2.5) {
+                            comp[ff.stateKey] = false;
+                        } else if (vClk > 2.5 && comp[ff.clkKey] <= 2.5) {
+                            const jHigh = vJ > 2.5;
+                            const kHigh = vK > 2.5;
+                            if (jHigh && kHigh) comp[ff.stateKey] = !comp[ff.stateKey];
+                            else if (jHigh)     comp[ff.stateKey] = true;
+                            else if (kHigh)     comp[ff.stateKey] = false;
+                        }
+                        comp[ff.clkKey] = vClk;
+
+                        driveDigitalPin(ff.qPin, comp[ff.stateKey], 100.0);
+                        driveDigitalPin(ff.qBarPin, !comp[ff.stateKey], 100.0);
+                    });
                 }
             }
         });
