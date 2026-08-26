@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1154';
-import { MNASolver } from './src/engine/MNASolver.js?v=1154';
-import { FFT } from './src/engine/FFT.js?v=1154';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1154';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1154';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1154';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1154';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1154';
-import { AICopilot } from './src/components/AICopilot.js?v=1154';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1154';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1155';
+import { MNASolver } from './src/engine/MNASolver.js?v=1155';
+import { FFT } from './src/engine/FFT.js?v=1155';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1155';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1155';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1155';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1155';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1155';
+import { AICopilot } from './src/components/AICopilot.js?v=1155';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1155';
 
 class AppController {
     constructor() {
@@ -1516,6 +1516,43 @@ class AppController {
             this.oscilloscopeCanvas.posOffsetYChD = 0;
 
             this.updateScopePotSlider();
+
+            // Instant 2,000-step pre-fill warm-up loop to eliminate initial loading zoom-in/out lag
+            const bindingSources = [
+                new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
+                new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
+                new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
+            ];
+            const activeComps = [...this.components, ...bindingSources];
+            const getNodeVoltageWithFallback = (pinKey) => {
+                if (!pinKey) return 0;
+                if (pinKey.startsWith('BINDING_')) {
+                    const n = this.grid.getNodeId(pinKey);
+                    return n ? (nodeVoltages.get(n) || 0) : 0;
+                }
+                const n = this.grid.getNodeId(pinKey);
+                let v = n ? (nodeVoltages.get(n) || 0) : 0;
+                if (Math.abs(v) < 1e-4 && (pinKey.includes('_D') || pinKey.includes('_E'))) {
+                    const altPin = pinKey.replace('_D', '_F').replace('_E', '_F');
+                    const altNode = this.grid.getNodeId(altPin);
+                    if (altNode) v = nodeVoltages.get(altNode) || 0;
+                } else if (Math.abs(v) < 1e-4 && (pinKey.includes('_F') || pinKey.includes('_G'))) {
+                    const altPin = pinKey.replace('_F', '_D').replace('_G', '_D');
+                    const altNode = this.grid.getNodeId(altPin);
+                    if (altNode) v = nodeVoltages.get(altNode) || 0;
+                }
+                return v;
+            };
+
+            for (let w = 0; w < 2000; w++) {
+                const nodeVoltages = this.solver.solveStep(activeComps, this.dt);
+                this.simTime += this.dt;
+                const vA = getNodeVoltageWithFallback(this.breadboardCanvas.probeAPin);
+                const vB = getNodeVoltageWithFallback(this.breadboardCanvas.probeBPin);
+                const vC = getNodeVoltageWithFallback(this.breadboardCanvas.probeCPin);
+                const vD = getNodeVoltageWithFallback(this.breadboardCanvas.probeDPin);
+                this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
+            }
 
             document.getElementById('scopeModal').classList.remove('hidden');
         });

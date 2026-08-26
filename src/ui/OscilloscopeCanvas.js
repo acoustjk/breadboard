@@ -189,7 +189,7 @@ export class OscilloscopeCanvas {
         // 1. Grid Lines (10 x 8 divs)
         this.ctx.strokeStyle = '#1e293b';
         this.ctx.lineWidth = 1;
-        const numDivsX = 10;
+        const numDivsX = 5; // 5 Horizontal Time Axis Grid Divisions
         const numDivsY = 8;
         const divW = width / numDivsX;
         const divH = height / numDivsY;
@@ -344,7 +344,7 @@ export class OscilloscopeCanvas {
         this.ctx.shadowColor = color;
         this.ctx.shadowBlur = 4;
 
-        const totalTimeScreen = 10 * (this.timePerDiv || 0.005);
+        const totalTimeScreen = 5 * (this.timePerDiv || 0.005);
         const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
         const width = this.canvas.width;
         const vDivScale = scaleY / (voltPerDiv || 1.0);
