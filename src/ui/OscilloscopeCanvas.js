@@ -35,10 +35,10 @@ export class OscilloscopeCanvas {
         this.dt = 0.000005; // 5us high-resolution simulation time step
         this.resetBuffer();
 
-        // Independent Per-Channel Volt/Div Scales
+        // Independent Per-Channel Volt/Div Scales (Default 5.0V/div for ±10.8V 21.6Vpp signals)
         this.voltPerDivChA = 5.0;
-        this.voltPerDivChB = 2.0;
-        this.voltPerDivChC = 2.0;
+        this.voltPerDivChB = 5.0;
+        this.voltPerDivChC = 5.0;
         this.voltPerDivChD = 5.0;
 
         // Independent Per-Channel Y-Position Vertical Offsets (pixels)
@@ -86,8 +86,8 @@ export class OscilloscopeCanvas {
 
     resetControls() {
         this.voltPerDivChA = 5.0;
-        this.voltPerDivChB = 2.0;
-        this.voltPerDivChC = 2.0;
+        this.voltPerDivChB = 5.0;
+        this.voltPerDivChC = 5.0;
         this.voltPerDivChD = 5.0;
 
         this.posOffsetYChA = 0;
