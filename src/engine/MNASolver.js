@@ -475,6 +475,87 @@ export class MNASolver {
                         driveDigitalPin(ff.qPin, comp[ff.stateKey], 100.0);
                         driveDigitalPin(ff.qBarPin, !comp[ff.stateKey], 100.0);
                     });
+
+                } else if (icType === '74LS393') {
+                    // 74LS393 Dual 4-Bit Binary Counter (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    
+                    // Counter 1
+                    comp.cnt1 = comp.cnt1 || 0; comp.lastClk1 = comp.lastClk1 || 0;
+                    const vClr1 = getV(pins.pin2); const vClk1 = getV(pins.pin1);
+                    if (vClr1 > 2.5) comp.cnt1 = 0;
+                    else if (vClk1 <= 2.5 && comp.lastClk1 > 2.5) comp.cnt1 = (comp.cnt1 + 1) % 16;
+                    comp.lastClk1 = vClk1;
+                    [pins.pin3, pins.pin4, pins.pin5, pins.pin6].forEach((qPin, idx) => {
+                        driveDigitalPin(qPin, (comp.cnt1 & (1 << idx)) !== 0, 100.0);
+                    });
+
+                    // Counter 2
+                    comp.cnt2 = comp.cnt2 || 0; comp.lastClk2 = comp.lastClk2 || 0;
+                    const vClr2 = getV(pins.pin12); const vClk2 = getV(pins.pin13);
+                    if (vClr2 > 2.5) comp.cnt2 = 0;
+                    else if (vClk2 <= 2.5 && comp.lastClk2 > 2.5) comp.cnt2 = (comp.cnt2 + 1) % 16;
+                    comp.lastClk2 = vClk2;
+                    [pins.pin11, pins.pin10, pins.pin9, pins.pin8].forEach((qPin, idx) => {
+                        driveDigitalPin(qPin, (comp.cnt2 & (1 << idx)) !== 0, 100.0);
+                    });
+
+                } else if (icType === '74LS151') {
+                    // 74LS151 8-to-1 Line Multiplexer (DIP-16)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vE = getV(pins.pin7);
+                    if (vE > 2.5) {
+                        driveDigitalPin(pins.pin5, false, 100.0);
+                        driveDigitalPin(pins.pin6, true, 100.0);
+                    } else {
+                        const vA = getV(pins.pin11) > 2.5 ? 1 : 0;
+                        const vB = getV(pins.pin10) > 2.5 ? 2 : 0;
+                        const vC = getV(pins.pin9) > 2.5 ? 4 : 0;
+                        const sel = vA + vB + vC;
+                        const dPins = [pins.pin4, pins.pin3, pins.pin2, pins.pin1, pins.pin15, pins.pin14, pins.pin13, pins.pin12];
+                        const dVal = getV(dPins[sel]) > 2.5;
+                        driveDigitalPin(pins.pin5, dVal, 100.0);
+                        driveDigitalPin(pins.pin6, !dVal, 100.0);
+                    }
+
+                } else if (icType === '74LS93') {
+                    // 74LS93 4-Bit Binary Counter (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vMR1 = getV(pins.pin2); const vMR2 = getV(pins.pin3);
+                    comp.cntA = comp.cntA || 0; comp.lastClkA = comp.lastClkA || 0;
+                    comp.cntB = comp.cntB || 0; comp.lastClkB = comp.lastClkB || 0;
+
+                    if (vMR1 > 2.5 && vMR2 > 2.5) {
+                        comp.cntA = 0; comp.cntB = 0;
+                    } else {
+                        const vClkA = getV(pins.pin14);
+                        if (vClkA <= 2.5 && comp.lastClkA > 2.5) comp.cntA = (comp.cntA + 1) % 2;
+                        comp.lastClkA = vClkA;
+
+                        const vClkB = getV(pins.pin1);
+                        if (vClkB <= 2.5 && comp.lastClkB > 2.5) comp.cntB = (comp.cntB + 1) % 8;
+                        comp.lastClkB = vClkB;
+                    }
+
+                    driveDigitalPin(pins.pin12, (comp.cntA & 1) !== 0, 100.0);
+                    driveDigitalPin(pins.pin9,  (comp.cntB & 1) !== 0, 100.0);
+                    driveDigitalPin(pins.pin8,  (comp.cntB & 2) !== 0, 100.0);
+                    driveDigitalPin(pins.pin11, (comp.cntB & 4) !== 0, 100.0);
+
+                } else if (icType === '74LS86' || icType === '74HC86') {
+                    // Quad 2-Input Exclusive-OR Gate (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const gates = [
+                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
+                        { inA: pins.pin4, inB: pins.pin5, out: pins.pin6 },
+                        { inA: pins.pin9, inB: pins.pin10, out: pins.pin8 },
+                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
+                    ];
+                    gates.forEach(g => {
+                        const hA = getV(g.inA) > 2.5;
+                        const hB = getV(g.inB) > 2.5;
+                        driveDigitalPin(g.out, hA !== hB, 100.0);
+                    });
                 }
             }
         });
