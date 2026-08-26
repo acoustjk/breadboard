@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1145';
-import { MNASolver } from './src/engine/MNASolver.js?v=1145';
-import { FFT } from './src/engine/FFT.js?v=1145';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1145';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1145';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1145';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1145';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1145';
-import { AICopilot } from './src/components/AICopilot.js?v=1145';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1145';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1146';
+import { MNASolver } from './src/engine/MNASolver.js?v=1146';
+import { FFT } from './src/engine/FFT.js?v=1146';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1146';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1146';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1146';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1146';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1146';
+import { AICopilot } from './src/components/AICopilot.js?v=1146';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1146';
 
 class AppController {
     constructor() {
@@ -1738,14 +1738,18 @@ class AppController {
 
             const getNodeVoltageWithFallback = (pinKey) => {
                 if (!pinKey) return 0;
+                if (pinKey.startsWith('BINDING_')) {
+                    const n = this.grid.getNodeId(pinKey);
+                    return n ? (nodeVoltages.get(n) || 0) : 0;
+                }
                 const n = this.grid.getNodeId(pinKey);
                 let v = n ? (nodeVoltages.get(n) || 0) : 0;
-                if (Math.abs(v) < 1e-4 && pinKey.includes('_D')) {
-                    const altPin = pinKey.replace('_D', '_F');
+                if (Math.abs(v) < 1e-4 && (pinKey.includes('_D') || pinKey.includes('_E'))) {
+                    const altPin = pinKey.replace('_D', '_F').replace('_E', '_F');
                     const altNode = this.grid.getNodeId(altPin);
                     if (altNode) v = nodeVoltages.get(altNode) || 0;
-                } else if (Math.abs(v) < 1e-4 && pinKey.includes('_F')) {
-                    const altPin = pinKey.replace('_F', '_D');
+                } else if (Math.abs(v) < 1e-4 && (pinKey.includes('_F') || pinKey.includes('_G'))) {
+                    const altPin = pinKey.replace('_F', '_D').replace('_G', '_D');
                     const altNode = this.grid.getNodeId(altPin);
                     if (altNode) v = nodeVoltages.get(altNode) || 0;
                 }
