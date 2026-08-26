@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "savedAt": "2026-08-26T08:50:00.000Z",
+  "savedAt": "2026-08-26T08:55:00.000Z",
   "title": "DtoA_perfect",
   "power": {
     "voltageVa": 12,
@@ -107,6 +107,7 @@
     { "id": "WIRE_124", "type": "WIRE", "pinA": "GND_TOP1_50", "pinB": "B4_GND_R_1", "color": "#0984e3" },
     { "id": "WIRE_125", "type": "WIRE", "pinA": "B1_VCC_L_43", "pinB": "B1_A43", "color": "#ef4444" },
     { "id": "WIRE_126", "type": "WIRE", "pinA": "B1_GND_L_50", "pinB": "B1_A50", "color": "#0984e3" },
+    { "id": "WIRE_106_RESTORED", "type": "WIRE", "pinA": "B4_D46", "pinB": "B4_G46", "color": "#0984e3" },
     { "id": "WIRE_107_FIXED", "type": "WIRE", "pinA": "B2_H49", "pinB": "B2_H35", "color": "#0984e3" },
     { "id": "WIRE_108_FIXED", "type": "WIRE", "pinA": "B2_I53", "pinB": "B2_I32", "color": "#0984e3" }
   ]
