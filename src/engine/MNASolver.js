@@ -280,8 +280,8 @@ export class MNASolver {
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || (comp.icType === 'LF356' && (pinStr.includes('F16') || pinStr.includes('F17') || pinStr.includes('F18')));
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('F45') || pinStr.includes('F46') || pinStr.includes('F47') || pinStr.includes('F48') || pinStr.includes('F40') || pinStr.includes('F42')));
+                            const isU1_SineOsc = compId === 'U1' || pinStr.includes('D18');
+                            const isU3_RelaxationOsc = compId === 'U3' || pinStr.includes('D47');
                             const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2';
 
                             let vTarget = 0;
