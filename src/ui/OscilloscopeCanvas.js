@@ -3,24 +3,24 @@ export class RingBuffer {
         this.capacity = capacity;
         this.data = new Float64Array(capacity);
         this.head = 0;
-        this.length = 0;
+        this.length = capacity; // Pre-filled to full capacity to prevent initial waveform stretching / zoom lag
     }
 
     reset() {
         this.data.fill(0);
         this.head = 0;
-        this.length = 0;
+        this.length = this.capacity;
     }
 
     push(val) {
         this.data[this.head] = val;
         this.head = (this.head + 1) % this.capacity;
-        if (this.length < this.capacity) this.length++;
+        this.length = this.capacity;
     }
 
     get(i) {
-        if (i < 0 || i >= this.length) return 0;
-        let idx = (this.head - this.length + i) % this.capacity;
+        if (i < 0 || i >= this.capacity) return 0;
+        let idx = (this.head - this.capacity + i) % this.capacity;
         if (idx < 0) idx += this.capacity;
         return this.data[idx];
     }
