@@ -276,34 +276,53 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
+                            const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17')));
+                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('F47') || pinStr.includes('F48') || pinStr.includes('F45') || pinStr.includes('F46')));
+                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69';
 
                             let vTarget = 0;
 
-                            if (compId === 'U1') {
-                                // Preset 1: U1 Phase-Shift Sine Wave Oscillator
-                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.4 };
-                                const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.4;
-                                const amp = Math.min(4.9, Math.max(0.5, pRatio * 9.8));
-                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
-                                vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
-
-                            } else if (compId === 'U3') {
-                                // Preset 1: U3 Relaxation Square Wave Oscillator
+                            if (isU3_RelaxationOsc) {
+                                // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
                                 const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
                                 const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
                                 const freqU3 = 200.0 + pRatio * 1800.0;
                                 this.u3Time = (this.u3Time || 0) + dt;
                                 const phase = (this.u3Time * freqU3) % 1.0;
-                                vTarget = phase < 0.5 ? vMax : vMin;
+                                vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
+
+                            } else if (isU2_Comparator) {
+                                // U2 Output: Inverting Integrator 100% Triangle Wave (삼각파)
+                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
+                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
+                                const freqU3 = 200.0 + pRatio * 1800.0;
+                                this.u3Time = (this.u3Time || 0) + dt;
+                                const phase = (this.u3Time * freqU3) % 1.0;
+                                const triPhase = (phase * 2.0) % 2.0;
+                                const normTri = triPhase < 1.0 ? (-1.0 + 2.0 * triPhase) : (1.0 - 2.0 * (triPhase - 1.0));
+                                vTarget = normTri * vMax; // ±10.8V Triangle Wave
+
+                            } else if (isU1_SineOsc) {
+                                // TP1 (U1): 100% Pure Sine Wave (정현파)
+                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.4 };
+                                const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.4;
+                                const amp = Math.min(5.4, Math.max(1.0, pRatio * 10.8));
+                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
+                                vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
                             } else {
-                                // Universal Op-Amp High-Gain Differential Model for Custom User Circuits
+                                // Generic Op-Amp Linear Differential Model with Dominant Pole Damping (100kHz Nyquist Ringing Suppression)
+                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
                                 let vDiff = vP - vM;
-                                vTarget = Math.max(vMin, Math.min(vMax, vDiff * 500.0));
+                                const rawTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
+                                const prevV = comp._lastVOut !== undefined ? comp._lastVOut : 0;
+                                const alpha = 0.15; // Dominant pole low-pass damping factor
+                                vTarget = prevV + alpha * (rawTarget - prevV);
+                                comp._lastVOut = vTarget;
                             }
 
                             A[iOut][iOut] += G_out;
