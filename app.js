@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1146';
-import { MNASolver } from './src/engine/MNASolver.js?v=1146';
-import { FFT } from './src/engine/FFT.js?v=1146';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1146';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1146';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1146';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1146';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1146';
-import { AICopilot } from './src/components/AICopilot.js?v=1146';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1146';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1147';
+import { MNASolver } from './src/engine/MNASolver.js?v=1147';
+import { FFT } from './src/engine/FFT.js?v=1147';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1147';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1147';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1147';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1147';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1147';
+import { AICopilot } from './src/components/AICopilot.js?v=1147';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1147';
 
 class AppController {
     constructor() {
@@ -1498,6 +1498,22 @@ class AppController {
             document.getElementById('posYChA').value = '0';
             document.getElementById('numPosYChA').value = '0';
             document.getElementById('txtValChA').innerText = 'Y: 0px';
+            this.oscilloscopeCanvas.posOffsetYChA = 0;
+
+            document.getElementById('posYChB').value = '0';
+            document.getElementById('numPosYChB').value = '0';
+            document.getElementById('txtValChB').innerText = 'Y: 0px';
+            this.oscilloscopeCanvas.posOffsetYChB = 0;
+
+            document.getElementById('posYChC').value = '0';
+            document.getElementById('numPosYCChC' ? 'numPosYChC' : 'numPosYChC').value = '0';
+            document.getElementById('txtValChC').innerText = 'Y: 0px';
+            this.oscilloscopeCanvas.posOffsetYChC = 0;
+
+            document.getElementById('posYChD').value = '0';
+            document.getElementById('numPosYChD').value = '0';
+            document.getElementById('txtValChD').innerText = 'Y: 0px';
+            this.oscilloscopeCanvas.posOffsetYChD = 0;
 
             this.updateScopePotSlider();
 
