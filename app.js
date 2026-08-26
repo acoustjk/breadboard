@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1130';
-import { MNASolver } from './src/engine/MNASolver.js?v=1130';
-import { FFT } from './src/engine/FFT.js?v=1130';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1130';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1130';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1130';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1130';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1130';
-import { AICopilot } from './src/components/AICopilot.js?v=1130';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1130';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1135';
+import { MNASolver } from './src/engine/MNASolver.js?v=1135';
+import { FFT } from './src/engine/FFT.js?v=1135';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1135';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1135';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1135';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1135';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1135';
+import { AICopilot } from './src/components/AICopilot.js?v=1135';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1135';
 
 class AppController {
     constructor() {
@@ -954,8 +954,8 @@ class AppController {
             // 2. U1 LF356 Sine Wave Oscillator Stage (Block 3 Top)
             new DIPChip('U1', 'LF356', 'B3_E16', 'B3_F16'),
             new Potentiometer('VR1', 'B3_C11', 'B3_C17', 1000000, 0.4), // 1M Potentiometer set to 40% (400k)
-            new Wire('W_VR1_OUT', 'B3_C11', 'B3_D18', '#e67e22'), // VR1 to Pin 6 OUT
-            new Resistor('R_GND_IN3', 'B3_D18', 'B3_GND_L_18', 10000, true), // Pin 3 IN+ to GND via 10k
+            new Wire('W_VR1_OUT', 'B3_C11', 'B3_F18', '#e67e22'), // VR1 to Pin 6 OUT (B3_F18)
+            new Resistor('R_GND_IN3', 'B3_F18', 'B3_GND_L_18', 10000, true), // Pin 6 OUT to GND via 10k
 
             new Wire('W_U1_VCC', 'B3_VCC_L_17', 'B3_F17', '#ef4444'),
             new Wire('W_U1_VEE', 'B3_GND_L_19', 'B3_E19', '#3b82f6'),
@@ -965,7 +965,7 @@ class AppController {
             new Wire('W_ZD_GND', 'B3_G24', 'B3_GND_L_24', '#00b894'), // Zener to GND
 
             // Feedback loop from U1 Pin 6 OUT back to 3-stage filter input
-            new Wire('W_FB_LOOP', 'B3_D18', 'B1_C15', '#9b59b6'),
+            new Wire('W_FB_LOOP', 'B3_F18', 'B1_C15', '#9b59b6'),
 
             // 3. U2 LF356 Square Wave Comparator Stage (Block 4 Top)
             new Capacitor('C_COUPL', 'B3_H18', 'B4_A17', 0.1e-6, true, 'CERAMIC'),
@@ -979,24 +979,24 @@ class AppController {
             // 4. U3 LF356 Hysteresis Comparator (Block 3 Bottom)
             new DIPChip('U3', 'LF356', 'B3_E45', 'B3_F45'),
             new Potentiometer('VR2', 'B3_C40', 'B3_C46', 50000, 0.5),
-            new Resistor('R_FB3', 'B3_C46', 'B3_D47', 100000, true),
+            new Resistor('R_FB3', 'B3_C46', 'B3_F47', 100000, true),
             new Capacitor('C_INT3', 'B3_C46', 'B3_GND_L_46', 0.1e-6, true, 'CERAMIC'),
-            new Wire('W_VR2_OUT', 'B3_C40', 'B3_D47', '#e67e22'),
+            new Wire('W_VR2_OUT', 'B3_C40', 'B3_F47', '#e67e22'),
 
             new Wire('W_U3_VCC', 'B3_VCC_L_46', 'B3_F46', '#ef4444'),
             new Wire('W_U3_VEE', 'B3_GND_L_48', 'B3_E48', '#3b82f6'),
 
             // 5. Q1 2SK30A (K30) N-Channel JFET Output Buffer (Block 4 Bottom)
             new BJTTransistor('Q1', '2SK30A', 'B4_H26', 'B4_H28', 'B4_H27'), // id, model (2SK30A JFET), pinSource(S), pinGate(G), pinDrain(D)
-            new Resistor('R_BASE', 'B3_D47', 'B4_C28', 1000, true),
+            new Resistor('R_BASE', 'B3_F47', 'B4_C28', 1000, true),
             new Wire('W_BASE_Q1', 'B4_C28', 'B4_G28', '#0984e3'),
             new Wire('W_EMIT_GND', 'B4_G26', 'B4_GND_R_26', '#00b894'),
             new Resistor('R_PULL5K', 'B4_F18', 'B4_G27', 5100, true),
             new Diode('D_1N4148', 'B4_G27', 'B4_GND_R_27', '1N4148')
         ];
 
-        this.probeAPin = 'B3_D18'; // TP1: Sine Wave (U1 Pin 6)
-        this.probeBPin = 'B3_D47'; // TP2: Square Wave (U3 Pin 6)
+        this.probeAPin = 'B3_F18'; // TP1: Sine Wave (U1 Pin 6)
+        this.probeBPin = 'B3_F47'; // TP2: Square Wave (U3 Pin 6)
         this.probeCPin = 'B4_G27'; // TP3: TTL Pulse (Q1 Collector)
         this.probeDPin = 'B4_A17';
 
