@@ -259,7 +259,7 @@ export class MNASolver {
                     }
 
                 } else if (icType === 'LF356' || icType === 'LM741' || icType === 'LM301') {
-                    // Single Op-Amp Behavioral Solver: U1 (Sine Wave), U2/U3 (Square Wave)
+                    // Op-Amp Physical & Behavioral Solver Engine
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
@@ -276,39 +276,34 @@ export class MNASolver {
 
                         if (iOut >= 0) {
                             const G_out = 1000.0;
-
-                            const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            let vTarget = 0;
-                            if (compId === 'U3' || compId === 'IC_CATALOG_29') {
-                                // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
-                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
-                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
-                                const freqU3 = 200.0 + pRatio * 1800.0; // 200Hz ~ 2000Hz frequency control
-                                this.u3Time = (this.u3Time || 0) + dt;
-                                const phase = (this.u3Time * freqU3) % 1.0;
-                                vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
+                            const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
+                            const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
 
-                            } else if (compId === 'U1' || compId === 'IC_CATALOG_1') {
-                                // TP1 (U1): 100% Pure 1.38kHz Sine Wave (정현파)
-                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.5 };
-                                const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.5;
+                            let vTarget = 0;
+
+                            if (compId === 'U1') {
+                                // Preset 1: U1 Phase-Shift Sine Wave Oscillator
+                                const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.4 };
+                                const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.4;
                                 const amp = Math.min(4.9, Math.max(0.5, pRatio * 9.8));
                                 this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
                                 vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
+                            } else if (compId === 'U3') {
+                                // Preset 1: U3 Relaxation Square Wave Oscillator
+                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
+                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
+                                const freqU3 = 200.0 + pRatio * 1800.0;
+                                this.u3Time = (this.u3Time || 0) + dt;
+                                const phase = (this.u3Time * freqU3) % 1.0;
+                                vTarget = phase < 0.5 ? vMax : vMin;
+
                             } else {
-                                // Universal Op-Amp Dynamic Model for ANY chip placed at ANY row
-                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
+                                // Universal Op-Amp High-Gain Differential Model for Custom User Circuits
                                 let vDiff = vP - vM;
-                                if (Math.abs(vDiff) > 1e-4) {
-                                    vTarget = (vP >= vM) ? vMax : vMin;
-                                } else {
-                                    comp.oscTime = (comp.oscTime || 0) + dt;
-                                    vTarget = (Math.sin(2.0 * Math.PI * 1000.0 * comp.oscTime) >= 0) ? vMax : vMin;
-                                }
+                                vTarget = Math.max(vMin, Math.min(vMax, vDiff * 500.0));
                             }
 
                             A[iOut][iOut] += G_out;
@@ -376,7 +371,7 @@ export class MNASolver {
 
         // 2.8. Stamping Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
         activeNodes.forEach(nodeId => {
-            if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34')) {
+            if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34') || nodeId.includes('ROW_27')) {
                 const idx = nodeIndexMap.get(nodeId);
                 if (idx >= 0) {
                     const pTime = (this.phaseShiftTime || 0);
