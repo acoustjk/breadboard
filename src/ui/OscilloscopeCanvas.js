@@ -340,38 +340,79 @@ export class OscilloscopeCanvas {
         if (!ringBuffer || ringBuffer.length === 0) return;
 
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2.4;
+        this.ctx.lineWidth = 2.0;
         this.ctx.shadowColor = color;
-        this.ctx.shadowBlur = 6;
+        this.ctx.shadowBlur = 4;
 
         const totalTimeScreen = 10 * (this.timePerDiv || 0.005);
         const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
-
-        const stepX = this.canvas.width / (samplesOnScreen - 1);
+        const width = this.canvas.width;
         const vDivScale = scaleY / (voltPerDiv || 1.0);
         const traceZeroY = zeroY - posOffsetY;
 
         const endIdx = Math.min(ringBuffer.length, ringBuffer.length - Math.round(posOffsetX));
         const startIdx = Math.max(0, endIdx - samplesOnScreen);
+        const numSamples = endIdx - startIdx;
+
+        if (numSamples <= 0) return;
 
         this.ctx.beginPath();
-        let isFirstPoint = true;
 
-        for (let i = startIdx; i < endIdx; i++) {
-            const screenIdx = i - startIdx;
-            const x = screenIdx * stepX;
-            let v = ringBuffer.get(i);
-            if (isNaN(v) || !isFinite(v)) v = 0;
-            v = Math.max(-25.0, Math.min(25.0, v));
-            const y = traceZeroY - (v * vDivScale);
+        if (numSamples > width) {
+            // Peak-Detect DSO Envelope Rendering (Eliminates sub-pixel decimation notches & square wave aliasing)
+            const samplesPerPixel = numSamples / width;
+            let isFirst = true;
 
-            if (isFirstPoint) {
-                this.ctx.moveTo(x, y);
-                isFirstPoint = false;
-            } else {
-                this.ctx.lineTo(x, y);
+            for (let px = 0; px < width; px++) {
+                const sStart = Math.floor(startIdx + px * samplesPerPixel);
+                const sEnd = Math.floor(startIdx + (px + 1) * samplesPerPixel);
+                let pMin = Infinity;
+                let pMax = -Infinity;
+
+                for (let s = sStart; s < sEnd && s < endIdx; s++) {
+                    let v = ringBuffer.get(s);
+                    if (isNaN(v) || !isFinite(v)) v = 0;
+                    v = Math.max(-25.0, Math.min(25.0, v));
+                    if (v < pMin) pMin = v;
+                    if (v > pMax) pMax = v;
+                }
+
+                if (pMin === Infinity) continue;
+
+                const yMin = traceZeroY - (pMax * vDivScale);
+                const yMax = traceZeroY - (pMin * vDivScale);
+
+                if (isFirst) {
+                    this.ctx.moveTo(px, yMin);
+                    this.ctx.lineTo(px, yMax);
+                    isFirst = false;
+                } else {
+                    this.ctx.lineTo(px, yMin);
+                    this.ctx.lineTo(px, yMax);
+                }
+            }
+        } else {
+            // High-Resolution Direct Sample Point-to-Point Interpolation
+            const stepX = width / (samplesOnScreen - 1);
+            let isFirstPoint = true;
+
+            for (let i = startIdx; i < endIdx; i++) {
+                const screenIdx = i - startIdx;
+                const x = screenIdx * stepX;
+                let v = ringBuffer.get(i);
+                if (isNaN(v) || !isFinite(v)) v = 0;
+                v = Math.max(-25.0, Math.min(25.0, v));
+                const y = traceZeroY - (v * vDivScale);
+
+                if (isFirstPoint) {
+                    this.ctx.moveTo(x, y);
+                    isFirstPoint = false;
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
             }
         }
+
         this.ctx.stroke();
         this.ctx.shadowBlur = 0;
     }
