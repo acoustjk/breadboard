@@ -323,7 +323,7 @@ export class MNASolver {
                                 let vDiff = vP - vM;
                                 const rawTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
                                 const prevV = comp._lastVOut !== undefined ? comp._lastVOut : 0;
-                                const alpha = 0.15; // Dominant pole low-pass damping factor
+                                const alpha = 0.05; // Smooth dominant pole low-pass filter damping factor (suppresses switching jitter)
                                 vTarget = prevV + alpha * (rawTarget - prevV);
                                 comp._lastVOut = vTarget;
                             }
