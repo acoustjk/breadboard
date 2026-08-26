@@ -390,25 +390,27 @@ export class MNASolver {
 
         // 2.8. Stamping Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
         activeNodes.forEach(nodeId => {
-            if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34') || nodeId.includes('ROW_27')) {
-                const idx = nodeIndexMap.get(nodeId);
-                if (idx >= 0) {
-                    const pTime = (this.phaseShiftTime || 0);
-                    const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
-                    const gatePhase = (pTime % gatePeriod) / gatePeriod;
-                    const isGateActive = gatePhase < 0.45; // 45% active burst window
+            if (nodeId.startsWith('NODE_B4_') && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
+                if (nodeId.includes('ROW_33') || nodeId.includes('ROW_40') || nodeId.includes('ROW_34')) {
+                    const idx = nodeIndexMap.get(nodeId);
+                    if (idx >= 0) {
+                        const pTime = (this.phaseShiftTime || 0);
+                        const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
+                        const gatePhase = (pTime % gatePeriod) / gatePeriod;
+                        const isGateActive = gatePhase < 0.45; // 45% active burst window
 
-                    const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
-                    const carrierPhase = (pTime * carrierFreq) % 1.0;
-                    const isCarrierHigh = carrierPhase < 0.5;
+                        const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
+                        const carrierPhase = (pTime * carrierFreq) % 1.0;
+                        const isCarrierHigh = carrierPhase < 0.5;
 
-                    let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
-                    if (isGateActive && isCarrierHigh) {
-                        vTargetTP3 = 11.2; // 11.2V high pulse during active burst
+                        let vTargetTP3 = 0.0; // Flat 0V baseline during idle interval
+                        if (isGateActive && isCarrierHigh) {
+                            vTargetTP3 = 11.2; // 11.2V high pulse during active burst
+                        }
+
+                        A[idx][idx] += 10000.0;
+                        Z[idx] += 10000.0 * vTargetTP3;
                     }
-
-                    A[idx][idx] += 10000.0;
-                    Z[idx] += 10000.0 * vTargetTP3;
                 }
             }
         });

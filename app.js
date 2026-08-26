@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1151';
-import { MNASolver } from './src/engine/MNASolver.js?v=1151';
-import { FFT } from './src/engine/FFT.js?v=1151';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1151';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1151';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1151';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1151';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1151';
-import { AICopilot } from './src/components/AICopilot.js?v=1151';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1151';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1152';
+import { MNASolver } from './src/engine/MNASolver.js?v=1152';
+import { FFT } from './src/engine/FFT.js?v=1152';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1152';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1152';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1152';
+import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1152';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1152';
+import { AICopilot } from './src/components/AICopilot.js?v=1152';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1152';
 
 class AppController {
     constructor() {
