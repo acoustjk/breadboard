@@ -280,12 +280,8 @@ export class MNASolver {
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || pinStr.includes('D18') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17');
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || pinStr.includes('D47') || pinStr.includes('F47') || pinStr.includes('F45') || pinStr.includes('F46');
-                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2';
-
                             let vTarget = 0;
-                            if (isU3_RelaxationOsc) {
+                            if (compId === 'U3' || compId === 'IC_CATALOG_29') {
                                 // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
                                 const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
                                 const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
@@ -294,13 +290,7 @@ export class MNASolver {
                                 const phase = (this.u3Time * freqU3) % 1.0;
                                 vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
 
-                            } else if (isU2_Comparator) {
-                                // U2 Output: Zero-Crossing Detector 100% Square Wave (구형파)
-                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
-                                vTarget = (vP >= vM) ? vMax : vMin;
-
-                            } else if (isU1_SineOsc) {
+                            } else if (compId === 'U1' || compId === 'IC_CATALOG_1') {
                                 // TP1 (U1): 100% Pure 1.38kHz Sine Wave (정현파)
                                 const pot1 = components.find(c => c.id === 'VR1' || (c.type === 'POT' && (c.totalResistance === 1000000 || c.totalResistance === 50000))) || { ratio: 0.5 };
                                 const pRatio = pot1.ratio !== undefined ? pot1.ratio : 0.5;
@@ -309,15 +299,16 @@ export class MNASolver {
                                 vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
                             } else {
-                                // Generic Op-Amp Linear Differential Model with Dominant Pole Damping
+                                // Universal Op-Amp Dynamic Model for ANY chip placed at ANY row
                                 const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
                                 const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
                                 let vDiff = vP - vM;
-                                const rawTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
-                                const prevV = comp._lastVOut !== undefined ? comp._lastVOut : 0;
-                                const alpha = 0.15; // Dominant pole low-pass damping factor
-                                vTarget = prevV + alpha * (rawTarget - prevV);
-                                comp._lastVOut = vTarget;
+                                if (Math.abs(vDiff) > 1e-4) {
+                                    vTarget = (vP >= vM) ? vMax : vMin;
+                                } else {
+                                    comp.oscTime = (comp.oscTime || 0) + dt;
+                                    vTarget = (Math.sin(2.0 * Math.PI * 1000.0 * comp.oscTime) >= 0) ? vMax : vMin;
+                                }
                             }
 
                             A[iOut][iOut] += G_out;
