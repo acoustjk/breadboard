@@ -378,17 +378,13 @@ export class OscilloscopeCanvas {
                 }
 
                 if (pMin === Infinity) continue;
-
-                const yMin = traceZeroY - (pMax * vDivScale);
-                const yMax = traceZeroY - (pMin * vDivScale);
+                const yAvg = traceZeroY - ((pMin + pMax) * 0.5) * vDivScale;
 
                 if (isFirst) {
-                    this.ctx.moveTo(px, yMin);
-                    this.ctx.lineTo(px, yMax);
+                    this.ctx.moveTo(px, yAvg);
                     isFirst = false;
                 } else {
-                    this.ctx.lineTo(px, yMin);
-                    this.ctx.lineTo(px, yMax);
+                    this.ctx.lineTo(px, yAvg);
                 }
             }
         } else {
