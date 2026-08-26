@@ -244,8 +244,11 @@ export class MNASolver {
                     const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
                     const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
 
-                    if (vTrig < 1.67) comp.state = 'HIGH';
-                    else if (vThresh > 3.33) comp.state = 'LOW';
+                    const nVcc = getNode(pins.pin8);
+                    const vVcc = (nVcc && this.lastVoltages) ? Math.max(4.5, (this.lastVoltages.get(nVcc) || 5.0)) : 5.0;
+
+                    if (vTrig < vVcc / 3.0) comp.state = 'HIGH';
+                    else if (vThresh > (vVcc * 2.0) / 3.0) comp.state = 'LOW';
 
                     driveDigitalPin(pins.pin3, comp.state === 'HIGH', 100.0);
 

@@ -4,7 +4,7 @@
  * TO-92 BJT Transistor 3-Pin Renderer & Placement Engine v=1070.
  */
 
-import { getResistorColorBands } from '../components/ComponentModels.js?v=1070';
+import { getResistorColorBands } from '../components/ComponentModels.js?v=1160';
 
 export class BreadboardCanvas {
     constructor(canvas, grid) {

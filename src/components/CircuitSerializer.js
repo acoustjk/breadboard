@@ -4,7 +4,7 @@
  * Auto-normalizes DIP IC height & auto-sanitizes shorted wires v=1056.
  */
 
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG } from './ComponentModels.js?v=1081';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG } from './ComponentModels.js?v=1160';
 
 export class CircuitSerializer {
     static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
