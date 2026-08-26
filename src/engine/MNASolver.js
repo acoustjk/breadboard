@@ -279,9 +279,9 @@ export class MNASolver {
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17')));
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('F47') || pinStr.includes('F48') || pinStr.includes('F45') || pinStr.includes('F46')));
-                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69';
+                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17')));
+                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46')));
+                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49')));
 
                             let vTarget = 0;
 
