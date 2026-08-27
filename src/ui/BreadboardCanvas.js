@@ -167,19 +167,24 @@ export class BreadboardCanvas {
             const { worldX, worldY } = this.getMouseWorldPos(e);
             const clickedPin = this.getNearestPin(worldX, worldY, 24.0);
 
-            // Handle 4CH Oscilloscope Probes Placement
+            // Handle 4CH Oscilloscope Probes & Continuity Tester Probes Placement
             if (this.placementMode && this.placementMode.startsWith('PROBE_')) {
-                const ch = this.placementMode.split('_')[1];
+                const probeMode = this.placementMode.substring(6); // 'A', 'B', 'C', 'D', 'CONTINUITY_RED', 'CONTINUITY_BLACK'
                 if (clickedPin) {
-                    if (ch === 'A') this.probeAPin = clickedPin;
-                    else if (ch === 'B') this.probeBPin = clickedPin;
-                    else if (ch === 'C') this.probeCPin = clickedPin;
-                    else if (ch === 'D') this.probeDPin = clickedPin;
+                    if (probeMode === 'A') this.probeAPin = clickedPin;
+                    else if (probeMode === 'B') this.probeBPin = clickedPin;
+                    else if (probeMode === 'C') this.probeCPin = clickedPin;
+                    else if (probeMode === 'D') this.probeDPin = clickedPin;
 
                     if (this.onProbePlaced) {
-                        this.onProbePlaced(ch, clickedPin);
+                        this.onProbePlaced(probeMode, clickedPin);
                     }
-                    this.showToast(`📍 CH ${ch} 프로브가 [${clickedPin}] 핀에 꽂혔습니다!`);
+                    if (probeMode.startsWith('CONTINUITY')) {
+                        const probeLabel = probeMode.includes('RED') ? '🔴 탐침 (+)' : '⚫ 탐침 (-)';
+                        this.showToast(`📍 도통 테스터기 ${probeLabel}가 [${clickedPin}] 핀에 꽂혔습니다!`);
+                    } else {
+                        this.showToast(`📍 CH ${probeMode} 프로브가 [${clickedPin}] 핀에 꽂혔습니다!`);
+                    }
                 } else {
                     this.showToast('⚠️ 프로브를 꽂을 핀 구멍을 클릭하세요.');
                 }

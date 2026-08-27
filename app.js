@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1170';
-import { MNASolver } from './src/engine/MNASolver.js?v=1170';
-import { FFT } from './src/engine/FFT.js?v=1170';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1170';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1170';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1170';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1170';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1170';
-import { AICopilot } from './src/components/AICopilot.js?v=1170';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1170';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1171';
+import { MNASolver } from './src/engine/MNASolver.js?v=1171';
+import { FFT } from './src/engine/FFT.js?v=1171';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1171';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1171';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1171';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1171';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1171';
+import { AICopilot } from './src/components/AICopilot.js?v=1171';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1171';
 
 class AppController {
     constructor() {
@@ -1800,23 +1800,6 @@ class AppController {
             this.oscilloscopeCanvas.addSample(vA, vB, vC, vD);
         }
 
-        this.fftTimer++;
-        if (this.fftTimer % 10 === 0) {
-            const sampleRate = 1.0 / (this.dt * stepsPerFrame);
-            const spectrumData = FFT.analyze(this.oscilloscopeCanvas.bufferA, sampleRate);
-
-            const r = this.components.find(comp => comp.type === 'R');
-            const c = this.components.find(comp => comp.type === 'C');
-            const cutoffFreq = (r && c && r.isConfigured && c.isConfigured) ?
-                (1 / (2 * Math.PI * r.resistance * c.capacitance)) : null;
-
-            this.spectrumCanvas.render(spectrumData, cutoffFreq);
-
-            if (spectrumData && spectrumData.peakFreq !== undefined) {
-                document.getElementById('fftPeakText').innerText = `Peak Freq: ${spectrumData.peakFreq.toFixed(1)} Hz`;
-            }
-        }
-
         this.renderAll();
         this.animFrameId = requestAnimationFrame(() => this.runLoop());
     }
@@ -1849,7 +1832,7 @@ class AppController {
             vA,
             vB,
             this.oscilloscopeCanvas.statsA,
-            this.spectrumCanvas.lastSpectrum
+            null
         );
 
         const chatBox = document.getElementById('copilotChat');
