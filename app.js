@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1163';
-import { MNASolver } from './src/engine/MNASolver.js?v=1163';
-import { FFT } from './src/engine/FFT.js?v=1163';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1163';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1163';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1163';
-import { SpectrumAnalyzerCanvas } from './src/ui/SpectrumAnalyzerCanvas.js?v=1163';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1163';
-import { AICopilot } from './src/components/AICopilot.js?v=1163';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1163';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1170';
+import { MNASolver } from './src/engine/MNASolver.js?v=1170';
+import { FFT } from './src/engine/FFT.js?v=1170';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1170';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1170';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1170';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1170';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1170';
+import { AICopilot } from './src/components/AICopilot.js?v=1170';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1170';
 
 class AppController {
     constructor() {
@@ -28,9 +28,7 @@ class AppController {
         this.oscilloscopeCanvas = new OscilloscopeCanvas(
             document.getElementById('oscilloscopeCanvas')
         );
-        this.spectrumCanvas = new SpectrumAnalyzerCanvas(
-            document.getElementById('spectrumCanvas')
-        );
+        this.continuityTester = new ContinuityTester(this.grid);
 
         this.isRunning = false;
         this.dt = 0.000005; // 5us high-resolution timestep for 100% silky-smooth Sine Waves
@@ -277,6 +275,18 @@ class AppController {
             } else if (type === 'D') {
                 this.probeDPin = pinKey;
                 this.breadboardCanvas.probeDPin = pinKey;
+            } else if (type === 'CONTINUITY_RED') {
+                this.continuityTester.pinA = pinKey;
+                this.resetToolState();
+                this.breadboardCanvas.toastMsg = `🔴 도통 테스터기 (+) 탐침 앵커 (${pinKey})`;
+                this.renderAll();
+                return;
+            } else if (type === 'CONTINUITY_BLACK') {
+                this.continuityTester.pinB = pinKey;
+                this.resetToolState();
+                this.breadboardCanvas.toastMsg = `⚫ 도통 테스터기 (-) 탐침 앵커 (${pinKey})`;
+                this.renderAll();
+                return;
             }
 
             this.syncScopeChannelVisibility();
@@ -1553,6 +1563,8 @@ class AppController {
             { id: 'toolDcSource', tool: 'VDC' },
             { id: 'toolSwitch', tool: 'SWITCH' },
             { id: 'toolLed', tool: 'LED' },
+            { id: 'toolContinuityRed', tool: 'PROBE_CONTINUITY_RED' },
+            { id: 'toolContinuityBlack', tool: 'PROBE_CONTINUITY_BLACK' },
             { id: 'toolProbeA', tool: 'PROBE_A' },
             { id: 'toolProbeB', tool: 'PROBE_B' },
             { id: 'toolProbeC', tool: 'PROBE_C' },
@@ -1569,6 +1581,14 @@ class AppController {
                 });
             }
         });
+
+        const btnBeep = document.getElementById('btnToggleBeepSound');
+        if (btnBeep) {
+            btnBeep.addEventListener('click', () => {
+                this.continuityTester.soundEnabled = !this.continuityTester.soundEnabled;
+                btnBeep.textContent = this.continuityTester.soundEnabled ? '🔊 BEEP: ON' : '🔇 BEEP: MUTE';
+            });
+        }
 
         document.getElementById('btnGradeExam').addEventListener('click', () => {
             this.openExamGradingSheet();
@@ -1805,6 +1825,18 @@ class AppController {
         this.breadboardCanvas.render(this.components);
         this.oscilloscopeCanvas.render();
         this.updateScopeTelemetryUI();
+
+        if (this.continuityTester) {
+            const res = this.continuityTester.updateContinuity(this.components);
+            const statusEl = document.getElementById('continuityStatusText');
+            if (statusEl) {
+                if (res.isConnected) {
+                    statusEl.innerHTML = `<span style="color:#10b981; font-weight:bold;">🟢 도통 (${res.resistance.toFixed(1)} Ω)</span>`;
+                } else {
+                    statusEl.innerHTML = `<span style="color:#ef4444; font-weight:bold;">🔴 단선 (미연결 - ∞ Ω)</span>`;
+                }
+            }
+        }
     }
 
     async triggerAiDiagnostic(queryType = null) {

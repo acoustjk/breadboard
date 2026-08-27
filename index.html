@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1163)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1170)</span>
         </div>
 
         <div class="header-controls">
@@ -165,14 +165,16 @@
                 </div>
             </div>
 
-            <!-- 4CH Oscilloscope Probes -->
-            <div class="palette-section">
-                <div class="palette-section-title">📊 4CH 오실로스코프 프로브:</div>
-                <div class="palette-grid-2">
-                    <button id="toolProbeA" class="btn" style="color: #facc15; border-color: #facc15;">📍 CH A</button>
-                    <button id="toolProbeB" class="btn" style="color: #e879f9; border-color: #e879f9;">📍 CH B</button>
-                    <button id="toolProbeC" class="btn" style="color: #38bdf8; border-color: #38bdf8;">📍 CH C</button>
-                    <button id="toolProbeD" class="btn" style="color: #22c55e; border-color: #22c55e;">📍 CH D</button>
+            <!-- 🔔 Continuity & BEEP Tester Section -->
+            <div class="palette-section" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 8px; border-radius: 6px;">
+                <div class="palette-section-title" style="color: #10b981; font-weight: bold;">🔔 도통 테스터기 (BEEP 검사기):</div>
+                <div class="palette-grid-2" style="margin-bottom: 6px;">
+                    <button id="toolContinuityRed" class="btn" style="color: #ef4444; border-color: #ef4444; font-weight: bold;">🔴 탐침 (+) 핀 지정</button>
+                    <button id="toolContinuityBlack" class="btn" style="color: #cbd5e1; border-color: #cbd5e1; font-weight: bold;">⚫ 탐침 (-) 핀 지정</button>
+                </div>
+                <div style="font-size: 11px; display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 6px 8px; border-radius: 4px; border: 1px solid #334155;">
+                    <span id="continuityStatusText" style="font-weight: bold; color: #ef4444;">🔴 단선 (미연결 - ∞ Ω)</span>
+                    <button id="btnToggleBeepSound" class="btn" style="padding: 2px 6px; font-size: 10px; background: #1e293b; color: #facc15; border: 1px solid #334155;">🔊 BEEP: ON</button>
                 </div>
             </div>
 
@@ -218,7 +220,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1163!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1170!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -481,22 +483,7 @@
         </div>
     </div>
 
-    <!-- Floating Spectrum Analyzer Instrument Modal -->
-    <div id="fftModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 620px;">
-            <div class="modal-header">
-                <h3 style="color: var(--accent-blue);">📈 Spectrum Analyzer (FFT)</h3>
-                <button id="btnCloseFftModal" class="btn">✖</button>
-            </div>
-            <div class="canvas-wrapper">
-                <canvas id="spectrumCanvas" width="560" height="240"></canvas>
-            </div>
-            <div class="instrument-controls">
-                <span id="fftPeakText" style="color: var(--accent-blue);">Peak Freq: 0.0 Hz</span>
-                <span id="cutoffFreqText" style="color: var(--accent-amber); margin-left: auto;">Cutoff fc: N/A</span>
-            </div>
-        </div>
-    </div>
+
 
     <!-- Qualification Exam Answer Sheet Grading Modal -->
     <div id="examModal" class="modal hidden">
@@ -523,6 +510,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1163"></script>
+    <script type="module" src="./app.js?v=1170"></script>
 </body>
 </html>
