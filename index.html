@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1172)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1173)</span>
         </div>
 
         <div class="header-controls">
@@ -166,15 +166,15 @@
             </div>
 
             <!-- 🔔 Continuity & BEEP Tester Section -->
-            <div class="palette-section" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 8px; border-radius: 6px;">
-                <div class="palette-section-title" style="color: #10b981; font-weight: bold;">🔔 도통 테스터기 (BEEP 검사기):</div>
-                <div class="palette-grid-2" style="margin-bottom: 6px;">
-                    <button id="toolContinuityRed" class="btn" style="color: #ef4444; border-color: #ef4444; font-weight: bold;">🔴 탐침 (+) 핀 지정</button>
-                    <button id="toolContinuityBlack" class="btn" style="color: #cbd5e1; border-color: #cbd5e1; font-weight: bold;">⚫ 탐침 (-) 핀 지정</button>
+            <div class="palette-section" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 8px; border-radius: 6px; box-sizing: border-box; width: 100%;">
+                <div class="palette-section-title" style="color: #10b981; font-weight: bold; font-size: 11px;">🔔 도통 테스터기 (BEEP 검사기):</div>
+                <div style="display: flex; gap: 4px; margin-bottom: 6px; width: 100%;">
+                    <button id="toolContinuityRed" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 10.5px; color: #ef4444; border-color: #ef4444; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="🔴 탐침 (+) 핀 지정">🔴 탐침 (+)</button>
+                    <button id="toolContinuityBlack" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 10.5px; color: #cbd5e1; border-color: #cbd5e1; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="⚫ 탐침 (-) 핀 지정">⚫ 탐침 (-)</button>
                 </div>
-                <div style="font-size: 11px; display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 6px 8px; border-radius: 4px; border: 1px solid #334155;">
-                    <span id="continuityStatusText" style="font-weight: bold; color: #ef4444;">🔴 단선 (미연결 - ∞ Ω)</span>
-                    <button id="btnToggleBeepSound" class="btn" style="padding: 2px 6px; font-size: 10px; background: #1e293b; color: #facc15; border: 1px solid #334155;">🔊 BEEP: ON</button>
+                <div style="font-size: 10.5px; display: flex; align-items: center; justify-content: space-between; background: #0f172a; padding: 6px 6px; border-radius: 4px; border: 1px solid #334155; width: 100%; box-sizing: border-box;">
+                    <span id="continuityStatusText" style="font-weight: bold; color: #ef4444; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔴 단선 (미연결 - ∞ Ω)</span>
+                    <button id="btnToggleBeepSound" class="btn" style="padding: 2px 5px; font-size: 9.5px; background: #1e293b; color: #facc15; border: 1px solid #334155; white-space: nowrap; flex-shrink: 0;">🔊 BEEP: ON</button>
                 </div>
             </div>
 
@@ -220,7 +220,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1172!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1173!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -510,6 +510,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1172"></script>
+    <script type="module" src="./app.js?v=1173"></script>
 </body>
 </html>
