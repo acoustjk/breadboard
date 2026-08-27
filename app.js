@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1171';
-import { MNASolver } from './src/engine/MNASolver.js?v=1171';
-import { FFT } from './src/engine/FFT.js?v=1171';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1171';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1171';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1171';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1171';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1171';
-import { AICopilot } from './src/components/AICopilot.js?v=1171';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1171';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1172';
+import { MNASolver } from './src/engine/MNASolver.js?v=1172';
+import { FFT } from './src/engine/FFT.js?v=1172';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1172';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1172';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1172';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1172';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1172';
+import { AICopilot } from './src/components/AICopilot.js?v=1172';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1172';
 
 class AppController {
     constructor() {
@@ -1490,45 +1490,49 @@ class AppController {
             });
         }
 
-        document.getElementById('btnOpenScopeModal').addEventListener('click', () => {
-            this.warmupSimulationBuffer(1200);
-            this.startSimulation();
-            
-            // Sync Time/Div DOM controls to 0.2ms default if stuck at 0.01ms
-            const selTime = document.getElementById('timeDivSelect');
-            const rTime = document.getElementById('rangeTimeDivMs');
-            const nTime = document.getElementById('numTimeDivMs');
-            if (selTime && selTime.value === '0.01') {
-                selTime.value = '0.0002';
-                if (rTime) rTime.value = '0.2';
-                if (nTime) nTime.value = '0.20';
-                this.oscilloscopeCanvas.timePerDiv = 0.0002;
-            }
+        const btnOpenScope = document.getElementById('btnOpenScopeModal');
+        if (btnOpenScope) {
+            btnOpenScope.addEventListener('click', () => {
+                this.warmupSimulationBuffer(1200);
+                this.startSimulation();
+                
+                const selTime = document.getElementById('timeDivSelect');
+                const rTime = document.getElementById('rangeTimeDivMs');
+                const nTime = document.getElementById('numTimeDivMs');
+                if (selTime && selTime.value === '0.01') {
+                    selTime.value = '0.0002';
+                    if (rTime) rTime.value = '0.2';
+                    if (nTime) nTime.value = '0.20';
+                    this.oscilloscopeCanvas.timePerDiv = 0.0002;
+                }
 
-            document.getElementById('posYChA').value = '0';
-            document.getElementById('numPosYChA').value = '0';
-            document.getElementById('txtValChA').innerText = 'Y: 0px';
-            this.oscilloscopeCanvas.posOffsetYChA = 0;
+                const elYChA = document.getElementById('posYChA'); if (elYChA) elYChA.value = '0';
+                const elNYChA = document.getElementById('numPosYChA'); if (elNYChA) elNYChA.value = '0';
+                const elTYChA = document.getElementById('txtValChA'); if (elTYChA) elTYChA.innerText = 'Y: 0px';
+                this.oscilloscopeCanvas.posOffsetYChA = 0;
 
-            document.getElementById('posYChB').value = '0';
-            document.getElementById('numPosYChB').value = '0';
-            document.getElementById('txtValChB').innerText = 'Y: 0px';
-            this.oscilloscopeCanvas.posOffsetYChB = 0;
+                const elYChB = document.getElementById('posYChB'); if (elYChB) elYChB.value = '0';
+                const elNYChB = document.getElementById('numPosYChB'); if (elNYChB) elNYChB.value = '0';
+                const elTYChB = document.getElementById('txtValChB'); if (elTYChB) elTYChB.innerText = 'Y: 0px';
+                this.oscilloscopeCanvas.posOffsetYChB = 0;
 
-            document.getElementById('posYChC').value = '0';
-            document.getElementById('numPosYCChC' ? 'numPosYChC' : 'numPosYChC').value = '0';
-            document.getElementById('txtValChC').innerText = 'Y: 0px';
-            this.oscilloscopeCanvas.posOffsetYChC = 0;
+                const elYChC = document.getElementById('posYChC'); if (elYChC) elYChC.value = '0';
+                const elNYChC = document.getElementById('numPosYChC'); if (elNYChC) elNYChC.value = '0';
+                const elTYChC = document.getElementById('txtValChC'); if (elTYChC) elTYChC.innerText = 'Y: 0px';
+                this.oscilloscopeCanvas.posOffsetYChC = 0;
 
-            document.getElementById('posYChD').value = '0';
-            document.getElementById('numPosYChD').value = '0';
-            document.getElementById('txtValChD').innerText = 'Y: 0px';
-            this.oscilloscopeCanvas.posOffsetYChD = 0;
+                const elYChD = document.getElementById('posYChD'); if (elYChD) elYChD.value = '0';
+                const elNYChD = document.getElementById('numPosYChD'); if (elNYChD) elNYChD.value = '0';
+                const elTYChD = document.getElementById('txtValChD'); if (elTYChD) elTYChD.innerText = 'Y: 0px';
+                this.oscilloscopeCanvas.posOffsetYChD = 0;
 
-            this.updateScopePotSlider();
+                this.updateScopePotSlider();
 
-            document.getElementById('scopeModal').classList.remove('hidden');
-        });
+                const scopeModal = document.getElementById('scopeModal');
+                if (scopeModal) scopeModal.classList.remove('hidden');
+            });
+        }
+
         const btnHeaderFreeze = document.getElementById('btnToggleScopeFreezeHeader');
         if (btnHeaderFreeze) {
             btnHeaderFreeze.addEventListener('click', () => this.toggleScopeFreeze());
@@ -1539,17 +1543,29 @@ class AppController {
             btnToolbarFreeze.addEventListener('click', () => this.toggleScopeFreeze());
         }
 
-        document.getElementById('btnCloseScopeModal').addEventListener('click', () => {
-            document.getElementById('scopeModal').classList.add('hidden');
-        });
+        const btnCloseScope = document.getElementById('btnCloseScopeModal');
+        if (btnCloseScope) {
+            btnCloseScope.addEventListener('click', () => {
+                const scopeModal = document.getElementById('scopeModal');
+                if (scopeModal) scopeModal.classList.add('hidden');
+            });
+        }
 
-        document.getElementById('btnOpenFftModal').addEventListener('click', () => {
-            this.startSimulation();
-            document.getElementById('fftModal').classList.remove('hidden');
-        });
-        document.getElementById('btnCloseFftModal').addEventListener('click', () => {
-            document.getElementById('fftModal').classList.add('hidden');
-        });
+        const btnOpenFft = document.getElementById('btnOpenFftModal');
+        if (btnOpenFft) {
+            btnOpenFft.addEventListener('click', () => {
+                this.startSimulation();
+                const modal = document.getElementById('fftModal');
+                if (modal) modal.classList.remove('hidden');
+            });
+        }
+        const btnCloseFft = document.getElementById('btnCloseFftModal');
+        if (btnCloseFft) {
+            btnCloseFft.addEventListener('click', () => {
+                const modal = document.getElementById('fftModal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
 
         const toolButtons = [
             { id: 'toolSelect', tool: 'SELECT' },
@@ -1590,12 +1606,19 @@ class AppController {
             });
         }
 
-        document.getElementById('btnGradeExam').addEventListener('click', () => {
-            this.openExamGradingSheet();
-        });
-        document.getElementById('btnCloseExamModal').addEventListener('click', () => {
-            document.getElementById('examModal').classList.add('hidden');
-        });
+        const btnGrade = document.getElementById('btnGradeExam');
+        if (btnGrade) {
+            btnGrade.addEventListener('click', () => {
+                this.openExamGradingSheet();
+            });
+        }
+        const btnCloseExam = document.getElementById('btnCloseExamModal');
+        if (btnCloseExam) {
+            btnCloseExam.addEventListener('click', () => {
+                const examModal = document.getElementById('examModal');
+                if (examModal) examModal.classList.add('hidden');
+            });
+        }
 
         const btnToggleBadges = document.getElementById('btnToggleValueBadges');
         if (btnToggleBadges) {
@@ -1610,12 +1633,16 @@ class AppController {
             });
         }
 
-        document.getElementById('btnClearBoard').addEventListener('click', () => {
-            this.initEmptyBoard();
-            this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드가 준비되었습니다.';
-            document.getElementById('presetSelect').value = 'empty';
-            this.renderAll();
-        });
+        const btnClear = document.getElementById('btnClearBoard');
+        if (btnClear) {
+            btnClear.addEventListener('click', () => {
+                this.initEmptyBoard();
+                this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드가 준비되었습니다.';
+                const selPreset = document.getElementById('presetSelect');
+                if (selPreset) selPreset.value = 'empty';
+                this.renderAll();
+            });
+        }
 
         const btnFlip = document.getElementById('btnFlipPolarity');
         if (btnFlip) {
@@ -1627,17 +1654,20 @@ class AppController {
             btnToolbarFlip.addEventListener('click', () => this.flipSelectedComponentPolarity());
         }
 
-        document.getElementById('btnDeleteSelected').addEventListener('click', () => {
-            const selected = this.breadboardCanvas.selectedComponent;
-            if (selected) {
-                this.components = this.components.filter(c => c !== selected);
-                this.breadboardCanvas.selectedComponent = null;
-                this.breadboardCanvas.toastMsg = '🗑️ 선택한 부품이 삭제되었습니다.';
-                this.renderAll();
-            } else {
-                alert('삭제할 부품을 먼저 브레드보드에서 클릭하여 선택하세요.');
-            }
-        });
+        const btnDelSel = document.getElementById('btnDeleteSelected');
+        if (btnDelSel) {
+            btnDelSel.addEventListener('click', () => {
+                const selected = this.breadboardCanvas.selectedComponent;
+                if (selected) {
+                    this.components = this.components.filter(c => c !== selected);
+                    this.breadboardCanvas.selectedComponent = null;
+                    this.breadboardCanvas.toastMsg = '🗑️ 선택한 부품이 삭제되었습니다.';
+                    this.renderAll();
+                } else {
+                    alert('삭제할 부품을 먼저 브레드보드에서 클릭하여 선택하세요.');
+                }
+            });
+        }
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' || e.key === 'Esc') {
@@ -1666,78 +1696,100 @@ class AppController {
             }
         });
 
-        document.getElementById('btnZoomIn').addEventListener('click', () => {
-            this.breadboardCanvas.zoomIn();
-        });
-        document.getElementById('btnZoomOut').addEventListener('click', () => {
-            this.breadboardCanvas.zoomOut();
-        });
-        document.getElementById('btnZoomReset').addEventListener('click', () => {
-            this.breadboardCanvas.resetZoom();
-        });
+        const btnZoomInEl = document.getElementById('btnZoomIn');
+        if (btnZoomInEl) btnZoomInEl.addEventListener('click', () => this.breadboardCanvas.zoomIn());
+
+        const btnZoomOutEl = document.getElementById('btnZoomOut');
+        if (btnZoomOutEl) btnZoomOutEl.addEventListener('click', () => this.breadboardCanvas.zoomOut());
+
+        const btnZoomResetEl = document.getElementById('btnZoomReset');
+        if (btnZoomResetEl) btnZoomResetEl.addEventListener('click', () => this.breadboardCanvas.resetZoom());
 
         const btnPlayPause = document.getElementById('btnPlayPause');
-        btnPlayPause.addEventListener('click', () => {
-            this.isRunning = !this.isRunning;
-            const statusText = document.getElementById('circuitStatusText');
+        if (btnPlayPause) {
+            btnPlayPause.addEventListener('click', () => {
+                this.isRunning = !this.isRunning;
+                const statusText = document.getElementById('circuitStatusText');
 
-            if (this.isRunning) {
-                btnPlayPause.className = 'btn btn-primary';
-                btnPlayPause.innerHTML = '⏸️ 시뮬레이션 일시정지';
-                statusText.innerText = '상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)';
-                statusText.style.color = 'var(--accent-green)';
-                this.runLoop();
-            } else {
-                btnPlayPause.className = 'btn btn-success';
-                btnPlayPause.innerHTML = '▶ 시뮬레이션 시작';
-                statusText.innerText = '상태: 일시정지됨';
-                statusText.style.color = 'var(--accent-amber)';
-                if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
-            }
-        });
+                if (this.isRunning) {
+                    btnPlayPause.className = 'btn btn-primary';
+                    btnPlayPause.innerHTML = '⏸️ 시뮬레이션 일시정지';
+                    if (statusText) {
+                        statusText.innerText = '상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)';
+                        statusText.style.color = 'var(--accent-green)';
+                    }
+                    this.runLoop();
+                } else {
+                    btnPlayPause.className = 'btn btn-success';
+                    btnPlayPause.innerHTML = '▶ 시뮬레이션 시작';
+                    if (statusText) {
+                        statusText.innerText = '상태: 일시정지됨';
+                        statusText.style.color = 'var(--accent-amber)';
+                    }
+                    if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+                }
+            });
+        }
 
-        document.getElementById('presetSelect').addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (val === 'empty') {
-                this.initEmptyBoard();
-                this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
-            } else if (val === 'bjt_astable') {
-                this.initBjtAstableOscillator();
-            } else if (val === 'exam_pnm') {
-                this.initPNMExam();
-            } else if (val === 'square_osc') {
-                this.initUserPreservedSquare();
-            } else if (val === 'lm358_osc') {
-                this.initLM358Oscillator();
-            } else if (val === 'exam_master_comm') {
-                this.initMasterCommExam();
-            } else if (val === 'exam_craftsman_elec') {
-                this.initCraftsmanElecExam();
-            } else if (val === 'exam_engineer_elec') {
-                this.initEngineerElecExam();
-            } else if (val === 'exam_wireless') {
-                this.initWirelessExam();
-            } else if (val === 'exam_computer') {
-                this.initComputerExam();
-            } else if (val === 'exam_phase_shift') {
-                this.initPhaseShiftExam();
-            }
-            this.renderAll();
-        });
+        const presetSel = document.getElementById('presetSelect');
+        if (presetSel) {
+            presetSel.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'empty') {
+                    this.initEmptyBoard();
+                    this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
+                } else if (val === 'bjt_astable') {
+                    this.initBjtAstableOscillator();
+                } else if (val === 'exam_pnm') {
+                    this.initPNMExam();
+                } else if (val === 'square_osc') {
+                    this.initUserPreservedSquare();
+                } else if (val === 'lm358_osc') {
+                    this.initLM358Oscillator();
+                } else if (val === 'exam_master_comm') {
+                    this.initMasterCommExam();
+                } else if (val === 'exam_craftsman_elec') {
+                    this.initCraftsmanElecExam();
+                } else if (val === 'exam_engineer_elec') {
+                    this.initEngineerElecExam();
+                } else if (val === 'exam_wireless') {
+                    this.initWirelessExam();
+                } else if (val === 'exam_computer') {
+                    this.initComputerExam();
+                } else if (val === 'exam_phase_shift') {
+                    this.initPhaseShiftExam();
+                }
+                this.renderAll();
+            });
+        }
 
-        document.getElementById('btnExportSpice').addEventListener('click', () => {
-            const netlist = SPICEExporter.exportNetlist(this.components, this.grid);
-            document.getElementById('spiceNetlistText').value = netlist;
-            document.getElementById('spiceModal').classList.remove('hidden');
-        });
+        const btnSpice = document.getElementById('btnExportSpice');
+        if (btnSpice) {
+            btnSpice.addEventListener('click', () => {
+                const netlist = SPICEExporter.exportNetlist(this.components, this.grid);
+                const txt = document.getElementById('spiceNetlistText');
+                if (txt) txt.value = netlist;
+                const modal = document.getElementById('spiceModal');
+                if (modal) modal.classList.remove('hidden');
+            });
+        }
 
-        document.getElementById('btnCloseSpiceModal').addEventListener('click', () => {
-            document.getElementById('spiceModal').classList.add('hidden');
-        });
+        const btnCloseSpice = document.getElementById('btnCloseSpiceModal');
+        if (btnCloseSpice) {
+            btnCloseSpice.addEventListener('click', () => {
+                const modal = document.getElementById('spiceModal');
+                if (modal) modal.classList.add('hidden');
+            });
+        }
 
-        document.getElementById('btnAiDiagnose').addEventListener('click', () => this.triggerAiDiagnostic());
-        document.getElementById('btnAiCutoff').addEventListener('click', () => this.triggerAiDiagnostic('fc'));
-        document.getElementById('btnAiTransient').addEventListener('click', () => this.triggerAiDiagnostic('transient'));
+        const btnAiDiag = document.getElementById('btnAiDiagnose');
+        if (btnAiDiag) btnAiDiag.addEventListener('click', () => this.triggerAiDiagnostic());
+
+        const btnAiFc = document.getElementById('btnAiCutoff');
+        if (btnAiFc) btnAiFc.addEventListener('click', () => this.triggerAiDiagnostic('fc'));
+
+        const btnAiTrans = document.getElementById('btnAiTransient');
+        if (btnAiTrans) btnAiTrans.addEventListener('click', () => this.triggerAiDiagnostic('transient'));
     }
 
     updateCutoffFreqDisplay() {
