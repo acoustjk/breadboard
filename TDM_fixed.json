@@ -10,7 +10,7 @@
   "probes": {
     "probeAPin": "B2_A7",
     "probeBPin": "B4_E9",
-    "probeCPin": "B2_E47",
+    "probeCPin": "B3_E48",
     "probeDPin": "BINDING_GND"
   },
   "components": [
