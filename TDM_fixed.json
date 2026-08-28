@@ -1,17 +1,17 @@
 {
   "version": "1.0",
   "savedAt": "2026-08-28T06:57:50.652Z",
-  "title": "My Breadboard Circuit",
+  "title": "TDM",
   "power": {
     "voltageVa": 12,
     "voltageVb": 0,
     "voltageVc": -12
   },
   "probes": {
-    "probeAPin": null,
-    "probeBPin": null,
-    "probeCPin": null,
-    "probeDPin": null
+    "probeAPin": "B2_A7",
+    "probeBPin": "B4_E9",
+    "probeCPin": "B2_F47",
+    "probeDPin": "BINDING_GND"
   },
   "components": [
     {
