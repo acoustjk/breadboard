@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1173)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1175)</span>
         </div>
 
         <div class="header-controls">
@@ -165,6 +165,17 @@
                 </div>
             </div>
 
+            <!-- 📊 4CH Oscilloscope Probes -->
+            <div class="palette-section">
+                <div class="palette-section-title">📊 4CH 오실로스코프 프로브:</div>
+                <div class="palette-grid-2">
+                    <button id="toolProbeA" class="btn" style="color: #facc15; border-color: #facc15; font-weight: bold;">📍 CH A</button>
+                    <button id="toolProbeB" class="btn" style="color: #e879f9; border-color: #e879f9; font-weight: bold;">📍 CH B</button>
+                    <button id="toolProbeC" class="btn" style="color: #38bdf8; border-color: #38bdf8; font-weight: bold;">📍 CH C</button>
+                    <button id="toolProbeD" class="btn" style="color: #22c55e; border-color: #22c55e; font-weight: bold;">📍 CH D</button>
+                </div>
+            </div>
+
             <!-- 🔔 Continuity & BEEP Tester Section -->
             <div class="palette-section" style="background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 8px; border-radius: 6px; box-sizing: border-box; width: 100%;">
                 <div class="palette-section-title" style="color: #10b981; font-weight: bold; font-size: 11px;">🔔 도통 테스터기 (BEEP 검사기):</div>
@@ -193,11 +204,8 @@
             <!-- Instrument Popup Triggers -->
             <div class="palette-section" style="margin-top: auto; border-color: var(--accent-amber);">
                 <div class="palette-section-title" style="color: var(--accent-amber);">🎛️ 계측기 팝업 창:</div>
-                <button id="btnOpenScopeModal" class="btn btn-primary" style="background: #0284c7;">
+                <button id="btnOpenScopeModal" class="btn btn-primary" style="background: #0284c7; width: 100%;">
                     📊 4CH 오실로스코프 팝업 열기
-                </button>
-                <button id="btnOpenFftModal" class="btn btn-primary" style="background: #4f46e5;">
-                    📈 스펙트럼 분석기 (FFT) 팝업 열기
                 </button>
             </div>
 
@@ -220,7 +228,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1173!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1175!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -510,6 +518,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1173"></script>
+    <script type="module" src="./app.js?v=1175"></script>
 </body>
 </html>
