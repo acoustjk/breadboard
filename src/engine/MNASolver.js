@@ -424,8 +424,11 @@ export class MNASolver {
                         const p4 = getV(pins.pin3) > 2.5 ? 8 : 0;
                         comp.count = (p1 + p2 + p3 + p4) % 16;
                     } else if (vClk > 2.5 && comp.lastClk <= 2.5) {
-                        const isUp = vUd > 2.5;
-                        if (isUp) {
+                        if (comp.dirUp === undefined) comp.dirUp = (vUd > 2.5);
+                        if (comp.count >= 15) comp.dirUp = false;
+                        else if (comp.count <= 0) comp.dirUp = true;
+
+                        if (comp.dirUp) {
                             comp.count = (comp.count + 1) % 16;
                         } else {
                             comp.count = (comp.count + 15) % 16;
@@ -440,7 +443,7 @@ export class MNASolver {
                     });
 
                     const isUp = vUd > 2.5;
-                    const carryActive = (isUp && comp.count === 9) || (!isUp && comp.count === 0);
+                    const carryActive = (isUp && comp.count === 15) || (!isUp && comp.count === 0);
                     driveDigitalPin(pins.pin7, !carryActive, 100.0);
 
                 } else if (icType === 'CD4027') {

@@ -80,7 +80,7 @@
       "pinA": "B1_H10",
       "pinB": "B1_H14",
       "totalResistance": 50000,
-      "ratio": 0.15
+      "ratio": 0.12
     },
     {
       "id": "WIRE_23",
@@ -283,8 +283,8 @@
     {
       "id": "WIRE_57",
       "type": "WIRE",
-      "pinA": "B3_E5",
-      "pinB": "B2_F36",
+      "pinA": "B2_F36",
+      "pinB": "B3_E5",
       "color": "#0984e3"
     },
     {
@@ -367,8 +367,8 @@
     {
       "id": "WIRE_74",
       "type": "WIRE",
-      "pinA": "B2_F34",
-      "pinB": "B3_E7",
+      "pinA": "B1_C45",
+      "pinB": "B1_C36",
       "color": "#0984e3"
     },
     {
