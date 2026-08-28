@@ -1,16 +1,16 @@
 {
   "version": "1.0",
-  "savedAt": "2026-08-27T04:26:54.679Z",
-  "title": "🏆 [TDM 완벽정답] 시분할 다중화 (Time-Division Multiplexing) 회로",
+  "savedAt": "2026-08-28T06:57:50.652Z",
+  "title": "My Breadboard Circuit",
   "power": {
-    "voltageVa": 5,
+    "voltageVa": 12,
     "voltageVb": 0,
     "voltageVc": -12
   },
   "probes": {
-    "probeAPin": "B2_A7",
-    "probeBPin": "B4_E9",
-    "probeCPin": "B3_E48",
+    "probeAPin": null,
+    "probeBPin": null,
+    "probeCPin": null,
     "probeDPin": null
   },
   "components": [
@@ -19,7 +19,7 @@
       "type": "R",
       "pinA": "B1_B1",
       "pinB": "B1_B5",
-      "resistance": 62000,
+      "resistance": 1000,
       "isConfigured": true
     },
     {
@@ -27,15 +27,15 @@
       "type": "POT",
       "pinA": "B1_D5",
       "pinB": "B1_D10",
-      "totalResistance": 1000000,
-      "ratio": 0.4
+      "totalResistance": 10000,
+      "ratio": 0.5
     },
     {
       "id": "CAPACITOR_CATALOG_3",
       "type": "C",
       "pinA": "B1_B10",
       "pinB": "B1_B15",
-      "capacitance": 4.7e-8,
+      "capacitance": 1e-8,
       "isConfigured": true,
       "capType": "MYLAR"
     },
@@ -71,7 +71,7 @@
       "id": "IC_CATALOG_20",
       "type": "IC",
       "pinA": "B2_E5",
-      "pinB": "B2_F10",
+      "pinB": "B2_F8",
       "icType": "NE555"
     },
     {
@@ -164,7 +164,7 @@
       "id": "IC_CATALOG_36",
       "type": "IC",
       "pinA": "B3_E5",
-      "pinB": "B3_F10",
+      "pinB": "B3_F11",
       "icType": "74LS393"
     },
     {
@@ -437,7 +437,7 @@
       "id": "IC_CATALOG_82",
       "type": "IC",
       "pinA": "B2_E45",
-      "pinB": "B2_F55",
+      "pinB": "B2_F51",
       "icType": "74LS86"
     },
     {

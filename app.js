@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1240';
-import { MNASolver } from './src/engine/MNASolver.js?v=1240';
-import { FFT } from './src/engine/FFT.js?v=1240';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1240';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1240';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1240';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1240';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1240';
-import { AICopilot } from './src/components/AICopilot.js?v=1240';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1240';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1250';
+import { MNASolver } from './src/engine/MNASolver.js?v=1250';
+import { FFT } from './src/engine/FFT.js?v=1250';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1250';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1250';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1250';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1250';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1250';
+import { AICopilot } from './src/components/AICopilot.js?v=1250';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1250';
 
 class AppController {
     constructor() {
@@ -1216,6 +1216,21 @@ class AppController {
             const pYChD = document.getElementById('posYChD'); if (pYChD) pYChD.value = '-60';
             const nPYChD = document.getElementById('numPosYChD'); if (nPYChD) nPYChD.value = '-60';
             const tYChD = document.getElementById('txtValChD'); if (tYChD) tYChD.innerText = 'Y: -60px';
+        } else if (this.currentExamTitle && (this.currentExamTitle.includes('TDM') || this.currentExamTitle.includes('시분할'))) {
+            // Auto Scope Layout for TDM (Time-Division Multiplexing) Circuits
+            this.oscilloscopeCanvas.voltPerDivChA = 2.0;
+            this.oscilloscopeCanvas.posOffsetYChA = -60; // CH A (Clock) at top
+            this.oscilloscopeCanvas.voltPerDivChB = 2.0;
+            this.oscilloscopeCanvas.posOffsetYChB = 0;   // CH B (TDM Mux Out) at center
+            this.oscilloscopeCanvas.voltPerDivChC = 2.0;
+            this.oscilloscopeCanvas.posOffsetYChC = 60;  // CH C (XOR Filtered) at bottom
+            this.oscilloscopeCanvas.timePerDiv = 0.002;  // 2.0ms/div for clear 8-channel TDM frame!
+
+            const selTime = document.getElementById('timePerDivSelect'); if (selTime) selTime.value = '2.0';
+            const numTime = document.getElementById('numTimePerDiv'); if (numTime) numTime.value = '2.0';
+            const vChA = document.getElementById('voltDivChA'); if (vChA) vChA.value = '2.0';
+            const vChB = document.getElementById('voltDivChB'); if (vChB) vChB.value = '2.0';
+            const vChC = document.getElementById('voltDivChC'); if (vChC) vChC.value = '2.0';
         } else if (this.currentExamTitle && (this.currentExamTitle.includes('D/A') || this.currentExamTitle.includes('계단') || this.currentExamTitle.includes('temp_temp'))) {
             // Auto Scope Layout for D/A Converter Triangular Staircase Circuits
             this.oscilloscopeCanvas.voltPerDivChB = 2.0;
