@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "savedAt": "2026-08-26T09:00:29.697Z",
-  "title": "🏆 [TP2 물리 법칙 100% 정밀] D/A 32Hz 4.5Vp-p 삼각 계단파",
+  "title": "🏆 [TP2 완벽정답] D/A 32Hz 4.5Vp-p 매끄러운 16단계 삼각 계단파",
   "power": {
     "voltageVa": 12,
     "voltageVb": 0,
@@ -428,7 +428,7 @@
       "type": "R",
       "pinA": "B3_J46",
       "pinB": "B4_A46",
-      "resistance": 30400,
+      "resistance": 30000,
       "isConfigured": true
     },
     {
@@ -465,7 +465,7 @@
     {
       "id": "WIRE_93",
       "type": "WIRE",
-      "pinA": "B2_B35",
+      "pinA": "B2_E35",
       "pinB": "B2_B56",
       "color": "#0984e3"
     },
@@ -694,14 +694,14 @@
       "id": "WIRE_107_FIXED",
       "type": "WIRE",
       "pinA": "B2_F35",
-      "pinB": "B2_H49",
+      "pinB": "B2_I53",
       "color": "#0984e3"
     },
     {
       "id": "WIRE_108_FIXED",
       "type": "WIRE",
       "pinA": "B2_F32",
-      "pinB": "B2_I53",
+      "pinB": "B2_H49",
       "color": "#0984e3"
     }
   ]
