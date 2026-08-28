@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1300';
-import { MNASolver } from './src/engine/MNASolver.js?v=1300';
-import { FFT } from './src/engine/FFT.js?v=1300';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1300';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1300';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1300';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1300';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1300';
-import { AICopilot } from './src/components/AICopilot.js?v=1300';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1300';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1310';
+import { MNASolver } from './src/engine/MNASolver.js?v=1310';
+import { FFT } from './src/engine/FFT.js?v=1310';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1310';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1310';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1310';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1310';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1310';
+import { AICopilot } from './src/components/AICopilot.js?v=1310';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1310';
 
 class AppController {
     constructor() {
@@ -1895,22 +1895,8 @@ class AppController {
 
             const getNodeVoltageWithFallback = (pinKey) => {
                 if (!pinKey) return 0;
-                if (pinKey.startsWith('BINDING_')) {
-                    const n = this.grid.getNodeId(pinKey);
-                    return n ? (nodeVoltages.get(n) || 0) : 0;
-                }
                 const n = this.grid.getNodeId(pinKey);
-                let v = n ? (nodeVoltages.get(n) || 0) : 0;
-                if (Math.abs(v) < 1e-4 && (pinKey.includes('_D') || pinKey.includes('_E'))) {
-                    const altPin = pinKey.replace('_D', '_F').replace('_E', '_F');
-                    const altNode = this.grid.getNodeId(altPin);
-                    if (altNode) v = nodeVoltages.get(altNode) || 0;
-                } else if (Math.abs(v) < 1e-4 && (pinKey.includes('_F') || pinKey.includes('_G'))) {
-                    const altPin = pinKey.replace('_F', '_D').replace('_G', '_D');
-                    const altNode = this.grid.getNodeId(altPin);
-                    if (altNode) v = nodeVoltages.get(altNode) || 0;
-                }
-                return v;
+                return n ? (nodeVoltages.get(n) || 0) : 0;
             };
 
             vA = getNodeVoltageWithFallback(this.breadboardCanvas.probeAPin);
