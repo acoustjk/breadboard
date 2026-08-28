@@ -164,7 +164,7 @@
       "type": "C",
       "pinA": "B1_GND_L_31",
       "pinB": "B1_B31",
-      "capacitance": 1e-9,
+      "capacitance": 1.5e-9,
       "isConfigured": true,
       "capType": "MYLAR"
     },
@@ -189,7 +189,7 @@
       "pinA": "B1_D26",
       "pinB": "B1_G26",
       "totalResistance": 10000,
-      "ratio": 0.5
+      "ratio": 0.15
     },
     {
       "id": "RESISTOR_CATALOG_29",
