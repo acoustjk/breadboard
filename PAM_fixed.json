@@ -164,7 +164,7 @@
       "type": "C",
       "pinA": "B1_GND_L_31",
       "pinB": "B1_B31",
-      "capacitance": 1e-8,
+      "capacitance": 1e-9,
       "isConfigured": true,
       "capType": "MYLAR"
     },
@@ -354,7 +354,7 @@
       "type": "C",
       "pinA": "B4_C19",
       "pinB": "B4_H19",
-      "capacitance": 4.7e-8,
+      "capacitance": 1e-8,
       "isConfigured": true,
       "capType": "MYLAR"
     },
