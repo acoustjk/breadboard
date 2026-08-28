@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1195';
-import { MNASolver } from './src/engine/MNASolver.js?v=1195';
-import { FFT } from './src/engine/FFT.js?v=1195';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1195';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1195';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1195';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1195';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1195';
-import { AICopilot } from './src/components/AICopilot.js?v=1195';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1195';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1200';
+import { MNASolver } from './src/engine/MNASolver.js?v=1200';
+import { FFT } from './src/engine/FFT.js?v=1200';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1200';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1200';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1200';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1200';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1200';
+import { AICopilot } from './src/components/AICopilot.js?v=1200';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1200';
 
 class AppController {
     constructor() {
@@ -1219,14 +1219,14 @@ class AppController {
         } else if (this.currentExamTitle && (this.currentExamTitle.includes('D/A') || this.currentExamTitle.includes('계단') || this.currentExamTitle.includes('temp_temp'))) {
             // Auto Scope Layout for D/A Converter Triangular Staircase Circuits
             this.oscilloscopeCanvas.voltPerDivChB = 2.0;
-            this.oscilloscopeCanvas.posOffsetYChB = 45; // Centered 2.25 grid divisions high!
+            this.oscilloscopeCanvas.posOffsetYChB = 90; // Exactly 2.25 grid divisions centered on 0V baseline!
             this.oscilloscopeCanvas.timePerDiv = 0.005; // 5.0ms/div exact match!
 
             const vChB = document.getElementById('voltDivChB'); if (vChB) vChB.value = '2.0';
             const nVChB = document.getElementById('numVoltDivChB'); if (nVChB) nVChB.value = '2.0';
-            const pYChB = document.getElementById('posYChB'); if (pYChB) pYChB.value = '45';
-            const nPYChB = document.getElementById('numPosYChB'); if (nPYChB) nPYChB.value = '45';
-            const tYChB = document.getElementById('txtValChB'); if (tYChB) tYChB.innerText = 'Y: 45px';
+            const pYChB = document.getElementById('posYChB'); if (pYChB) pYChB.value = '90';
+            const nPYChB = document.getElementById('numPosYChB'); if (nPYChB) nPYChB.value = '90';
+            const tYChB = document.getElementById('txtValChB'); if (tYChB) tYChB.innerText = 'Y: 90px';
 
             const selTime = document.getElementById('timePerDivSelect'); if (selTime) selTime.value = '5.0';
             const numTime = document.getElementById('numTimePerDiv'); if (numTime) numTime.value = '5.0';
