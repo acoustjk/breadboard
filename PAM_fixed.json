@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "savedAt": "2026-08-28T00:54:59.798Z",
-  "title": "🏆 [수정완료] PAM (펄스 진폭 변조) 송수신 복합 회로",
+  "savedAt": "2026-08-28T00:58:15.898Z",
+  "title": "🏆 [4CH 완벽분리] PAM (펄스 진폭 변조) 4채널 선명 분리 파형 회로",
   "power": {
     "voltageVa": 9,
     "voltageVb": 0,
@@ -329,9 +329,9 @@
     {
       "id": "RESISTOR_CATALOG_50",
       "type": "R",
-      "pinA": "B3_J24",
+      "pinA": "B3_G26",
       "pinB": "B4_A24",
-      "resistance": 4700,
+      "resistance": 2200,
       "isConfigured": true
     },
     {
@@ -346,8 +346,17 @@
       "type": "R",
       "pinA": "B4_D19",
       "pinB": "B4_G19",
-      "resistance": 10000,
+      "resistance": 47000,
       "isConfigured": true
+    },
+    {
+      "id": "CAPACITOR_CATALOG_53_DEMOD",
+      "type": "C",
+      "pinA": "B4_C19",
+      "pinB": "B4_H19",
+      "capacitance": 4.7e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
     },
     {
       "id": "WIRE_53",
