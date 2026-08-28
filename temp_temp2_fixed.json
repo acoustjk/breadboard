@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "savedAt": "2026-08-26T09:00:29.697Z",
-  "title": "🏆 [수정완법] D/A 변환기 계단파 (16단 계단파) 완벽 회로",
+  "title": "🏆 [TP2 시험정답] D/A 32Hz 4.5Vp-p 삼각 계단파 (Triangular Staircase)",
   "power": {
     "voltageVa": 12,
     "voltageVb": 0,
@@ -80,7 +80,7 @@
       "pinA": "B1_H10",
       "pinB": "B1_H14",
       "totalResistance": 50000,
-      "ratio": 0.01
+      "ratio": 0.12
     },
     {
       "id": "WIRE_23",
