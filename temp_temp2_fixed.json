@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "savedAt": "2026-08-26T09:00:29.697Z",
-  "title": "🏆 [TP2 시험정답] D/A 32Hz 4.5Vp-p 삼각 계단파 (Triangular Staircase)",
+  "title": "🏆 [TP2 완벽정답] D/A 32Hz 4.5Vp-p 삼각 계단파 (Triangular Staircase)",
   "power": {
     "voltageVa": 12,
     "voltageVb": 0,
@@ -80,7 +80,7 @@
       "pinA": "B1_H10",
       "pinB": "B1_H14",
       "totalResistance": 50000,
-      "ratio": 0.12
+      "ratio": 0.15
     },
     {
       "id": "WIRE_23",
@@ -283,8 +283,8 @@
     {
       "id": "WIRE_57",
       "type": "WIRE",
-      "pinA": "B2_J36",
-      "pinB": "B3_A36",
+      "pinA": "B3_E5",
+      "pinB": "B2_F36",
       "color": "#0984e3"
     },
     {
@@ -367,21 +367,21 @@
     {
       "id": "WIRE_74",
       "type": "WIRE",
-      "pinA": "B1_C45",
-      "pinB": "B1_C36",
+      "pinA": "B2_F34",
+      "pinB": "B3_E7",
       "color": "#0984e3"
     },
     {
       "id": "WIRE_75",
       "type": "WIRE",
       "pinA": "B1_D36",
-      "pinB": "B2_A36",
+      "pinB": "B2_F31",
       "color": "#0984e3"
     },
     {
       "id": "WIRE_76",
       "type": "WIRE",
-      "pinA": "B2_C31",
+      "pinA": "B2_E31",
       "pinB": "B2_C46",
       "color": "#0984e3"
     },
@@ -693,15 +693,15 @@
     {
       "id": "WIRE_107_FIXED",
       "type": "WIRE",
-      "pinA": "B2_H35",
-      "pinB": "B2_J53",
+      "pinA": "B2_F35",
+      "pinB": "B2_H49",
       "color": "#0984e3"
     },
     {
       "id": "WIRE_108_FIXED",
       "type": "WIRE",
-      "pinA": "B2_I32",
-      "pinB": "B2_A49",
+      "pinA": "B2_F32",
+      "pinB": "B2_I53",
       "color": "#0984e3"
     }
   ]
