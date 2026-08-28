@@ -422,13 +422,13 @@ export class MNASolver {
                         const p2 = getV(pins.pin12) > 2.5 ? 2 : 0;
                         const p3 = getV(pins.pin13) > 2.5 ? 4 : 0;
                         const p4 = getV(pins.pin3) > 2.5 ? 8 : 0;
-                        comp.count = (p1 + p2 + p3 + p4) % 10;
+                        comp.count = (p1 + p2 + p3 + p4) % 16;
                     } else if (vClk > 2.5 && comp.lastClk <= 2.5) {
                         const isUp = vUd > 2.5;
                         if (isUp) {
-                            comp.count = (comp.count + 1) % 10;
+                            comp.count = (comp.count + 1) % 16;
                         } else {
-                            comp.count = (comp.count + 9) % 10;
+                            comp.count = (comp.count + 15) % 16;
                         }
                     }
                     comp.lastClk = vClk;
