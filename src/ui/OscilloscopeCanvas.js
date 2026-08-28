@@ -31,7 +31,7 @@ export class OscilloscopeCanvas {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
 
-        this.bufferSize = 10000; // 10,000 Float64Array RingBuffer
+        this.bufferSize = 200000; // 200,000 Float64Array RingBuffer (1.0 second full history window for wide Time/Div zoom)
         this.dt = 0.000005; // 5us high-resolution simulation time step
         this.resetBuffer();
 
@@ -359,32 +359,22 @@ export class OscilloscopeCanvas {
         this.ctx.beginPath();
 
         if (numSamples > width) {
-            // Peak-Detect DSO Envelope Rendering (Eliminates sub-pixel decimation notches & square wave aliasing)
+            // Clean Crisp Sample Point Rendering (Eliminates average notch spikes & staircase distortion)
             const samplesPerPixel = numSamples / width;
             let isFirst = true;
 
             for (let px = 0; px < width; px++) {
-                const sStart = Math.floor(startIdx + px * samplesPerPixel);
-                const sEnd = Math.floor(startIdx + (px + 1) * samplesPerPixel);
-                let pMin = Infinity;
-                let pMax = -Infinity;
-
-                for (let s = sStart; s < sEnd && s < endIdx; s++) {
-                    let v = ringBuffer.get(s);
-                    if (isNaN(v) || !isFinite(v)) v = 0;
-                    v = Math.max(-25.0, Math.min(25.0, v));
-                    if (v < pMin) pMin = v;
-                    if (v > pMax) pMax = v;
-                }
-
-                if (pMin === Infinity) continue;
-                const yAvg = traceZeroY - ((pMin + pMax) * 0.5) * vDivScale;
+                const sIdx = Math.floor(startIdx + px * samplesPerPixel);
+                let v = ringBuffer.get(sIdx);
+                if (isNaN(v) || !isFinite(v)) v = 0;
+                v = Math.max(-25.0, Math.min(25.0, v));
+                const y = traceZeroY - (v * vDivScale);
 
                 if (isFirst) {
-                    this.ctx.moveTo(px, yAvg);
+                    this.ctx.moveTo(px, y);
                     isFirst = false;
                 } else {
-                    this.ctx.lineTo(px, yAvg);
+                    this.ctx.lineTo(px, y);
                 }
             }
         } else {
