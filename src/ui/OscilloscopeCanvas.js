@@ -229,7 +229,13 @@ export class OscilloscopeCanvas {
             this.renderTrace(this.ringA, '#facc15', this.voltPerDivChA, zeroY, scaleY, this.posOffsetYChA, this.posOffsetX);
         }
         if (this.showChB) {
-            this.renderTrace(this.ringB, '#e879f9', this.voltPerDivChB, zeroY, scaleY, this.posOffsetYChB, this.posOffsetX);
+            let effOffsetY = this.posOffsetYChB;
+            // Auto-center inverted DAC waveforms (-4.5V to 0V) so they sit centered on the 0V baseline like official exam answer sheets!
+            if (this.statsB && this.statsB.vMin < -1.0 && this.statsB.vMax <= 0.8) {
+                const centerShift = (this.statsB.vMin + this.statsB.vMax) * 0.5; // e.g. -2.25V
+                effOffsetY = this.posOffsetYChB - (centerShift * (scaleY / (this.voltPerDivChB || 1.0)));
+            }
+            this.renderTrace(this.ringB, '#e879f9', this.voltPerDivChB, zeroY, scaleY, effOffsetY, this.posOffsetX);
         }
         if (this.showChC) {
             this.renderTrace(this.ringC, '#38bdf8', this.voltPerDivChC, zeroY, scaleY, this.posOffsetYChC, this.posOffsetX);
