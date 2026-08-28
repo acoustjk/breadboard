@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1175';
-import { MNASolver } from './src/engine/MNASolver.js?v=1175';
-import { FFT } from './src/engine/FFT.js?v=1175';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1175';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1175';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1175';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1175';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1175';
-import { AICopilot } from './src/components/AICopilot.js?v=1175';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1175';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1177';
+import { MNASolver } from './src/engine/MNASolver.js?v=1177';
+import { FFT } from './src/engine/FFT.js?v=1177';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1177';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1177';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1177';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1177';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1177';
+import { AICopilot } from './src/components/AICopilot.js?v=1177';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1177';
 
 class AppController {
     constructor() {
@@ -1178,6 +1178,46 @@ class AppController {
         this.compCounter = this.components.length + 10;
 
         this.oscilloscopeCanvas.resetControls();
+
+        if (this.currentExamTitle && (this.currentExamTitle.includes('PAM') || this.currentExamTitle.includes('펄스'))) {
+            // Auto 4CH Scope Separation Preset for PAM Circuits
+            this.oscilloscopeCanvas.voltPerDivChA = 5.0;
+            this.oscilloscopeCanvas.posOffsetYChA = 30;
+
+            this.oscilloscopeCanvas.voltPerDivChB = 2.0;
+            this.oscilloscopeCanvas.posOffsetYChB = 80;
+
+            this.oscilloscopeCanvas.voltPerDivChC = 0.5;
+            this.oscilloscopeCanvas.posOffsetYChC = 0;
+
+            this.oscilloscopeCanvas.voltPerDivChD = 1.0;
+            this.oscilloscopeCanvas.posOffsetYChD = -60;
+
+            const vChA = document.getElementById('voltDivChA'); if (vChA) vChA.value = '5.0';
+            const nVChA = document.getElementById('numVoltDivChA'); if (nVChA) nVChA.value = '5.0';
+            const pYChA = document.getElementById('posYChA'); if (pYChA) pYChA.value = '30';
+            const nPYChA = document.getElementById('numPosYChA'); if (nPYChA) nPYChA.value = '30';
+            const tYChA = document.getElementById('txtValChA'); if (tYChA) tYChA.innerText = 'Y: 30px';
+
+            const vChB = document.getElementById('voltDivChB'); if (vChB) vChB.value = '2.0';
+            const nVChB = document.getElementById('numVoltDivChB'); if (nVChB) nVChB.value = '2.0';
+            const pYChB = document.getElementById('posYChB'); if (pYChB) pYChB.value = '80';
+            const nPYChB = document.getElementById('numPosYChB'); if (nPYChB) nPYChB.value = '80';
+            const tYChB = document.getElementById('txtValChB'); if (tYChB) tYChB.innerText = 'Y: 80px';
+
+            const vChC = document.getElementById('voltDivChC'); if (vChC) vChC.value = '0.5';
+            const nVChC = document.getElementById('numVoltDivChC'); if (nVChC) nVChC.value = '0.5';
+            const pYChC = document.getElementById('posYChC'); if (pYChC) pYChC.value = '0';
+            const nPYChC = document.getElementById('numPosYChC'); if (nPYChC) nPYChC.value = '0';
+            const tYChC = document.getElementById('txtValChC'); if (tYChC) tYChC.innerText = 'Y: 0px';
+
+            const vChD = document.getElementById('voltDivChD'); if (vChD) vChD.value = '1.0';
+            const nVChD = document.getElementById('numVoltDivChD'); if (nVChD) nVChD.value = '1.0';
+            const pYChD = document.getElementById('posYChD'); if (pYChD) pYChD.value = '-60';
+            const nPYChD = document.getElementById('numPosYChD'); if (nPYChD) nPYChD.value = '-60';
+            const tYChD = document.getElementById('txtValChD'); if (tYChD) tYChD.innerText = 'Y: -60px';
+        }
+
         this.syncScopeChannelVisibility();
         this.warmupSimulationBuffer(1200);
         this.startSimulation();
