@@ -10,7 +10,7 @@
   "probes": {
     "probeAPin": "B2_A7",
     "probeBPin": "B4_E9",
-    "probeCPin": "B3_E48",
+    "probeCPin": "B2_E47",
     "probeDPin": "BINDING_GND"
   },
   "components": [
@@ -448,13 +448,6 @@
       "color": "#0984e3"
     },
     {
-      "id": "WIRE_84",
-      "type": "WIRE",
-      "pinA": "B2_C27",
-      "pinB": "B2_C45",
-      "color": "#0984e3"
-    },
-    {
       "id": "WIRE_85",
       "type": "WIRE",
       "pinA": "B1_I30",
@@ -859,6 +852,13 @@
       "type": "WIRE",
       "pinA": "B4_F6",
       "pinB": "B4_GND_R_6",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_TDM_CLK_TO_393_2",
+      "type": "WIRE",
+      "pinA": "B2_A7",
+      "pinB": "B3_E30",
       "color": "#0984e3"
     }
   ]
