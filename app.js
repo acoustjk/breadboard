@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1280';
-import { MNASolver } from './src/engine/MNASolver.js?v=1280';
-import { FFT } from './src/engine/FFT.js?v=1280';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1280';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1280';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1280';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1280';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1280';
-import { AICopilot } from './src/components/AICopilot.js?v=1280';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1280';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1290';
+import { MNASolver } from './src/engine/MNASolver.js?v=1290';
+import { FFT } from './src/engine/FFT.js?v=1290';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1290';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1290';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1290';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1290';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1290';
+import { AICopilot } from './src/components/AICopilot.js?v=1290';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1290';
 
 class AppController {
     constructor() {
@@ -1248,7 +1248,7 @@ class AppController {
         }
 
         this.syncScopeChannelVisibility();
-        this.warmupSimulationBuffer(1200);
+        this.warmupSimulationBuffer(60000); // 60,000 steps = 300ms full simulation history for instant 3CH waveforms!
         this.startSimulation();
         this.renderAll();
     }
