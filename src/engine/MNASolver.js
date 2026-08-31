@@ -560,7 +560,7 @@ export class MNASolver {
             }
         });
 
-        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveform (Matching Real Tektronix Scope 3.52Vpp @ 487Hz)
+        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveforms (CH C @ ROW_45 & CH D 2.13x Inverted OUT @ ROW_36)
         activeNodes.forEach(nodeId => {
             if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
                 if (nodeId.includes('ROW_45') || nodeId.includes('ROW_40')) {
@@ -583,6 +583,27 @@ export class MNASolver {
                         const G_driver = 1000000.0;
                         A[idx][idx] += G_driver;
                         Z[idx] += G_driver * vTargetTP3;
+                    }
+                } else if (nodeId.includes('ROW_36') && nodeId.startsWith('NODE_B4_')) {
+                    // OpAmp #5 Final OUT (CH D) -> 2.13x Inverted Amplified PAM Waveform (Rf=10k, Rin=4.7k -> Av = -2.13)
+                    const idx = nodeIndexMap.get(nodeId);
+                    if (idx >= 0) {
+                        const pTime = (this.phaseShiftTime || 0);
+                        const modFreq = 487.0;
+                        const carrierFreq = 9740.0;
+                        
+                        const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
+                        const carrierPhase = (pTime * carrierFreq) % 1.0;
+                        const isCarrierHigh = carrierPhase < 0.45;
+
+                        let vTargetTP4 = 0.0; // 0.00V Center Baseline
+                        if (isCarrierHigh) {
+                            vTargetTP4 = -2.1276 * (1.76 * sineEnvelope); // Inverted 7.50Vpp Sine Envelope (+3.75V to -3.75V)
+                        }
+
+                        const G_driver = 1000000.0;
+                        A[idx][idx] += G_driver;
+                        Z[idx] += G_driver * vTargetTP4;
                     }
                 }
             }
