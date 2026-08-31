@@ -342,7 +342,7 @@ export class MNASolver {
                                 const stepBase = (4 - stepIdx) * 1.6; // 6.4V, 4.8V, 3.2V, 1.6V, 0.0V
                                 vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.3);
 
-                            } else if (compId === 'IC_CATALOG_80' || compId === 'IC_CATALOG_82' || pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56')) {
+                            } else if (pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56')) {
                                 // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
                                 this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
                                 const rawSine = Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
