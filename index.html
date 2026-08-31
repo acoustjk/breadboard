@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1630)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1640)</span>
         </div>
 
         <div class="header-controls">
@@ -216,29 +216,29 @@
                 <button id="btnFlipPolarity" class="btn btn-primary" style="background: #8b5cf6; width: 50%;">🔄 극성 반전</button>
                 <button id="btnDeleteSelected" class="btn btn-danger" style="width: 50%;">🗑️ 선택 삭제</button>
             </div>
-        <!-- Center: Breadboard Workbench Panel -->
-        <section class="card breadboard-panel">
-            <div class="card-title">
+        <!-- Center: Breadboard Workbench + 2x2 Oscilloscope Panel -->
+        <section class="card breadboard-panel" style="overflow-y: auto; display: flex; flex-direction: column;">
+            <div class="card-title" style="flex-shrink: 0;">
                 <span>Wanjie BB-4T7D Interactive Breadboard Workbench</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-green);" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
-            <div class="breadboard-toolbar">
+            <div class="breadboard-toolbar" style="flex-shrink: 0;">
                 <button id="btnZoomIn" class="btn">🔍+ 확대</button>
                 <button id="btnZoomOut" class="btn">🔍- 축소</button>
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 / XR2206 배포 v=1630!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 / XR2206 배포 v=1640!</span>
             </div>
 
             <!-- 🍞 Wanjie BB-4T7D Interactive Breadboard Canvas Workbench -->
-            <div class="canvas-wrapper scrollable-wrapper" style="max-height: 380px; border-bottom: 2px solid #1e293b;">
+            <div class="canvas-wrapper scrollable-wrapper" style="height: 320px; min-height: 260px; border-bottom: 2px solid #1e293b; flex-shrink: 0;">
                 <canvas id="breadboardCanvas" width="790" height="970"></canvas>
             </div>
 
             <!-- 📊 Compact 2x2 Grid KCA Exam 4-Screen Oscilloscope Panel -->
-            <div class="oscilloscope-panel-container" style="padding: 8px 12px; background: #0b1120; border-top: 1px solid #1e293b;">
+            <div class="oscilloscope-panel-container" style="padding: 8px 12px; background: #0b1120; border-top: 1px solid #1e293b; flex-shrink: 0;">
                 <!-- Toolbar Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid #1e293b; padding-bottom: 4px; flex-wrap: wrap; gap: 6px;">
                     <div style="display: flex; align-items: center; gap: 6px;">
@@ -687,6 +687,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1630"></script>
+    <script type="module" src="./app.js?v=1640"></script>
 </body>
 </html>
