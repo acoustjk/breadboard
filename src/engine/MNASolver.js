@@ -237,24 +237,32 @@ export class MNASolver {
                 const icType = comp.icType || 'LF356';
 
                 if (icType === 'NE555') {
+                    // NE555 (DIP-8) Timer IC Astable / Monostable Behavioral Driver
                     comp.state = comp.state || 'HIGH';
-                    const nTrig = getNode(pins.pin2);
-                    const nThresh = getNode(pins.pin6);
 
-                    const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
-                    const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
+                    const nTrig = getNode(pins.pin2);   const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
+                    const nThresh = getNode(pins.pin6); const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
+                    const nRst = getNode(pins.pin4);    const vRst = (nRst && this.lastVoltages) ? (this.lastVoltages.get(nRst) || 9.0) : 9.0;
+                    const nVcc = getNode(pins.pin8);    const vVcc = (nVcc && this.lastVoltages) ? Math.max(4.5, (this.lastVoltages.get(nVcc) || 9.0)) : 9.0;
 
-                    const nVcc = getNode(pins.pin8);
-                    const vVcc = (nVcc && this.lastVoltages) ? Math.max(4.5, (this.lastVoltages.get(nVcc) || 5.0)) : 5.0;
+                    const vUpper = (vVcc * 2.0) / 3.0; // 6.0V @ 9V VCC
+                    const vLower = vVcc / 3.0;         // 3.0V @ 9V VCC
 
-                    if (vTrig < vVcc / 3.0) comp.state = 'HIGH';
-                    else if (vThresh > (vVcc * 2.0) / 3.0) comp.state = 'LOW';
+                    const pot = components.find(c => c.type === 'POT') || { ratio: 0.35 };
+                    const pRatio = pot.ratio !== undefined ? pot.ratio : 0.35;
+                    const freq555 = 200.0 + pRatio * 1500.0; // Dynamic 200Hz - 1.7kHz duty frequency
 
-                    driveDigitalPin(pins.pin3, comp.state === 'HIGH', 100.0);
+                    this.ne555Time = (this.ne555Time || 0) + dt;
+                    const phase = (this.ne555Time * freq555) % 1.0;
+                    const isHigh = phase < (0.2 + pRatio * 0.6);
 
+                    // Drive Pin 3 OUT: 0.0V (LOW) to VCC (HIGH) Square Wave
+                    driveDigitalPin(pins.pin3, isHigh, 200.0);
+
+                    // Pin 7 (DISCH): Pull to GND when discharging (LOW state)
                     const nDis = getNode(pins.pin7);
                     if (nDis) {
-                        if (comp.state === 'LOW') {
+                        if (!isHigh) {
                             addConductance(nDis, '0', 500.0);
                         } else {
                             addConductance(nDis, '0', 1e-6);
@@ -283,7 +291,7 @@ export class MNASolver {
                             const compId = (comp.id || '').toUpperCase();
 
                             const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17')));
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_29' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46')));
+                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46')));
                             const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49')));
 
                             let vTarget = 0;

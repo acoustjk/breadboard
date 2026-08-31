@@ -1,0 +1,271 @@
+{
+  "version": "1.0",
+  "savedAt": "2026-08-31T03:40:06.516Z",
+  "title": "KCA 무선설비기능사 NE555 듀티비 가변 비안정 발진회로 (출력 부하 장착)",
+  "power": {
+    "voltageVa": 9,
+    "voltageVb": 0,
+    "voltageVc": -9
+  },
+  "probes": {
+    "probeAPin": "B1_E17",
+    "probeBPin": "B1_E16",
+    "probeCPin": "B1_F16",
+    "probeDPin": "BINDING_GND"
+  },
+  "components": [
+    {
+      "id": "WIRE_91",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_1",
+      "pinB": "B1_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_92",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_2",
+      "pinB": "B1_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_93",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_11",
+      "pinB": "B1_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_94",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_12",
+      "pinB": "B1_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_95",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_14",
+      "pinB": "B2_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_96",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_15",
+      "pinB": "B2_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_97",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_24",
+      "pinB": "B2_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_98",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_25",
+      "pinB": "B2_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_99",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_27",
+      "pinB": "B3_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_100",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_28",
+      "pinB": "B3_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_101",
+      "type": "WIRE",
+      "pinA": "VCC_TOP2_38",
+      "pinB": "B3_GND_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_102",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_37",
+      "pinB": "B3_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_103",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_40",
+      "pinB": "B4_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_104",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_41",
+      "pinB": "B4_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_105",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_48",
+      "pinB": "B4_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_106",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_49",
+      "pinB": "B4_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_107",
+      "type": "WIRE",
+      "pinA": "BINDING_Va",
+      "pinB": "VCC_TOP1_3",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_108",
+      "type": "WIRE",
+      "pinA": "BINDING_Vc",
+      "pinB": "VCC_TOP2_20",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_109",
+      "type": "WIRE",
+      "pinA": "BINDING_GND",
+      "pinB": "GND_TOP1_33",
+      "color": "#ef4444"
+    },
+    {
+      "id": "IC_CATALOG_29",
+      "type": "IC",
+      "pinA": "B1_E15",
+      "pinB": "B1_F20",
+      "icType": "NE555"
+    },
+    {
+      "id": "WIRE_30",
+      "type": "WIRE",
+      "pinA": "B1_A15",
+      "pinB": "B1_GND_L_15",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_39",
+      "type": "R",
+      "pinA": "B1_C16",
+      "pinB": "B1_C11",
+      "resistance": 20000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_40",
+      "type": "WIRE",
+      "pinA": "B1_E11",
+      "pinB": "B1_F11",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_41",
+      "type": "WIRE",
+      "pinA": "B1_H11",
+      "pinB": "B1_H16",
+      "color": "#0984e3"
+    },
+    {
+      "id": "DIODE_42",
+      "type": "DIODE",
+      "pinA": "B1_B11",
+      "pinB": "B1_B16",
+      "vForward": 0.7
+    },
+    {
+      "id": "CAPACITOR_CATALOG_43",
+      "type": "C",
+      "pinA": "B1_A16",
+      "pinB": "B1_A20",
+      "capacitance": 1e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "WIRE_44",
+      "type": "WIRE",
+      "pinA": "B1_GND_L_20",
+      "pinB": "B1_B20",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_47",
+      "type": "WIRE",
+      "pinA": "B1_C16",
+      "pinB": "B1_H17",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_50",
+      "type": "R",
+      "pinA": "B1_D11",
+      "pinB": "B1_D7",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "RESISTOR_CATALOG_51",
+      "type": "POT",
+      "pinA": "B1_C3",
+      "pinB": "B1_C7",
+      "totalResistance": 50000,
+      "ratio": 0.35
+    },
+    {
+      "id": "WIRE_52",
+      "type": "WIRE",
+      "pinA": "B1_VCC_L_3",
+      "pinB": "B1_A3",
+      "color": "#ef4444"
+    },
+    {
+      "id": "CAPACITOR_CATALOG_53",
+      "type": "C",
+      "pinA": "B1_I18",
+      "pinB": "B1_GND_R_18",
+      "capacitance": 1e-7,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "WIRE_54",
+      "type": "WIRE",
+      "pinA": "B1_J15",
+      "pinB": "B1_VCC_R_15",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_55",
+      "type": "WIRE",
+      "pinA": "B1_C18",
+      "pinB": "B1_H15",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_NE555_LOAD",
+      "type": "R",
+      "pinA": "B1_E17",
+      "pinB": "B1_GND_L_17",
+      "resistance": 10000,
+      "isConfigured": true
+    }
+  ]
+}
