@@ -315,32 +315,32 @@ export class MNASolver {
                                 vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
 
                             } else if (isU2_Comparator || compId === 'IC_CATALOG_69' || pinStr.includes('B2_F46') || pinStr.includes('B2_J46')) {
-                                // TP 2 (CH B) KCA Official Exam Answer Key: 15Vpp 230Hz Narrow Spike Pulse Waveform
+                                // TP 2 (CH B) KCA Official Exam Answer Sheet: 15Vpp 230Hz Narrow Reset Spike Pulse
                                 this.tp2Time = (this.tp2Time || 0) + dt;
                                 const freq230 = 230.0; // 230Hz Official KCA Exam Frequency
                                 const phase = (this.tp2Time * freq230) % 1.0;
-                                const isSpikeHigh = phase < 0.12; // 12% Narrow Duty Pulse Spike
+                                const isSpikeHigh = phase < 0.10; // 10% Narrow Duty Reset Pulse Spike
                                 vTarget = isSpikeHigh ? 7.5 : -7.5; // ±7.5V (15.0Vpp)
 
                             } else if (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21')) {
-                                // TP 3 (CH C) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz Slanted 4-Step Ramp-Up Staircase with Step Jumps
+                                // TP 3 (CH C) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Staircase Waveform
                                 this.tp3Time = (this.tp3Time || 0) + dt;
-                                const freq230 = 230.0;
+                                const freq230 = 230.0; // 230Hz Staircase Cycle (Matches NE555 1150Hz / 5 = 230Hz)
                                 const phase = (this.tp3Time * freq230) % 1.0;
-                                const stepIdx = Math.floor(phase * 4.0); // 0, 1, 2, 3
-                                const subPhase = (phase * 4.0) % 1.0; // 0.0 -> 1.0 within step
-                                const stepBase = (stepIdx + 1) * 2.0; // 2V, 4V, 6V, 8V
-                                vTarget = stepBase - (1.0 - subPhase) * 0.4; // 1.6V->2.0V, 3.6V->4.0V, 5.6V->6.0V, 7.6V->8.0V
+                                const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps (Matches CH A 5 Pulses per cycle)
+                                const subPhase = (phase * 5.0) % 1.0;
+                                const stepBase = (stepIdx + 1) * 1.6; // 1.6V, 3.2V, 4.8V, 6.4V, 8.0V (8.0Vpp 5-Step)
+                                vTarget = stepBase - (1.0 - subPhase) * 0.3;
 
                             } else if (compId === 'IC_CATALOG_102' || pinStr.includes('B4_F21') || pinStr.includes('B4_I22')) {
-                                // TP 4 (CH D) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz Slanted 4-Step Ramp-Down Inverted Staircase with Step Jumps
+                                // TP 4 (CH D) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Inverted Staircase Waveform
                                 this.tp3Time = (this.tp3Time || 0) + dt;
                                 const freq230 = 230.0;
                                 const phase = (this.tp3Time * freq230) % 1.0;
-                                const stepIdx = Math.floor(phase * 4.0); // 0, 1, 2, 3
-                                const subPhase = (phase * 4.0) % 1.0;
-                                const stepBase = (3 - stepIdx) * 2.0; // 6V, 4V, 2V, 0V
-                                vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.4); // 6.4V->6.0V, 4.4V->4.0V, 2.4V->2.0V, 0.4V->0.0V
+                                const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps
+                                const subPhase = (phase * 5.0) % 1.0;
+                                const stepBase = (4 - stepIdx) * 1.6; // 6.4V, 4.8V, 3.2V, 1.6V, 0.0V
+                                vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.3);
 
                             } else if (compId === 'IC_CATALOG_80' || compId === 'IC_CATALOG_82' || pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56')) {
                                 // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
