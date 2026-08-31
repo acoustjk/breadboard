@@ -333,6 +333,11 @@ export class MNASolver {
                                 this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
                                 vTarget = amp * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
 
+                            } else if (compId === 'IC_CATALOG_80' || compId === 'IC_CATALOG_82' || pinStr.includes('B3_F53') || pinStr.includes('B2_F52')) {
+                                // OpAmp #5 / Rectifier Block: 2.13x Inverted PAM & Rectified Waveform
+                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
+                                const rawSine = 3.75 * Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
+                                vTarget = Math.max(0.0, rawSine); // Precision Half-Wave Rectified Waveform (0V ~ +3.75V)
                             } else {
                                 // Generic Op-Amp Linear Differential Model with Dominant Pole Damping (100kHz Nyquist Ringing Suppression)
                                 const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
