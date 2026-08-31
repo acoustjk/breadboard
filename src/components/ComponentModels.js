@@ -78,6 +78,7 @@ export const IC_CATALOG = {
     'CD4017': { name: 'CD4017 Decade Counter', pins: 16, desc: '10진 디케이드 카운터 / 존슨 시퀀서' },
     'CD4026': { name: 'CD4026 7-Seg Counter', pins: 16, desc: '7세그먼트 디스플레이 카운터 드라이버' },
     'CD4049': { name: 'CD4049 Hex Inverting Buffer', pins: 16, desc: '6채널 CMOS 반전 버퍼 / 컨버터 (DIP-16)' },
+    'CD4069': { name: 'CD4069 Hex Inverter', pins: 14, desc: '6채널 CMOS 반전 게이트 / 인버터 (DIP-14)' },
     'CD4510': { name: 'CD4510 BCD Up/Down Counter', pins: 16, desc: 'BCD 10진 업/다운 프리셋 카운터 (DIP-16)' },
     'CD4027': { name: 'CD4027 Dual J-K Flip-Flop', pins: 16, desc: '듀얼 J-K 플립플롭 (Set/Reset 포함 DIP-16)' },
     '74LS393': { name: '74LS393 Dual 4-Bit Binary Counter', pins: 14, desc: '듀얼 4비트 이진 리플 카운터 (DIP-14)' },

@@ -426,6 +426,22 @@ export class MNASolver {
                         driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
                     });
 
+                } else if (icType === 'CD4069' || icType === '74HC04') {
+                    // CD4069 / 74HC04 (DIP-14) Hex Inverter
+                    const pairs = [
+                        { in: pins.pin1, out: pins.pin2 },
+                        { in: pins.pin3, out: pins.pin4 },
+                        { in: pins.pin5, out: pins.pin6 },
+                        { in: pins.pin9, out: pins.pin8 },
+                        { in: pins.pin11, out: pins.pin10 },
+                        { in: pins.pin13, out: pins.pin12 }
+                    ];
+                    pairs.forEach(pair => {
+                        const nIn = getNode(pair.in);
+                        const vIn = (nIn && this.lastVoltages) ? (this.lastVoltages.get(nIn) || 0) : 0;
+                        driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
+                    });
+
                 } else if (icType === 'CD4510') {
                     // CD4510 (DIP-16) BCD Up/Down Presettable Counter
                     comp.count = comp.count || 0;
