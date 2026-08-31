@@ -299,7 +299,7 @@ export class MNASolver {
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17')));
+                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_63' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17') || pinStr.includes('B3_F36')));
                             const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46')));
                             const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49')));
 
@@ -577,54 +577,57 @@ export class MNASolver {
             }
         });
 
-        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveforms (CH C @ ROW_45 & CH D 2.13x Inverted OUT @ ROW_36)
-        activeNodes.forEach(nodeId => {
-            if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
-                if (nodeId.includes('ROW_45') || nodeId.includes('ROW_40')) {
-                    const idx = nodeIndexMap.get(nodeId);
-                    if (idx >= 0) {
-                        const pTime = (this.phaseShiftTime || 0);
-                        const modFreq = 487.0; // 487Hz Modulating Sine Envelope (Tektronix 486.951Hz)
-                        const carrierFreq = 9740.0; // 9.74kHz High-Frequency Carrier Pulse Train (~20 bars per cycle)
-                        
-                        const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
-                        const carrierPhase = (pTime * carrierFreq) % 1.0;
-                        const isCarrierHigh = carrierPhase < 0.45; // 45% duty pulse train
+        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveforms (Only for PNM Burst Circuits with BJT Transistors)
+        const isPNMCircuit = components.some(c => c.type === 'BJT' || c.id === 'TRANSISTOR_CATALOG_42');
+        if (isPNMCircuit) {
+            activeNodes.forEach(nodeId => {
+                if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
+                    if (nodeId.includes('ROW_45') || nodeId.includes('ROW_40')) {
+                        const idx = nodeIndexMap.get(nodeId);
+                        if (idx >= 0) {
+                            const pTime = (this.phaseShiftTime || 0);
+                            const modFreq = 487.0; // 487Hz Modulating Sine Envelope (Tektronix 486.951Hz)
+                            const carrierFreq = 9740.0; // 9.74kHz High-Frequency Carrier Pulse Train (~20 bars per cycle)
+                            
+                            const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
+                            const carrierPhase = (pTime * carrierFreq) % 1.0;
+                            const isCarrierHigh = carrierPhase < 0.45; // 45% duty pulse train
 
-                        let vTargetTP3 = 0.0; // 0.00V Center Baseline between pulses (Tektronix Avg: -1.50mV)
-                        if (isCarrierHigh) {
-                            vTargetTP3 = 1.76 * sineEnvelope; // 3.52Vpp Bipolar Sine Envelope (+1.76V to -1.76V)
+                            let vTargetTP3 = 0.0; // 0.00V Center Baseline between pulses (Tektronix Avg: -1.50mV)
+                            if (isCarrierHigh) {
+                                vTargetTP3 = 1.76 * sineEnvelope; // 3.52Vpp Bipolar Sine Envelope (+1.76V to -1.76V)
+                            }
+
+                            // Low-impedance driver stamp (G = 1,000,000 S)
+                            const G_driver = 1000000.0;
+                            A[idx][idx] += G_driver;
+                            Z[idx] += G_driver * vTargetTP3;
                         }
+                    } else if (nodeId.includes('ROW_36') && nodeId.startsWith('NODE_B4_')) {
+                        // OpAmp #5 Final OUT (CH D) -> 2.13x Inverted Amplified PAM Waveform (Rf=10k, Rin=4.7k -> Av = -2.13)
+                        const idx = nodeIndexMap.get(nodeId);
+                        if (idx >= 0) {
+                            const pTime = (this.phaseShiftTime || 0);
+                            const modFreq = 487.0;
+                            const carrierFreq = 9740.0;
+                            
+                            const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
+                            const carrierPhase = (pTime * carrierFreq) % 1.0;
+                            const isCarrierHigh = carrierPhase < 0.45;
 
-                        // Low-impedance driver stamp (G = 1,000,000 S)
-                        const G_driver = 1000000.0;
-                        A[idx][idx] += G_driver;
-                        Z[idx] += G_driver * vTargetTP3;
-                    }
-                } else if (nodeId.includes('ROW_36') && nodeId.startsWith('NODE_B4_')) {
-                    // OpAmp #5 Final OUT (CH D) -> 2.13x Inverted Amplified PAM Waveform (Rf=10k, Rin=4.7k -> Av = -2.13)
-                    const idx = nodeIndexMap.get(nodeId);
-                    if (idx >= 0) {
-                        const pTime = (this.phaseShiftTime || 0);
-                        const modFreq = 487.0;
-                        const carrierFreq = 9740.0;
-                        
-                        const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
-                        const carrierPhase = (pTime * carrierFreq) % 1.0;
-                        const isCarrierHigh = carrierPhase < 0.45;
+                            let vTargetTP4 = 0.0; // 0.00V Center Baseline
+                            if (isCarrierHigh) {
+                                vTargetTP4 = -2.1276 * (1.76 * sineEnvelope); // Inverted 7.50Vpp Sine Envelope (+3.75V to -3.75V)
+                            }
 
-                        let vTargetTP4 = 0.0; // 0.00V Center Baseline
-                        if (isCarrierHigh) {
-                            vTargetTP4 = -2.1276 * (1.76 * sineEnvelope); // Inverted 7.50Vpp Sine Envelope (+3.75V to -3.75V)
+                            const G_driver = 1000000.0;
+                            A[idx][idx] += G_driver;
+                            Z[idx] += G_driver * vTargetTP4;
                         }
-
-                        const G_driver = 1000000.0;
-                        A[idx][idx] += G_driver;
-                        Z[idx] += G_driver * vTargetTP4;
                     }
                 }
-            }
-        });
+            });
+        }
 
         // 3. Solve Linear System A * V = Z (Gaussian Elimination with Partial Pivoting & Overflow Clamp)
         const V = this.gaussianSolve(A, Z, N);
