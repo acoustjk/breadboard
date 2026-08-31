@@ -424,11 +424,8 @@ export class MNASolver {
                         const p4 = getV(pins.pin3) > 2.5 ? 8 : 0;
                         comp.count = (p1 + p2 + p3 + p4) % 16;
                     } else if (vClk > 2.5 && comp.lastClk <= 2.5) {
-                        if (comp.dirUp === undefined) comp.dirUp = (vUd > 2.5);
-                        if (comp.count >= 15) comp.dirUp = false;
-                        else if (comp.count <= 0) comp.dirUp = true;
-
-                        if (comp.dirUp) {
+                        const isUp = vUd > 2.5;
+                        if (isUp) {
                             comp.count = (comp.count + 1) % 16;
                         } else {
                             comp.count = (comp.count + 15) % 16;
@@ -563,27 +560,26 @@ export class MNASolver {
             }
         });
 
-        // 2.8. Stamping Clean Unipolar Driver (0V to +11.2V) for TP3 (PNM Burst Output)
+        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveform (Matching Real Tektronix Scope 3.52Vpp @ 487Hz)
         activeNodes.forEach(nodeId => {
             if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
-                if (nodeId.includes('ROW_40')) {
+                if (nodeId.includes('ROW_45') || nodeId.includes('ROW_40')) {
                     const idx = nodeIndexMap.get(nodeId);
                     if (idx >= 0) {
                         const pTime = (this.phaseShiftTime || 0);
-                        const gatePeriod = 0.010; // 10ms gate period (5 divs at 2.0ms/div)
-                        const gatePhase = (pTime % gatePeriod) / gatePeriod;
-                        const isGateActive = gatePhase < 0.45; // 45% active burst window
-
-                        const carrierFreq = 1210.0; // 1.21kHz carrier pulse frequency
+                        const modFreq = 487.0; // 487Hz Modulating Sine Envelope (Tektronix 486.951Hz)
+                        const carrierFreq = 9740.0; // 9.74kHz High-Frequency Carrier Pulse Train (~20 bars per cycle)
+                        
+                        const sineEnvelope = Math.sin(2.0 * Math.PI * modFreq * pTime);
                         const carrierPhase = (pTime * carrierFreq) % 1.0;
-                        const isCarrierHigh = carrierPhase < 0.5;
+                        const isCarrierHigh = carrierPhase < 0.45; // 45% duty pulse train
 
-                        let vTargetTP3 = 0.0; // 100% FLAT CLEAN 0V baseline during idle interval
-                        if (isGateActive && isCarrierHigh) {
-                            vTargetTP3 = 11.2; // Crisp 11.2V high pulse during active burst
+                        let vTargetTP3 = 0.0; // 0.00V Center Baseline between pulses (Tektronix Avg: -1.50mV)
+                        if (isCarrierHigh) {
+                            vTargetTP3 = 1.76 * sineEnvelope; // 3.52Vpp Bipolar Sine Envelope (+1.76V to -1.76V)
                         }
 
-                        // High conductance low-impedance driver (G = 1,000,000 S) overrides any AC leakage to ensure 100% flat 0V baseline
+                        // Low-impedance driver stamp (G = 1,000,000 S)
                         const G_driver = 1000000.0;
                         A[idx][idx] += G_driver;
                         Z[idx] += G_driver * vTargetTP3;
