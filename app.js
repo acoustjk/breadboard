@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1710';
-import { MNASolver } from './src/engine/MNASolver.js?v=1710';
-import { FFT } from './src/engine/FFT.js?v=1710';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1710';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1710';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1710';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1710';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1710';
-import { AICopilot } from './src/components/AICopilot.js?v=1710';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1710';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1720';
+import { MNASolver } from './src/engine/MNASolver.js?v=1720';
+import { FFT } from './src/engine/FFT.js?v=1720';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1720';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1720';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1720';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1720';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1720';
+import { AICopilot } from './src/components/AICopilot.js?v=1720';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1720';
 
 class AppController {
     constructor() {
@@ -1472,7 +1472,9 @@ class AppController {
                     const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
                     if (matchedOption) selectEl.value = matchedOption.value;
                 }
-                this.oscilloscopeCanvas.render();
+                const neededSteps = Math.min(20000, Math.max(1200, Math.round((10 * secVal) / this.dt)));
+                this.warmupSimulationBuffer(neededSteps);
+                this.renderAll();
             };
 
             if (selectEl) {
@@ -1502,11 +1504,15 @@ class AppController {
         const bindChannelTimeDiv = (selectId, propName) => {
             const el = document.getElementById(selectId);
             if (el) {
-                el.addEventListener('change', (e) => {
+                const handler = (e) => {
                     const secVal = parseFloat(e.target.value);
                     this.oscilloscopeCanvas[propName] = secVal;
-                    this.oscilloscopeCanvas.render();
-                });
+                    const neededSteps = Math.min(20000, Math.max(1200, Math.round((10 * secVal) / this.dt)));
+                    this.warmupSimulationBuffer(neededSteps);
+                    this.renderAll();
+                };
+                el.addEventListener('change', handler);
+                el.addEventListener('input', handler);
             }
         };
 
@@ -1918,7 +1924,21 @@ class AppController {
     runLoop() {
         if (!this.isRunning) return;
 
-        const stepsPerFrame = 5;
+        const maxTimeDiv = Math.max(
+            this.oscilloscopeCanvas.timePerDivChA || 0.0002,
+            this.oscilloscopeCanvas.timePerDivChB || 0.0002,
+            this.oscilloscopeCanvas.timePerDivChC || 0.0002,
+            this.oscilloscopeCanvas.timePerDivChD || 0.0002,
+            this.oscilloscopeCanvas.timePerDiv || 0.0002
+        );
+        let stepsPerFrame = 10;
+        if (maxTimeDiv >= 0.010) {
+            stepsPerFrame = 80;
+        } else if (maxTimeDiv >= 0.002) {
+            stepsPerFrame = 40;
+        } else if (maxTimeDiv >= 0.0005) {
+            stepsPerFrame = 20;
+        }
         let vA = 0;
         let vB = 0;
         let vC = 0;
