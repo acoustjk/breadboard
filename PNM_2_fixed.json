@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "savedAt": "2026-08-31T02:05:34.534Z",
-  "title": "KCA 통신설비기능장 1번 PNM 버스트 펄스 회로 (전원 완비)",
+  "title": "KCA 통신설비기능장 1번 PNM 버스트 회로 (1N4148 스위칭 다이오드 탑재)",
   "power": {
     "voltageVa": 9,
     "voltageVb": 0,
@@ -608,6 +608,14 @@
       "pinA": "B4_A37",
       "pinB": "B3_VCC_R_37",
       "color": "#ef4444"
+    },
+    {
+      "id": "DIODE_1N4148_1",
+      "type": "DIODE",
+      "pinA": "B2_I48",
+      "pinB": "B3_A48",
+      "diodeModel": "1N4148",
+      "isConfigured": true
     }
   ]
 }
