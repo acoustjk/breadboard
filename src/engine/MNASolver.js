@@ -481,6 +481,28 @@ export class MNASolver {
                         driveDigitalPin(qPin, (comp.count2 & (1 << idx)) !== 0, 100.0);
                     });
 
+                } else if (icType === 'XR2206' || icType === 'XR-2206') {
+                    // XR-2206 (DIP-16) Monolithic Function Generator IC
+                    const pot = components.find(c => c.type === 'POT') || { ratio: 0.5 };
+                    const pRatio = pot.ratio !== undefined ? pot.ratio : 0.5;
+                    const freqXR = 100.0 + pRatio * 4900.0; // 100Hz ~ 5kHz dynamic frequency range
+
+                    this.xr2206Time = (this.xr2206Time || 0) + dt;
+                    const phase = (this.xr2206Time * freqXR) % 1.0;
+
+                    // Pin 2 (STO): High-precision Sine Wave Output (±3.0V / 6.0Vpp)
+                    const vSine = 3.0 * Math.sin(2.0 * Math.PI * phase);
+                    const nPin2 = getNode(pins.pin2);
+                    if (nPin2 && nodeIndexMap.get(nPin2) !== undefined) {
+                        const iP2 = nodeIndexMap.get(nPin2);
+                        A[iP2][iP2] += 1000.0;
+                        Z[iP2] += 1000.0 * vSine;
+                    }
+
+                    // Pin 11 (SQO): Open-Collector Crisp Square Wave (0V to +12V)
+                    const isHigh = phase < 0.5;
+                    driveDigitalPin(pins.pin11, isHigh, 200.0);
+
                 } else if (icType === 'CD4510') {
                     // CD4510 (DIP-16) BCD Up/Down Presettable Counter
                     comp.count = comp.count || 0;
