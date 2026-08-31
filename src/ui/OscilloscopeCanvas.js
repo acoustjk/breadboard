@@ -55,7 +55,13 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        // Horizontal Timebase Settings (Default 0.2ms / div for 100% clear 2~3 cycle Sine Waves)
+        // Independent Per-Channel Horizontal Timebase Settings (Default 0.2ms / div)
+        this.timePerDivChA = 0.0002;
+        this.timePerDivChB = 0.0002;
+        this.timePerDivChC = 0.0002;
+        this.timePerDivChD = 0.0002;
+
+        // Horizontal Timebase Settings (Default 0.2ms / div)
         this.timePerDiv = 0.0002;
         this.posOffsetX = 0;
 
@@ -188,10 +194,10 @@ export class OscilloscopeCanvas {
         this.calculateStats();
 
         // 1. Render on 4 Independent Screen Canvases (TP1~TP4) with 10 DIV x 8 DIV KCA Exam Sheet Grid
-        if (this.canvasA) this.renderSingleScreen(this.canvasA, this.ringA, '#facc15', this.voltPerDivChA, this.posOffsetYChA, 'TP 1 / CH A', this.statsA);
-        if (this.canvasB) this.renderSingleScreen(this.canvasB, this.ringB, '#e879f9', this.voltPerDivChB, this.posOffsetYChB, 'TP 2 / CH B', this.statsB);
-        if (this.canvasC) this.renderSingleScreen(this.canvasC, this.ringC, '#38bdf8', this.voltPerDivChC, this.posOffsetYChC, 'TP 3 / CH C', this.statsC);
-        if (this.canvasD) this.renderSingleScreen(this.canvasD, this.ringD, '#22c55e', this.voltPerDivChD, this.posOffsetYChD, 'TP 4 / CH D', this.statsD);
+        if (this.canvasA) this.renderSingleScreen(this.canvasA, this.ringA, '#facc15', this.voltPerDivChA, this.posOffsetYChA, 'TP 1 / CH A', this.statsA, this.timePerDivChA);
+        if (this.canvasB) this.renderSingleScreen(this.canvasB, this.ringB, '#e879f9', this.voltPerDivChB, this.posOffsetYChB, 'TP 2 / CH B', this.statsB, this.timePerDivChB);
+        if (this.canvasC) this.renderSingleScreen(this.canvasC, this.ringC, '#38bdf8', this.voltPerDivChC, this.posOffsetYChC, 'TP 3 / CH C', this.statsC, this.timePerDivChC);
+        if (this.canvasD) this.renderSingleScreen(this.canvasD, this.ringD, '#22c55e', this.voltPerDivChD, this.posOffsetYChD, 'TP 4 / CH D', this.statsD, this.timePerDivChD);
 
         // 2. Also render on main modal canvas if available
         if (this.canvas && this.ctx) {
@@ -199,7 +205,7 @@ export class OscilloscopeCanvas {
         }
     }
 
-    renderSingleScreen(canvas, ringBuffer, color, voltPerDiv, posOffsetY, channelLabel, stats) {
+    renderSingleScreen(canvas, ringBuffer, color, voltPerDiv, posOffsetY, channelLabel, stats, timePerDivOverride) {
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const width = canvas.width;
@@ -260,7 +266,8 @@ export class OscilloscopeCanvas {
             ctx.shadowColor = color;
             ctx.shadowBlur = 5;
 
-            const totalTimeScreen = 10 * (this.timePerDiv || 0.0002); // 10 DIVs total across screen
+            const channelTimeDiv = timePerDivOverride || this.timePerDiv || 0.0002;
+            const totalTimeScreen = 10 * channelTimeDiv; // 10 DIVs total across screen
             const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
             const vDivScale = scaleY / (voltPerDiv || 1.0);
             const traceZeroY = zeroY - posOffsetY;

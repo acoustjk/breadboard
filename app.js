@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1680';
-import { MNASolver } from './src/engine/MNASolver.js?v=1680';
-import { FFT } from './src/engine/FFT.js?v=1680';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1680';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1680';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1680';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1680';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1680';
-import { AICopilot } from './src/components/AICopilot.js?v=1680';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1680';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1690';
+import { MNASolver } from './src/engine/MNASolver.js?v=1690';
+import { FFT } from './src/engine/FFT.js?v=1690';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1690';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1690';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1690';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1690';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1690';
+import { AICopilot } from './src/components/AICopilot.js?v=1690';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1690';
 
 class AppController {
     constructor() {
@@ -1452,6 +1452,19 @@ class AppController {
 
             const updateVal = (secVal) => {
                 this.oscilloscopeCanvas[propName] = secVal;
+                this.oscilloscopeCanvas.timePerDivChA = secVal;
+                this.oscilloscopeCanvas.timePerDivChB = secVal;
+                this.oscilloscopeCanvas.timePerDivChC = secVal;
+                this.oscilloscopeCanvas.timePerDivChD = secVal;
+
+                ['ChA', 'ChB', 'ChC', 'ChD'].forEach(chKey => {
+                    const el = document.getElementById(`timeDiv${chKey}`);
+                    if (el) {
+                        const matched = Array.from(el.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
+                        if (matched) el.value = matched.value;
+                    }
+                });
+
                 const msVal = secVal * 1000.0;
                 if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
                 if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(50.0, msVal));
@@ -1486,6 +1499,17 @@ class AppController {
             }
         };
 
+        const bindChannelTimeDiv = (selectId, propName) => {
+            const el = document.getElementById(selectId);
+            if (el) {
+                el.addEventListener('change', (e) => {
+                    const secVal = parseFloat(e.target.value);
+                    this.oscilloscopeCanvas[propName] = secVal;
+                    this.oscilloscopeCanvas.render();
+                });
+            }
+        };
+
         const bindScopeCheckbox = (id, propName) => {
             const el = document.getElementById(id);
             if (el) {
@@ -1500,6 +1524,11 @@ class AppController {
         bindVoltDivSync('voltDivChB', 'numVoltDivChB', 'voltPerDivChB');
         bindVoltDivSync('voltDivChC', 'numVoltDivChC', 'voltPerDivChC');
         bindVoltDivSync('voltDivChD', 'numVoltDivChD', 'voltPerDivChD');
+
+        bindChannelTimeDiv('timeDivChA', 'timePerDivChA');
+        bindChannelTimeDiv('timeDivChB', 'timePerDivChB');
+        bindChannelTimeDiv('timeDivChC', 'timePerDivChC');
+        bindChannelTimeDiv('timeDivChD', 'timePerDivChD');
 
         bindPosYSync('posYChA', 'numPosYChA', 'txtValChA', 'posOffsetYChA');
         bindPosYSync('posYChB', 'numPosYChB', 'txtValChB', 'posOffsetYChB');
