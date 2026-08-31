@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1610)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1620)</span>
         </div>
 
         <div class="header-controls">
@@ -229,7 +229,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 / XR2206 배포 v=1610!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 / XR2206 배포 v=1620!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 480px; border-bottom: 2px solid #1e293b;">
@@ -308,16 +308,16 @@
                     </div>
                 </div>
 
-                <!-- 2x2 Grid Layout (2 Rows x 2 Columns) for 4 Channels -->
-                <div class="scope-screens-grid-2x2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                <!-- Compact 2x2 Grid Layout (Centered, Max-Width 440px, Zero Stretched Distortion) -->
+                <div class="scope-screens-grid-2x2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 460px; margin: 0 auto;">
 
                     <!-- Row 1, Col 1: TP 1 / CH A (Yellow) -->
-                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #facc15; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center;">
+                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #facc15; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center; width: 100%;">
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 2px;">
                             <span style="color: #facc15; font-weight: bold; font-size: 10px;">📍 TP 1 / CH A</span>
                             <span id="telStatsChA" style="color: #facc15; font-family: monospace; font-size: 10px; font-weight: bold;">-- Vpp</span>
                         </div>
-                        <canvas id="scopeCanvasA" width="220" height="176" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                        <canvas id="scopeCanvasA" width="200" height="160" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 200px; height: 160px; display: block; max-width: 100%; height: auto; aspect-ratio: 10 / 8;"></canvas>
                         <div style="width: 100%; display: flex; gap: 4px; justify-content: space-between; align-items: center; margin-top: 3px; font-size: 10px; background: #1e293b; padding: 1px 4px; border-radius: 4px;">
                             <div style="display: flex; gap: 2px; align-items: center;">
                                 <label style="color: #94a3b8; font-size: 9px;">V/Div:</label>
@@ -340,12 +340,12 @@
                     </div>
 
                     <!-- Row 1, Col 2: TP 2 / CH B (Magenta) -->
-                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #e879f9; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center;">
+                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #e879f9; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center; width: 100%;">
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-bottom: 1px solid rgba(232, 121, 249, 0.3); padding-bottom: 2px;">
                             <span style="color: #e879f9; font-weight: bold; font-size: 10px;">📍 TP 2 / CH B</span>
                             <span id="telStatsChB" style="color: #e879f9; font-family: monospace; font-size: 10px; font-weight: bold;">-- Vpp</span>
                         </div>
-                        <canvas id="scopeCanvasB" width="220" height="176" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                        <canvas id="scopeCanvasB" width="200" height="160" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 200px; height: 160px; display: block; max-width: 100%; height: auto; aspect-ratio: 10 / 8;"></canvas>
                         <div style="width: 100%; display: flex; gap: 4px; justify-content: space-between; align-items: center; margin-top: 3px; font-size: 10px; background: #1e293b; padding: 1px 4px; border-radius: 4px;">
                             <div style="display: flex; gap: 2px; align-items: center;">
                                 <label style="color: #94a3b8; font-size: 9px;">V/Div:</label>
@@ -368,12 +368,12 @@
                     </div>
 
                     <!-- Row 2, Col 1: TP 3 / CH C (Cyan) -->
-                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #38bdf8; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center;">
+                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #38bdf8; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center; width: 100%;">
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 2px;">
                             <span style="color: #38bdf8; font-weight: bold; font-size: 10px;">📍 TP 3 / CH C</span>
                             <span id="telStatsChC" style="color: #38bdf8; font-family: monospace; font-size: 10px; font-weight: bold;">-- Vpp</span>
                         </div>
-                        <canvas id="scopeCanvasC" width="220" height="176" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                        <canvas id="scopeCanvasC" width="200" height="160" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 200px; height: 160px; display: block; max-width: 100%; height: auto; aspect-ratio: 10 / 8;"></canvas>
                         <div style="width: 100%; display: flex; gap: 4px; justify-content: space-between; align-items: center; margin-top: 3px; font-size: 10px; background: #1e293b; padding: 1px 4px; border-radius: 4px;">
                             <div style="display: flex; gap: 2px; align-items: center;">
                                 <label style="color: #94a3b8; font-size: 9px;">V/Div:</label>
@@ -396,12 +396,12 @@
                     </div>
 
                     <!-- Row 2, Col 2: TP 4 / CH D (Green) -->
-                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #22c55e; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center;">
+                    <div class="scope-screen-card" style="background: #0f172a; border: 1.5px solid #22c55e; border-radius: 6px; padding: 4px; display: flex; flex-direction: column; align-items: center; width: 100%;">
                         <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; border-bottom: 1px solid rgba(34, 197, 94, 0.3); padding-bottom: 2px;">
                             <span style="color: #22c55e; font-weight: bold; font-size: 10px;">📍 TP 4 / CH D</span>
                             <span id="telStatsChD" style="color: #22c55e; font-family: monospace; font-size: 10px; font-weight: bold;">-- Vpp</span>
                         </div>
-                        <canvas id="scopeCanvasD" width="220" height="176" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                        <canvas id="scopeCanvasD" width="200" height="160" style="border: 1px solid #334155; border-radius: 4px; background: #060a12; width: 200px; height: 160px; display: block; max-width: 100%; height: auto; aspect-ratio: 10 / 8;"></canvas>
                         <div style="width: 100%; display: flex; gap: 4px; justify-content: space-between; align-items: center; margin-top: 3px; font-size: 10px; background: #1e293b; padding: 1px 4px; border-radius: 4px;">
                             <div style="display: flex; gap: 2px; align-items: center;">
                                 <label style="color: #94a3b8; font-size: 9px;">V/Div:</label>
@@ -687,6 +687,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1610"></script>
+    <script type="module" src="./app.js?v=1620"></script>
 </body>
 </html>
