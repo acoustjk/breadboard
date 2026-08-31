@@ -1,26 +1,37 @@
 export class RingBuffer {
-    constructor(capacity = 5000) {
+    constructor(capacity = 200000) {
         this.capacity = capacity;
         this.data = new Float64Array(capacity);
         this.head = 0;
-        this.length = capacity; // Pre-filled to full capacity to prevent initial waveform stretching / zoom lag
+        this.count = 0;
+        this.length = capacity;
     }
 
     reset() {
         this.data.fill(0);
         this.head = 0;
+        this.count = 0;
         this.length = this.capacity;
     }
 
     push(val) {
         this.data[this.head] = val;
         this.head = (this.head + 1) % this.capacity;
+        if (this.count < this.capacity) this.count++;
         this.length = this.capacity;
     }
 
     get(i) {
         if (i < 0 || i >= this.capacity) return 0;
         let idx = (this.head - this.capacity + i) % this.capacity;
+        if (idx < 0) idx += this.capacity;
+        return this.data[idx];
+    }
+
+    // Get sample n steps back from the newest sample (0 = newest, 1 = 2nd newest...)
+    getRecent(n) {
+        if (n < 0 || n >= this.capacity) return 0;
+        let idx = (this.head - 1 - n) % this.capacity;
         if (idx < 0) idx += this.capacity;
         return this.data[idx];
     }
@@ -142,46 +153,41 @@ export class OscilloscopeCanvas {
         this.statsD = this.computeStatsForRing(this.ringD);
 
         // Synchronize bufferA array for FFT spectrum module
-        const len = Math.min(512, this.ringA.length);
-        this.bufferA = [];
-        for (let i = this.ringA.length - len; i < this.ringA.length; i++) {
-            this.bufferA.push(this.ringA.get(i));
+        const len = Math.min(512, this.ringA.count);
+        this.bufferA = new Array(len);
+        for (let i = 0; i < len; i++) {
+            this.bufferA[i] = this.ringA.getRecent(len - 1 - i);
         }
     }
 
-    computeStatsForRing(ring) {
-        if (!ring || ring.length === 0) return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+    computeStatsForRing(ringBuffer) {
+        if (!ringBuffer || ringBuffer.count === 0) {
+            return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
+        }
 
+        const inspectLen = Math.min(ringBuffer.count, 2000);
         let vMin = Infinity;
         let vMax = -Infinity;
         let sumSq = 0;
-        const total = ring.length;
 
-        // Inspect last 2000 samples for real-time telemetry readout
-        const inspectLen = Math.min(total, 2000);
-        const startIdx = total - inspectLen;
-        let count = 0;
-
-        for (let i = startIdx; i < total; i++) {
-            let v = ring.get(i);
-            if (isNaN(v) || !isFinite(v)) v = 0;
-            v = Math.max(-25.0, Math.min(25.0, v));
+        for (let i = 0; i < inspectLen; i++) {
+            const v = ringBuffer.getRecent(i);
             if (v < vMin) vMin = v;
             if (v > vMax) vMax = v;
             sumSq += v * v;
-            count++;
         }
 
         if (vMin === Infinity) vMin = 0;
         if (vMax === -Infinity) vMax = 0;
-        const vpp = Math.max(0, Math.min(50.0, vMax - vMin));
-        const vrms = count > 0 ? Math.sqrt(sumSq / count) : 0;
+
+        const vpp = Math.max(0, vMax - vMin);
+        const vrms = Math.sqrt(sumSq / inspectLen);
 
         let crossings = 0;
         const mid = (vMin + vMax) / 2;
-        let prevVal = ring.get(startIdx);
-        for (let i = startIdx + 1; i < total; i++) {
-            const currVal = ring.get(i);
+        let prevVal = ringBuffer.getRecent(inspectLen - 1);
+        for (let i = inspectLen - 2; i >= 0; i--) {
+            const currVal = ringBuffer.getRecent(i);
             if ((prevVal < mid && currVal >= mid) || (prevVal >= mid && currVal < mid)) {
                 crossings++;
             }
@@ -261,10 +267,10 @@ export class OscilloscopeCanvas {
         ctx.strokeRect(0, 0, width, height);
         ctx.restore();
 
-        // 4. Draw Waveform Trace
+        // 4. Draw Waveform Trace using getRecent for instant Time/Div zoom
         const zeroY = height * 0.5;
         const scaleY = divH;
-        if (ringBuffer && ringBuffer.length > 0) {
+        if (ringBuffer && ringBuffer.count > 0) {
             ctx.save();
             ctx.strokeStyle = color;
             ctx.lineWidth = 2.2;
@@ -277,39 +283,23 @@ export class OscilloscopeCanvas {
             const vDivScale = scaleY / (voltPerDiv || 1.0);
             const traceZeroY = zeroY - posOffsetY;
 
-            const endIdx = Math.min(ringBuffer.length, ringBuffer.length - Math.round(this.posOffsetX));
-            const startIdx = Math.max(0, endIdx - samplesOnScreen);
-            const numSamples = endIdx - startIdx;
-
-            if (numSamples > 0) {
-                ctx.beginPath();
-                if (numSamples > width) {
-                    const samplesPerPixel = numSamples / width;
-                    let isFirst = true;
-                    for (let px = 0; px < width; px++) {
-                        const sIdx = Math.floor(startIdx + px * samplesPerPixel);
-                        let v = ringBuffer.get(sIdx);
-                        if (isNaN(v) || !isFinite(v)) v = 0;
-                        v = Math.max(-25.0, Math.min(25.0, v));
-                        const y = traceZeroY - (v * vDivScale);
-                        if (isFirst) { ctx.moveTo(px, y); isFirst = false; }
-                        else { ctx.lineTo(px, y); }
-                    }
+            ctx.beginPath();
+            let isFirst = true;
+            for (let px = 0; px < width; px++) {
+                // px=0 is left (oldest sample on screen), px=width-1 is right (newest sample)
+                const sampleOffset = Math.round((width - 1 - px) / (width - 1) * (samplesOnScreen - 1));
+                let v = ringBuffer.getRecent(sampleOffset);
+                if (isNaN(v) || !isFinite(v)) v = 0;
+                v = Math.max(-25.0, Math.min(25.0, v));
+                const y = traceZeroY - (v * vDivScale);
+                if (isFirst) {
+                    ctx.moveTo(px, y);
+                    isFirst = false;
                 } else {
-                    const stepX = width / (samplesOnScreen - 1);
-                    let isFirst = true;
-                    for (let i = startIdx; i < endIdx; i++) {
-                        const x = (i - startIdx) * stepX;
-                        let v = ringBuffer.get(i);
-                        if (isNaN(v) || !isFinite(v)) v = 0;
-                        v = Math.max(-25.0, Math.min(25.0, v));
-                        const y = traceZeroY - (v * vDivScale);
-                        if (isFirst) { ctx.moveTo(x, y); isFirst = false; }
-                        else { ctx.lineTo(x, y); }
-                    }
+                    ctx.lineTo(px, y);
                 }
-                ctx.stroke();
             }
+            ctx.stroke();
             ctx.restore();
         }
 
