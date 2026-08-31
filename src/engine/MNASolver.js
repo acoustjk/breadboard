@@ -488,16 +488,19 @@ export class MNASolver {
                     });
 
                 } else if (icType === 'XR2206' || icType === 'XR-2206') {
-                    // XR-2206 (DIP-16) Monolithic Function Generator IC
-                    const pot = components.find(c => c.type === 'POT') || { ratio: 0.5 };
-                    const pRatio = pot.ratio !== undefined ? pot.ratio : 0.5;
-                    const freqXR = 100.0 + pRatio * 4900.0; // 100Hz ~ 5kHz dynamic frequency range
+                    // XR-2206 (DIP-16) Monolithic Function Generator / FSK Modulator IC
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vFskKey = getV(pins.pin9); // Pin 9 FSK Keying Input
+                    const isFskHigh = vFskKey > 2.5;
 
-                    this.xr2206Time = (this.xr2206Time || 0) + dt;
-                    const phase = (this.xr2206Time * freqXR) % 1.0;
+                    // Dynamic FSK Carrier Frequency Shift:
+                    // FSK Data HIGH ('1') -> 2400Hz (High Frequency)
+                    // FSK Data LOW  ('0') -> 1200Hz (Low Frequency)
+                    const instantFreq = isFskHigh ? 2400.0 : 1200.0;
+                    this.fskPhase = (this.fskPhase || 0) + instantFreq * dt;
 
-                    // Pin 2 (STO): High-precision Sine Wave Output (±3.0V / 6.0Vpp)
-                    const vSine = 3.0 * Math.sin(2.0 * Math.PI * phase);
+                    // Pin 2 (STO): FSK Frequency Shift Keying Sine Wave Output (±3.0V / 6.0Vpp)
+                    const vSine = 3.0 * Math.sin(2.0 * Math.PI * this.fskPhase);
                     const nPin2 = getNode(pins.pin2);
                     if (nPin2 && nodeIndexMap.get(nPin2) !== undefined) {
                         const iP2 = nodeIndexMap.get(nPin2);
@@ -505,8 +508,9 @@ export class MNASolver {
                         Z[iP2] += 1000.0 * vSine;
                     }
 
-                    // Pin 11 (SQO): Open-Collector Crisp Square Wave (0V to +12V)
-                    const isHigh = phase < 0.5;
+                    // Pin 11 (SQO): Open-Collector Crisp FSK Square Wave (0V to +12V)
+                    const phaseFrac = this.fskPhase % 1.0;
+                    const isHigh = phaseFrac < 0.5;
                     driveDigitalPin(pins.pin11, isHigh, 200.0);
 
                 } else if (icType === 'CD4510') {
