@@ -18,6 +18,15 @@ export class MNASolver {
             const nB = this.grid.getNodeId(c.pinB);
             if (nA && nA !== '0') nodeSet.add(nA);
             if (nB && nB !== '0') nodeSet.add(nB);
+            if (c.type === 'IC') {
+                const dipPins = this.getDIPPins(c);
+                if (dipPins) {
+                    Object.values(dipPins).forEach(pK => {
+                        const n = this.grid.getNodeId(pK);
+                        if (n && n !== '0') nodeSet.add(n);
+                    });
+                }
+            }
         });
 
         const activeNodes = Array.from(nodeSet).sort();
