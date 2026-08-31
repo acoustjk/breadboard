@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1690';
-import { MNASolver } from './src/engine/MNASolver.js?v=1690';
-import { FFT } from './src/engine/FFT.js?v=1690';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1690';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1690';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1690';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1690';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1690';
-import { AICopilot } from './src/components/AICopilot.js?v=1690';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1690';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1700';
+import { MNASolver } from './src/engine/MNASolver.js?v=1700';
+import { FFT } from './src/engine/FFT.js?v=1700';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1700';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1700';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1700';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1700';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1700';
+import { AICopilot } from './src/components/AICopilot.js?v=1700';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1700';
 
 class AppController {
     constructor() {
@@ -1591,6 +1591,11 @@ class AppController {
                 document.getElementById('numTimeDivMs').value = '0.20';
                 document.getElementById('posXTime').value = '0';
                 document.getElementById('numPosXTime').value = '0';
+
+                ['ChA', 'ChB', 'ChC', 'ChD'].forEach(chKey => {
+                    const el = document.getElementById(`timeDiv${chKey}`);
+                    if (el) el.value = '0.0002';
+                });
 
                 this.oscilloscopeCanvas.resetControls();
             });

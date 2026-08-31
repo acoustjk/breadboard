@@ -109,6 +109,11 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
+        this.timePerDivChA = 0.0002;
+        this.timePerDivChB = 0.0002;
+        this.timePerDivChC = 0.0002;
+        this.timePerDivChD = 0.0002;
+
         this.timePerDiv = 0.0002;
         this.posOffsetX = 0;
         this.isFrozen = false;
