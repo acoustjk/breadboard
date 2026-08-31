@@ -458,9 +458,12 @@ export class MNASolver {
                     // Counter 1
                     comp.count1 = comp.count1 || 0; comp.lastClk1 = comp.lastClk1 || 0; comp.lastEnable1 = comp.lastEnable1 || 0;
                     const vEn1 = getV(pins.pin1); const vClk1 = getV(pins.pin2); const vRst1 = getV(pins.pin7);
+                    const isRisingClk1 = (vEn1 > 2.5 && vClk1 > 2.5 && comp.lastClk1 <= 2.5);
+                    const isFallingEnable1 = (vClk1 > 2.5 && vEn1 <= 2.5 && comp.lastEnable1 > 2.5);
+
                     if (vRst1 > 2.5) {
                         comp.count1 = 0;
-                    } else if ((vEn1 > 2.5 && vClk1 > 2.5 && comp.lastClk1 <= 2.5) || (vClk1 <= 2.5 && vEn1 <= 2.5 && comp.lastEnable1 > 2.5)) {
+                    } else if (isRisingClk1 || isFallingEnable1) {
                         comp.count1 = (comp.count1 + 1) % 10;
                     }
                     comp.lastClk1 = vClk1; comp.lastEnable1 = vEn1;
@@ -471,9 +474,12 @@ export class MNASolver {
                     // Counter 2
                     comp.count2 = comp.count2 || 0; comp.lastClk2 = comp.lastClk2 || 0; comp.lastEnable2 = comp.lastEnable2 || 0;
                     const vEn2 = getV(pins.pin9); const vClk2 = getV(pins.pin10); const vRst2 = getV(pins.pin15);
+                    const isRisingClk2 = (vEn2 > 2.5 && vClk2 > 2.5 && comp.lastClk2 <= 2.5);
+                    const isFallingEnable2 = (vClk2 > 2.5 && vEn2 <= 2.5 && comp.lastEnable2 > 2.5);
+
                     if (vRst2 > 2.5) {
                         comp.count2 = 0;
-                    } else if ((vEn2 > 2.5 && vClk2 > 2.5 && comp.lastClk2 <= 2.5) || (vClk2 <= 2.5 && vEn2 <= 2.5 && comp.lastEnable2 > 2.5)) {
+                    } else if (isRisingClk2 || isFallingEnable2) {
                         comp.count2 = (comp.count2 + 1) % 10;
                     }
                     comp.lastClk2 = vClk2; comp.lastEnable2 = vEn2;
