@@ -4,16 +4,16 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1550';
-import { MNASolver } from './src/engine/MNASolver.js?v=1550';
-import { FFT } from './src/engine/FFT.js?v=1550';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1550';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1550';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1550';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1550';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1550';
-import { AICopilot } from './src/components/AICopilot.js?v=1550';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1550';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1600';
+import { MNASolver } from './src/engine/MNASolver.js?v=1600';
+import { FFT } from './src/engine/FFT.js?v=1600';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1600';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1600';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1600';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1600';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1600';
+import { AICopilot } from './src/components/AICopilot.js?v=1600';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1600';
 
 class AppController {
     constructor() {
@@ -25,9 +25,13 @@ class AppController {
             document.getElementById('breadboardCanvas'),
             this.grid
         );
-        this.oscilloscopeCanvas = new OscilloscopeCanvas(
-            document.getElementById('oscilloscopeCanvas')
-        );
+        this.oscilloscopeCanvas = new OscilloscopeCanvas({
+            mainCanvas: document.getElementById('oscilloscopeCanvas'),
+            canvasA: document.getElementById('scopeCanvasA'),
+            canvasB: document.getElementById('scopeCanvasB'),
+            canvasC: document.getElementById('scopeCanvasC'),
+            canvasD: document.getElementById('scopeCanvasD')
+        });
         this.continuityTester = new ContinuityTester(this.grid);
 
         this.isRunning = false;
@@ -475,20 +479,24 @@ class AppController {
         const updateCh = (chKey, probePin, stats) => {
             const telVpp = document.getElementById(`telVpp${chKey}`);
             const telFreq = document.getElementById(`telFreq${chKey}`);
+            const telStatsCard = document.getElementById(`telStats${chKey}`);
             const cardEl = telVpp ? telVpp.closest('.card') : null;
+
             if (!probePin) {
                 if (telVpp) telVpp.innerText = 'Vpp: -- V (미연결)';
                 if (telFreq) telFreq.innerText = 'Freq: -- Hz';
+                if (telStatsCard) telStatsCard.innerText = '-- Vpp (미연결)';
                 if (cardEl) cardEl.style.opacity = '0.45';
                 return;
             }
             if (cardEl) cardEl.style.opacity = '1.0';
-            if (telVpp && telFreq && stats) {
+            if (stats) {
                 let vpp = (isNaN(stats.vpp) || !isFinite(stats.vpp)) ? 0 : stats.vpp;
                 let freq = stats.freq || 0;
-                let fStr = freq >= 1000 ? `${(freq / 1000).toFixed(1)}kHz` : (freq > 0 ? `${freq.toFixed(0)}Hz` : '-- Hz');
-                telVpp.innerText = `Vpp: ${vpp.toFixed(2)}V`;
-                telFreq.innerText = `Freq: ${fStr}`;
+                let fStr = freq >= 1000 ? `${(freq / 1000).toFixed(1)}kHz` : (freq > 0 ? `${freq.toFixed(0)}Hz` : '');
+                if (telVpp) telVpp.innerText = `Vpp: ${vpp.toFixed(2)}V`;
+                if (telFreq) telFreq.innerText = `Freq: ${fStr || '-- Hz'}`;
+                if (telStatsCard) telStatsCard.innerText = `${vpp.toFixed(2)}Vpp${fStr ? ' ' + fStr : ''}`;
             }
         };
         updateCh('ChA', this.breadboardCanvas.probeAPin, this.oscilloscopeCanvas.statsA);

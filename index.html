@@ -16,7 +16,7 @@
         <div class="logo-group">
             <span class="logo-icon">⚡</span>
             <h1 class="logo-title">Hybrid Circuit Simulator</h1>
-            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1550)</span>
+            <span class="logo-badge">Wanjie BB-4T7D Workbench (v=1600)</span>
         </div>
 
         <div class="header-controls">
@@ -231,7 +231,7 @@
                 <button id="btnZoomReset" class="btn btn-primary">🎯 화면 맞춤 / 맨 위 전원 보기</button>
                 <button id="btnToggleValueBadges" class="btn btn-primary">🏷️ 소자 수치(Value) 뱃지: ON</button>
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary" style="background: #8b5cf6;">🔄 소자 극성 뒤집기 (단축키 R)</button>
-                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1550!</span>
+                <span style="font-size: 11px; color: var(--accent-green); margin-left: 6px; align-self: center;">⚡ CD4049 / CD4510 / CD4027 DIP-16 저장/불러오기 복원 패치 배포 v=1600!</span>
             </div>
 
             <div class="canvas-wrapper scrollable-wrapper" style="max-height: 820px;">
@@ -260,6 +260,172 @@
         </aside>
 
     </main>
+
+    <!-- 📊 Permanent KCA Exam Sheet 4-Screen 10 DIV x 8 DIV Oscilloscope Panel (Always Visible) -->
+    <section class="card oscilloscope-panel" style="margin: 16px; padding: 16px; background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">📊</span>
+                <h2 style="margin: 0; color: #facc15; font-size: 16px; font-weight: bold;">
+                    KCA 자격검정 실기시험 전용 4-채널 (4CH) 독립 오실로스코프
+                </h2>
+                <span style="font-size: 11px; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; padding: 2px 8px; border-radius: 4px; font-weight: bold;">
+                    📐 답안지 격자 규격 10:8 비율 (10 DIV × 8 DIV)
+                </span>
+            </div>
+
+            <!-- Global Timebase & Control Toolbar -->
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="btnToggleScopeFreeze" class="btn btn-primary" style="background: #ef4444; font-weight: bold; padding: 6px 14px; font-size: 12px;">⏸️ STOP (화면 멈춤)</button>
+
+                <div style="display: flex; gap: 6px; align-items: center; background: #1e293b; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155;">
+                    <span style="color: #38bdf8; font-weight: bold; font-size: 11px;">🔍 Time/Div:</span>
+                    <select id="timeDivSelect" class="select-input-sm" style="padding: 3px; width: 85px; font-size: 11px;">
+                        <option value="0.00001">0.01 ms</option>
+                        <option value="0.00002">0.02 ms</option>
+                        <option value="0.00005">0.05 ms</option>
+                        <option value="0.0001">0.1 ms</option>
+                        <option value="0.0002" selected>0.2 ms</option>
+                        <option value="0.0005">0.5 ms</option>
+                        <option value="0.001">1.0 ms</option>
+                        <option value="0.002">2.0 ms</option>
+                        <option value="0.005">5.0 ms</option>
+                        <option value="0.010">10.0 ms</option>
+                        <option value="0.020">20.0 ms</option>
+                        <option value="0.050">50.0 ms</option>
+                    </select>
+                    <input type="range" id="rangeTimeDivMs" min="0.01" max="50.0" step="0.01" value="0.2" style="width: 100px; vertical-align: middle;">
+                    <input type="number" id="numTimeDivMs" value="0.2" step="0.01" min="0.001" max="100" style="width: 52px; padding: 2px 4px; font-size: 11px; background: #0f172a; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;">
+                    <span style="color: #94a3b8; font-size: 11px;">ms</span>
+                </div>
+
+                <div style="display: flex; gap: 4px; align-items: center; background: #1e293b; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155;">
+                    <span style="color: #facc15; font-weight: bold; font-size: 11px;">🎛️ 가변저항:</span>
+                    <input type="range" id="scopePotSlider" min="1" max="99" value="50" step="1" style="width: 80px; vertical-align: middle;">
+                    <span id="scopePotValText" style="color: #facc15; font-size: 11px; font-weight: bold; width: 35px;">50%</span>
+                </div>
+
+                <button id="btnResetScopeControls" class="btn" style="padding: 5px 12px; font-size: 11px; background: #334155; color: #f8fafc;">🎯 수치 리셋</button>
+            </div>
+        </div>
+
+        <!-- 4 Screen Grid: 4 Independent Screens Side-by-Side with 10:8 Aspect Ratio -->
+        <div class="scope-screens-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;">
+
+            <!-- Screen 1: TP 1 / CH A (Yellow) -->
+            <div class="scope-screen-card" style="background: #0f172a; border: 2px solid #facc15; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(250, 204, 21, 0.1);">
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(250, 204, 21, 0.3); padding-bottom: 4px;">
+                    <span style="color: #facc15; font-weight: bold; font-size: 13px;">📍 TP 1 / CH A (Yellow)</span>
+                    <span id="telStatsChA" style="color: #facc15; font-family: monospace; font-size: 11px; font-weight: bold;">-- Vpp</span>
+                </div>
+                <canvas id="scopeCanvasA" width="320" height="256" style="border: 1px solid #334155; border-radius: 6px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                <div style="width: 100%; display: flex; gap: 6px; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; background: #1e293b; padding: 4px 8px; border-radius: 6px;">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">V/Div:</label>
+                        <select id="voltDivChA" class="select-input-sm" style="padding: 2px; width: 58px; font-size: 11px;">
+                            <option value="0.1">0.1V</option>
+                            <option value="0.2">0.2V</option>
+                            <option value="0.5">0.5V</option>
+                            <option value="1.0">1.0V</option>
+                            <option value="2.0">2.0V</option>
+                            <option value="5.0" selected>5.0V</option>
+                            <option value="10.0">10.0V</option>
+                            <option value="20.0">20.0V</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">Y-Pos:</label>
+                        <input type="range" id="posYChA" min="-150" max="150" value="0" step="1" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 2: TP 2 / CH B (Magenta) -->
+            <div class="scope-screen-card" style="background: #0f172a; border: 2px solid #e879f9; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(232, 121, 249, 0.1);">
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(232, 121, 249, 0.3); padding-bottom: 4px;">
+                    <span style="color: #e879f9; font-weight: bold; font-size: 13px;">📍 TP 2 / CH B (Magenta)</span>
+                    <span id="telStatsChB" style="color: #e879f9; font-family: monospace; font-size: 11px; font-weight: bold;">-- Vpp</span>
+                </div>
+                <canvas id="scopeCanvasB" width="320" height="256" style="border: 1px solid #334155; border-radius: 6px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                <div style="width: 100%; display: flex; gap: 6px; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; background: #1e293b; padding: 4px 8px; border-radius: 6px;">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">V/Div:</label>
+                        <select id="voltDivChB" class="select-input-sm" style="padding: 2px; width: 58px; font-size: 11px;">
+                            <option value="0.1">0.1V</option>
+                            <option value="0.2">0.2V</option>
+                            <option value="0.5">0.5V</option>
+                            <option value="1.0">1.0V</option>
+                            <option value="2.0" selected>2.0V</option>
+                            <option value="5.0">5.0V</option>
+                            <option value="10.0">10.0V</option>
+                            <option value="20.0">20.0V</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">Y-Pos:</label>
+                        <input type="range" id="posYChB" min="-150" max="150" value="0" step="1" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 3: TP 3 / CH C (Cyan) -->
+            <div class="scope-screen-card" style="background: #0f172a; border: 2px solid #38bdf8; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1);">
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(56, 189, 248, 0.3); padding-bottom: 4px;">
+                    <span style="color: #38bdf8; font-weight: bold; font-size: 13px;">📍 TP 3 / CH C (Cyan)</span>
+                    <span id="telStatsChC" style="color: #38bdf8; font-family: monospace; font-size: 11px; font-weight: bold;">-- Vpp</span>
+                </div>
+                <canvas id="scopeCanvasC" width="320" height="256" style="border: 1px solid #334155; border-radius: 6px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                <div style="width: 100%; display: flex; gap: 6px; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; background: #1e293b; padding: 4px 8px; border-radius: 6px;">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">V/Div:</label>
+                        <select id="voltDivChC" class="select-input-sm" style="padding: 2px; width: 58px; font-size: 11px;">
+                            <option value="0.1">0.1V</option>
+                            <option value="0.2">0.2V</option>
+                            <option value="0.5">0.5V</option>
+                            <option value="1.0">1.0V</option>
+                            <option value="2.0" selected>2.0V</option>
+                            <option value="5.0">5.0V</option>
+                            <option value="10.0">10.0V</option>
+                            <option value="20.0">20.0V</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">Y-Pos:</label>
+                        <input type="range" id="posYChC" min="-150" max="150" value="0" step="1" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screen 4: TP 4 / CH D (Green) -->
+            <div class="scope-screen-card" style="background: #0f172a; border: 2px solid #22c55e; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);">
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px solid rgba(34, 197, 94, 0.3); padding-bottom: 4px;">
+                    <span style="color: #22c55e; font-weight: bold; font-size: 13px;">📍 TP 4 / CH D (Green)</span>
+                    <span id="telStatsChD" style="color: #22c55e; font-family: monospace; font-size: 11px; font-weight: bold;">-- Vpp</span>
+                </div>
+                <canvas id="scopeCanvasD" width="320" height="256" style="border: 1px solid #334155; border-radius: 6px; background: #060a12; width: 100%; height: auto; aspect-ratio: 10 / 8; display: block;"></canvas>
+                <div style="width: 100%; display: flex; gap: 6px; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; background: #1e293b; padding: 4px 8px; border-radius: 6px;">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">V/Div:</label>
+                        <select id="voltDivChD" class="select-input-sm" style="padding: 2px; width: 58px; font-size: 11px;">
+                            <option value="0.1">0.1V</option>
+                            <option value="0.2">0.2V</option>
+                            <option value="0.5">0.5V</option>
+                            <option value="1.0">1.0V</option>
+                            <option value="2.0">2.0V</option>
+                            <option value="5.0" selected>5.0V</option>
+                            <option value="10.0">10.0V</option>
+                            <option value="20.0">20.0V</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <label style="color: #94a3b8; font-weight: bold;">Y-Pos:</label>
+                        <input type="range" id="posYChD" min="-150" max="150" value="0" step="1" style="width: 65px; vertical-align: middle;">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
 
     <!-- Circuit Save Modal -->
     <div id="saveModal" class="modal hidden">
@@ -521,6 +687,6 @@
     </div>
 
     <!-- Application Script Entry Point with Cache Busting -->
-    <script type="module" src="./app.js?v=1550"></script>
+    <script type="module" src="./app.js?v=1600"></script>
 </body>
 </html>

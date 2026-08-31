@@ -27,9 +27,17 @@ export class RingBuffer {
 }
 
 export class OscilloscopeCanvas {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
+    constructor(canvasOrMap) {
+        if (canvasOrMap && (canvasOrMap.canvasA || canvasOrMap.mainCanvas)) {
+            this.canvas = canvasOrMap.mainCanvas || canvasOrMap.canvasA;
+            this.canvasA = canvasOrMap.canvasA;
+            this.canvasB = canvasOrMap.canvasB;
+            this.canvasC = canvasOrMap.canvasC;
+            this.canvasD = canvasOrMap.canvasD;
+        } else {
+            this.canvas = canvasOrMap;
+        }
+        this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
 
         this.bufferSize = 200000; // 200,000 Float64Array RingBuffer (1.0 second full history window for wide Time/Div zoom)
         this.dt = 0.000005; // 5us high-resolution simulation time step
@@ -95,7 +103,7 @@ export class OscilloscopeCanvas {
         this.posOffsetYChC = 0;
         this.posOffsetYChD = 0;
 
-        this.timePerDiv = 0.005;
+        this.timePerDiv = 0.0002;
         this.posOffsetX = 0;
         this.isFrozen = false;
 
@@ -179,8 +187,137 @@ export class OscilloscopeCanvas {
     render() {
         this.calculateStats();
 
-        const { width, height } = this.canvas;
-        this.ctx.clearRect(0, 0, width, height);
+        // 1. Render on 4 Independent Screen Canvases (TP1~TP4) with 10 DIV x 8 DIV KCA Exam Sheet Grid
+        if (this.canvasA) this.renderSingleScreen(this.canvasA, this.ringA, '#facc15', this.voltPerDivChA, this.posOffsetYChA, 'TP 1 / CH A', this.statsA);
+        if (this.canvasB) this.renderSingleScreen(this.canvasB, this.ringB, '#e879f9', this.voltPerDivChB, this.posOffsetYChB, 'TP 2 / CH B', this.statsB);
+        if (this.canvasC) this.renderSingleScreen(this.canvasC, this.ringC, '#38bdf8', this.voltPerDivChC, this.posOffsetYChC, 'TP 3 / CH C', this.statsC);
+        if (this.canvasD) this.renderSingleScreen(this.canvasD, this.ringD, '#22c55e', this.voltPerDivChD, this.posOffsetYChD, 'TP 4 / CH D', this.statsD);
+
+        // 2. Also render on main modal canvas if available
+        if (this.canvas && this.ctx) {
+            this.renderMainModalCanvas();
+        }
+    }
+
+    renderSingleScreen(canvas, ringBuffer, color, voltPerDiv, posOffsetY, channelLabel, stats) {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // Dark background matching exam sheet paper frame
+        ctx.fillStyle = '#060a12';
+        ctx.fillRect(0, 0, width, height);
+
+        // 1. Draw KCA Official Exam Answer Sheet Grid: Exactly 10 DIVs Wide x 8 DIVs High (Media media_1788162478342.png match)
+        const numDivsX = 10;
+        const numDivsY = 8;
+        const divW = width / numDivsX;
+        const divH = height / numDivsY;
+
+        ctx.save();
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]); // Dashed grid lines as in exam photo media_1788162478342.png
+
+        ctx.beginPath();
+        for (let i = 1; i < numDivsX; i++) {
+            ctx.moveTo(i * divW, 0);
+            ctx.lineTo(i * divW, height);
+        }
+        for (let j = 1; j < numDivsY; j++) {
+            ctx.moveTo(0, j * divH);
+            ctx.lineTo(width, j * divH);
+        }
+        ctx.stroke();
+
+        // 2. Solid Center Axes (X=5 div, Y=4 div)
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(width / 2, 0);
+        ctx.lineTo(width / 2, height);
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
+
+        // 3. Outer Solid Rectangular Frame Border
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, width, height);
+        ctx.restore();
+
+        // 4. Draw Waveform Trace
+        const zeroY = height * 0.5;
+        const scaleY = divH;
+        if (ringBuffer && ringBuffer.length > 0) {
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 5;
+
+            const totalTimeScreen = 10 * (this.timePerDiv || 0.0002); // 10 DIVs total across screen
+            const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
+            const vDivScale = scaleY / (voltPerDiv || 1.0);
+            const traceZeroY = zeroY - posOffsetY;
+
+            const endIdx = Math.min(ringBuffer.length, ringBuffer.length - Math.round(this.posOffsetX));
+            const startIdx = Math.max(0, endIdx - samplesOnScreen);
+            const numSamples = endIdx - startIdx;
+
+            if (numSamples > 0) {
+                ctx.beginPath();
+                if (numSamples > width) {
+                    const samplesPerPixel = numSamples / width;
+                    let isFirst = true;
+                    for (let px = 0; px < width; px++) {
+                        const sIdx = Math.floor(startIdx + px * samplesPerPixel);
+                        let v = ringBuffer.get(sIdx);
+                        if (isNaN(v) || !isFinite(v)) v = 0;
+                        v = Math.max(-25.0, Math.min(25.0, v));
+                        const y = traceZeroY - (v * vDivScale);
+                        if (isFirst) { ctx.moveTo(px, y); isFirst = false; }
+                        else { ctx.lineTo(px, y); }
+                    }
+                } else {
+                    const stepX = width / (samplesOnScreen - 1);
+                    let isFirst = true;
+                    for (let i = startIdx; i < endIdx; i++) {
+                        const x = (i - startIdx) * stepX;
+                        let v = ringBuffer.get(i);
+                        if (isNaN(v) || !isFinite(v)) v = 0;
+                        v = Math.max(-25.0, Math.min(25.0, v));
+                        const y = traceZeroY - (v * vDivScale);
+                        if (isFirst) { ctx.moveTo(x, y); isFirst = false; }
+                        else { ctx.lineTo(x, y); }
+                    }
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // 5. STOP Freeze Badge if frozen
+        if (this.isFrozen) {
+            ctx.save();
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.roundRect(width - 70, 6, 64, 16, 3);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⏸️ STOP', width - 38, 14);
+            ctx.restore();
+        }
+    }
+
+    renderMainModalCanvas() {
 
         // CRT Dark Background
         this.ctx.fillStyle = '#090d16';
