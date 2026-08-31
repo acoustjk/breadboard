@@ -318,6 +318,9 @@ export class OscilloscopeCanvas {
     }
 
     renderMainModalCanvas() {
+        if (!this.canvas || !this.ctx) return;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
 
         // CRT Dark Background
         this.ctx.fillStyle = '#090d16';
