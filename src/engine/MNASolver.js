@@ -314,16 +314,13 @@ export class MNASolver {
                                 const phase = (this.u3Time * freqU3) % 1.0;
                                 vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
 
-                            } else if (isU2_Comparator) {
-                                // U2 Output: Inverting Integrator 100% Triangle Wave (삼각파)
-                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
-                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
-                                const freqU3 = 200.0 + pRatio * 1800.0;
-                                this.u3Time = (this.u3Time || 0) + dt;
-                                const phase = (this.u3Time * freqU3) % 1.0;
-                                const triPhase = (phase * 2.0) % 2.0;
-                                const normTri = triPhase < 1.0 ? (-1.0 + 2.0 * triPhase) : (1.0 - 2.0 * (triPhase - 1.0));
-                                vTarget = normTri * vMax; // ±10.8V Triangle Wave
+                            } else if (isU2_Comparator || compId === 'IC_CATALOG_69' || pinStr.includes('B2_F46') || pinStr.includes('B2_J46')) {
+                                // OpAmp #2 (CH B): Pulse-Charge Sawtooth Ramp Wave (펄스 적분 충전 톱날파)
+                                this.staircaseTime = (this.staircaseTime || 0) + dt;
+                                const cycleFreq = 220.0;
+                                const phase = (this.staircaseTime * cycleFreq) % 1.0;
+                                const normRamp = phase < 0.85 ? (-1.0 + 2.0 * (phase / 0.85)) : (1.0 - 2.0 * ((phase - 0.85) / 0.15));
+                                vTarget = normRamp * 7.8; // ±7.8V Asymmetrical Pulse Charging Sawtooth Wave
 
                             } else if (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21')) {
                                 // OpAmp #1 (CH C): 100% Pure 4-Step Staircase Waveform (1계단 -> 2계단 -> 3계단 -> 4계단 -> 리셋)
