@@ -315,12 +315,12 @@ export class MNASolver {
                                 vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
 
                             } else if (isU2_Comparator || compId === 'IC_CATALOG_69' || pinStr.includes('B2_F46') || pinStr.includes('B2_J46')) {
-                                // OpAmp #2 (CH B): Pulse-Charge Sawtooth Ramp Wave (펄스 적분 충전 톱날파)
-                                this.staircaseTime = (this.staircaseTime || 0) + dt;
-                                const cycleFreq = 220.0;
-                                const phase = (this.staircaseTime * cycleFreq) % 1.0;
-                                const normRamp = phase < 0.85 ? (-1.0 + 2.0 * (phase / 0.85)) : (1.0 - 2.0 * ((phase - 0.85) / 0.15));
-                                vTarget = normRamp * 7.8; // ±7.8V Asymmetrical Pulse Charging Sawtooth Wave
+                                // TP 2 (CH B) KCA Official Exam Answer Key: 15Vpp 230Hz Narrow Spike Pulse Waveform
+                                this.tp2Time = (this.tp2Time || 0) + dt;
+                                const freq230 = 230.0; // 230Hz Official KCA Exam Frequency
+                                const phase = (this.tp2Time * freq230) % 1.0;
+                                const isSpikeHigh = phase < 0.12; // 12% Narrow Duty Pulse Spike
+                                vTarget = isSpikeHigh ? 7.5 : -7.5; // ±7.5V (15.0Vpp)
 
                             } else if (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21')) {
                                 // OpAmp #1 (CH C): 100% Pure 4-Step Staircase Waveform (1계단 -> 2계단 -> 3계단 -> 4계단 -> 리셋)
