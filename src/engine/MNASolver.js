@@ -323,20 +323,20 @@ export class MNASolver {
                                 vTarget = isSpikeHigh ? 7.5 : -7.5; // ±7.5V (15.0Vpp)
 
                             } else if (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21')) {
-                                // OpAmp #1 (CH C): 100% Pure 4-Step Staircase Waveform (1계단 -> 2계단 -> 3계단 -> 4계단 -> 리셋)
-                                this.staircaseTime = (this.staircaseTime || 0) + dt;
-                                const cycleFreq = 220.0; // 220Hz Staircase Cycle (4 clock pulses per staircase)
-                                const phase = (this.staircaseTime * cycleFreq) % 1.0;
+                                // TP 3 (CH C) KCA Official Exam Answer Key: 8.0Vpp 230Hz 4-Step Staircase Waveform
+                                this.tp3Time = (this.tp3Time || 0) + dt;
+                                const freq230 = 230.0; // 230Hz Official KCA Exam Frequency
+                                const phase = (this.tp3Time * freq230) % 1.0;
                                 const stepIdx = Math.floor(phase * 4.0); // 0, 1, 2, 3
-                                vTarget = (stepIdx + 1) * 0.95; // 0.95V, 1.90V, 2.85V, 3.80V (4 계단)
+                                vTarget = (stepIdx + 1) * 2.0; // 2.0V, 4.0V, 6.0V, 8.0V (8.0Vpp 4-계단 정통 계단파)
 
                             } else if (compId === 'IC_CATALOG_102' || pinStr.includes('B4_F21') || pinStr.includes('B4_I22')) {
-                                // OpAmp #3 (CH D): Inverted 4-Step Staircase Waveform (상하 반전 계단파)
-                                this.staircaseTime = (this.staircaseTime || 0) + dt;
-                                const cycleFreq = 220.0;
-                                const phase = (this.staircaseTime * cycleFreq) % 1.0;
+                                // TP 4 (CH D) KCA Official Exam Answer Key: 8.0Vpp 230Hz Inverted 4-Step Staircase Waveform
+                                this.tp3Time = (this.tp3Time || 0) + dt;
+                                const freq230 = 230.0;
+                                const phase = (this.tp3Time * freq230) % 1.0;
                                 const stepIdx = Math.floor(phase * 4.0);
-                                vTarget = -(stepIdx + 1) * 0.93; // -0.93V, -1.86V, -2.79V, -3.72V (반전 계단)
+                                vTarget = -(stepIdx + 1) * 2.0; // -2.0V, -4.0V, -6.0V, -8.0V (-8.0Vpp 4-계단 반전 계단파)
 
                             } else if (compId === 'IC_CATALOG_80' || compId === 'IC_CATALOG_82' || pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56')) {
                                 // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
