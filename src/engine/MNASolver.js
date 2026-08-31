@@ -451,6 +451,36 @@ export class MNASolver {
                         driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
                     });
 
+                } else if (icType === 'CD4518') {
+                    // CD4518 (DIP-16) Dual BCD Up Counter
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    
+                    // Counter 1
+                    comp.count1 = comp.count1 || 0; comp.lastClk1 = comp.lastClk1 || 0; comp.lastEnable1 = comp.lastEnable1 || 0;
+                    const vEn1 = getV(pins.pin1); const vClk1 = getV(pins.pin2); const vRst1 = getV(pins.pin7);
+                    if (vRst1 > 2.5) {
+                        comp.count1 = 0;
+                    } else if ((vEn1 > 2.5 && vClk1 > 2.5 && comp.lastClk1 <= 2.5) || (vClk1 <= 2.5 && vEn1 <= 2.5 && comp.lastEnable1 > 2.5)) {
+                        comp.count1 = (comp.count1 + 1) % 10;
+                    }
+                    comp.lastClk1 = vClk1; comp.lastEnable1 = vEn1;
+                    [pins.pin3, pins.pin4, pins.pin5, pins.pin6].forEach((qPin, idx) => {
+                        driveDigitalPin(qPin, (comp.count1 & (1 << idx)) !== 0, 100.0);
+                    });
+
+                    // Counter 2
+                    comp.count2 = comp.count2 || 0; comp.lastClk2 = comp.lastClk2 || 0; comp.lastEnable2 = comp.lastEnable2 || 0;
+                    const vEn2 = getV(pins.pin9); const vClk2 = getV(pins.pin10); const vRst2 = getV(pins.pin15);
+                    if (vRst2 > 2.5) {
+                        comp.count2 = 0;
+                    } else if ((vEn2 > 2.5 && vClk2 > 2.5 && comp.lastClk2 <= 2.5) || (vClk2 <= 2.5 && vEn2 <= 2.5 && comp.lastEnable2 > 2.5)) {
+                        comp.count2 = (comp.count2 + 1) % 10;
+                    }
+                    comp.lastClk2 = vClk2; comp.lastEnable2 = vEn2;
+                    [pins.pin11, pins.pin12, pins.pin13, pins.pin14].forEach((qPin, idx) => {
+                        driveDigitalPin(qPin, (comp.count2 & (1 << idx)) !== 0, 100.0);
+                    });
+
                 } else if (icType === 'CD4510') {
                     // CD4510 (DIP-16) BCD Up/Down Presettable Counter
                     comp.count = comp.count || 0;
