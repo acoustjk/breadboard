@@ -1,0 +1,613 @@
+{
+  "version": "1.0",
+  "savedAt": "2026-08-31T02:05:34.534Z",
+  "title": "KCA 통신설비기능장 1번 PNM 버스트 펄스 회로 (전원 완비)",
+  "power": {
+    "voltageVa": 9,
+    "voltageVb": 0,
+    "voltageVc": -9
+  },
+  "probes": {
+    "probeAPin": "B2_F17",
+    "probeBPin": "B2_F48",
+    "probeCPin": "B3_J45",
+    "probeDPin": "B4_F36"
+  },
+  "components": [
+    {
+      "id": "IC_CATALOG_1",
+      "type": "IC",
+      "pinA": "B2_E15",
+      "pinB": "B2_F21",
+      "icType": "LM741"
+    },
+    {
+      "id": "RESISTOR_CATALOG_2",
+      "type": "R",
+      "pinA": "B2_C16",
+      "pinB": "B2_C10",
+      "resistance": 30000,
+      "isConfigured": true
+    },
+    {
+      "id": "RESISTOR_CATALOG_3",
+      "type": "R",
+      "pinA": "B2_H17",
+      "pinB": "B2_H10",
+      "resistance": 30000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_4",
+      "type": "WIRE",
+      "pinA": "B2_E10",
+      "pinB": "B2_F10",
+      "color": "#0984e3"
+    },
+    {
+      "id": "CAPACITOR_CATALOG_5",
+      "type": "C",
+      "pinA": "B2_GND_L_10",
+      "pinB": "B2_B10",
+      "capacitance": 2.2e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "CAPACITOR_CATALOG_6",
+      "type": "C",
+      "pinA": "B2_B16",
+      "pinB": "B2_B21",
+      "capacitance": 1e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "CAPACITOR_CATALOG_7",
+      "type": "C",
+      "pinA": "B2_I17",
+      "pinB": "B2_I21",
+      "capacitance": 1e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "WIRE_8",
+      "type": "WIRE",
+      "pinA": "B2_E21",
+      "pinB": "B2_F21",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_9",
+      "type": "POT",
+      "pinA": "B2_A21",
+      "pinB": "B2_A25",
+      "totalResistance": 50000,
+      "ratio": 0.5
+    },
+    {
+      "id": "RESISTOR_CATALOG_10",
+      "type": "R",
+      "pinA": "B2_B25",
+      "pinB": "B2_B30",
+      "resistance": 8200,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_11",
+      "type": "WIRE",
+      "pinA": "B2_A30",
+      "pinB": "B2_GND_L_30",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_12",
+      "type": "WIRE",
+      "pinA": "B2_I16",
+      "pinB": "B2_VCC_R_16",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_14",
+      "type": "WIRE",
+      "pinA": "B2_A17",
+      "pinB": "B2_GND_L_17",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_15",
+      "type": "R",
+      "pinA": "B2_J17",
+      "pinB": "B3_A17",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "IC_CATALOG_16",
+      "type": "IC",
+      "pinA": "B3_E16",
+      "pinB": "B3_F20",
+      "icType": "LM741"
+    },
+    {
+      "id": "RESISTOR_CATALOG_17",
+      "type": "R",
+      "pinA": "B3_D12",
+      "pinB": "B3_G12",
+      "resistance": 1200,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_18",
+      "type": "WIRE",
+      "pinA": "B3_C12",
+      "pinB": "B3_C17",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_19",
+      "type": "WIRE",
+      "pinA": "B3_H12",
+      "pinB": "B3_H18",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_20",
+      "type": "WIRE",
+      "pinA": "B3_J17",
+      "pinB": "B3_VCC_R_17",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_22",
+      "type": "WIRE",
+      "pinA": "B3_GND_L_18",
+      "pinB": "B3_A18",
+      "color": "#0984e3"
+    },
+    {
+      "id": "IC_CATALOG_23",
+      "type": "IC",
+      "pinA": "B1_E45",
+      "pinB": "B1_F50",
+      "icType": "LM741"
+    },
+    {
+      "id": "RESISTOR_CATALOG_24",
+      "type": "POT",
+      "pinA": "B1_A35",
+      "pinB": "B1_A38",
+      "totalResistance": 10000,
+      "ratio": 0.75
+    },
+    {
+      "id": "CAPACITOR_CATALOG_25",
+      "type": "C",
+      "pinA": "B1_GND_L_46",
+      "pinB": "B1_A46",
+      "capacitance": 1e-8,
+      "isConfigured": true,
+      "capType": "MYLAR"
+    },
+    {
+      "id": "RESISTOR_CATALOG_26",
+      "type": "R",
+      "pinA": "B1_C47",
+      "pinB": "B1_C52",
+      "resistance": 5000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_27",
+      "type": "WIRE",
+      "pinA": "B1_GND_L_52",
+      "pinB": "B1_A52",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_28",
+      "type": "R",
+      "pinA": "B1_D52",
+      "pinB": "B1_G52",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_29",
+      "type": "WIRE",
+      "pinA": "B1_H47",
+      "pinB": "B1_H52",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_30",
+      "type": "R",
+      "pinA": "B1_J47",
+      "pinB": "B2_A47",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_31",
+      "type": "WIRE",
+      "pinA": "B1_C38",
+      "pinB": "B1_C46",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_32",
+      "type": "WIRE",
+      "pinA": "B1_C35",
+      "pinB": "B1_G35",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_33",
+      "type": "WIRE",
+      "pinA": "B1_I35",
+      "pinB": "B1_I47",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_34",
+      "type": "WIRE",
+      "pinA": "B1_J46",
+      "pinB": "B1_VCC_R_46",
+      "color": "#ef4444"
+    },
+    {
+      "id": "IC_CATALOG_35",
+      "type": "IC",
+      "pinA": "B2_E46",
+      "pinB": "B2_F51",
+      "icType": "LM741"
+    },
+    {
+      "id": "RESISTOR_CATALOG_36",
+      "type": "R",
+      "pinA": "B2_D42",
+      "pinB": "B2_G42",
+      "resistance": 2000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_37",
+      "type": "WIRE",
+      "pinA": "B2_C42",
+      "pinB": "B2_C47",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_38",
+      "type": "WIRE",
+      "pinA": "B2_H42",
+      "pinB": "B2_H48",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_39",
+      "type": "R",
+      "pinA": "B2_A48",
+      "pinB": "B2_GND_L_48",
+      "resistance": 1000,
+      "isConfigured": false
+    },
+    {
+      "id": "RESISTOR_CATALOG_40",
+      "type": "R",
+      "pinA": "B2_J48",
+      "pinB": "B3_A48",
+      "resistance": 2200,
+      "isConfigured": true
+    },
+    {
+      "id": "TRANSISTOR_CATALOG_42",
+      "type": "BJT",
+      "pinA": "B3_I45",
+      "pinB": "B3_I47",
+      "transType": "C1815",
+      "pinEmitter": "B3_I45",
+      "pinBase": "B3_I48",
+      "pinCollector": "B3_I47",
+      "polarity": "NPN"
+    },
+    {
+      "id": "WIRE_43",
+      "type": "WIRE",
+      "pinA": "B3_E48",
+      "pinB": "B3_F48",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_44",
+      "type": "R",
+      "pinA": "B3_J45",
+      "pinB": "B3_GND_R_45",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_45",
+      "type": "WIRE",
+      "pinA": "B3_J47",
+      "pinB": "B4_A47",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_46",
+      "type": "WIRE",
+      "pinA": "B4_B47",
+      "pinB": "B4_B18",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_47",
+      "type": "WIRE",
+      "pinA": "B3_J18",
+      "pinB": "B4_A18",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_48",
+      "type": "WIRE",
+      "pinA": "B3_H45",
+      "pinB": "B3_H35",
+      "color": "#0984e3"
+    },
+    {
+      "id": "IC_CATALOG_50",
+      "type": "IC",
+      "pinA": "B4_E34",
+      "pinB": "B4_F38",
+      "icType": "LM741"
+    },
+    {
+      "id": "RESISTOR_CATALOG_51",
+      "type": "R",
+      "pinA": "B3_J35",
+      "pinB": "B4_A35",
+      "resistance": 4700,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_52",
+      "type": "WIRE",
+      "pinA": "B4_A36",
+      "pinB": "B4_GND_L_36",
+      "color": "#0984e3"
+    },
+    {
+      "id": "RESISTOR_CATALOG_53",
+      "type": "R",
+      "pinA": "B4_D31",
+      "pinB": "B4_G31",
+      "resistance": 10000,
+      "isConfigured": true
+    },
+    {
+      "id": "WIRE_54",
+      "type": "WIRE",
+      "pinA": "B4_C31",
+      "pinB": "B4_C35",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_55",
+      "type": "WIRE",
+      "pinA": "B4_H31",
+      "pinB": "B4_H36",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_56",
+      "type": "WIRE",
+      "pinA": "B4_J35",
+      "pinB": "B4_VCC_R_35",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_57",
+      "type": "WIRE",
+      "pinA": "B3_GND_R_22",
+      "pinB": "B3_E22",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_58",
+      "type": "WIRE",
+      "pinA": "B3_C19",
+      "pinB": "B3_C22",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_59",
+      "type": "WIRE",
+      "pinA": "B3_A22",
+      "pinB": "B2_D22",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_60",
+      "type": "WIRE",
+      "pinA": "B2_C18",
+      "pinB": "B2_C22",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_61",
+      "type": "WIRE",
+      "pinA": "B3_GND_R_55",
+      "pinB": "B2_D55",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_62",
+      "type": "WIRE",
+      "pinA": "B2_C49",
+      "pinB": "B2_C55",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_63",
+      "type": "WIRE",
+      "pinA": "B2_B55",
+      "pinB": "B1_C55",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_64",
+      "type": "WIRE",
+      "pinA": "B1_B48",
+      "pinB": "B1_B55",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_65",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_1",
+      "pinB": "B1_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_66",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_2",
+      "pinB": "B1_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_67",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_10",
+      "pinB": "B1_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_68",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_11",
+      "pinB": "B1_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_69",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_14",
+      "pinB": "B2_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_70",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_15",
+      "pinB": "B2_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_71",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_25",
+      "pinB": "B2_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_72",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_26",
+      "pinB": "B2_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_73",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_28",
+      "pinB": "B3_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_74",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_29",
+      "pinB": "B3_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_75",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_37",
+      "pinB": "B3_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_76",
+      "type": "WIRE",
+      "pinA": "VCC_TOP2_39",
+      "pinB": "B3_GND_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_77",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_40",
+      "pinB": "B4_VCC_L_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_78",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_41",
+      "pinB": "B4_GND_L_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_79",
+      "type": "WIRE",
+      "pinA": "VCC_TOP1_49",
+      "pinB": "B4_VCC_R_1",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_80",
+      "type": "WIRE",
+      "pinA": "GND_TOP1_50",
+      "pinB": "B4_GND_R_1",
+      "color": "#0984e3"
+    },
+    {
+      "id": "WIRE_81",
+      "type": "WIRE",
+      "pinA": "BINDING_Va",
+      "pinB": "VCC_TOP1_3",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_82",
+      "type": "WIRE",
+      "pinA": "BINDING_Vc",
+      "pinB": "VCC_TOP2_21",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_83",
+      "type": "WIRE",
+      "pinA": "BINDING_GND",
+      "pinB": "GND_TOP1_35",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_84",
+      "type": "WIRE",
+      "pinA": "B2_J47",
+      "pinB": "B2_VCC_R_47",
+      "color": "#ef4444"
+    },
+    {
+      "id": "WIRE_86",
+      "type": "WIRE",
+      "pinA": "B4_A37",
+      "pinB": "B3_VCC_R_37",
+      "color": "#ef4444"
+    }
+  ]
+}
