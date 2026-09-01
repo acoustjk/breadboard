@@ -42,6 +42,14 @@ export class MNASolver {
         const A = Array.from({ length: N }, () => new Float64Array(N));
         const Z = new Float64Array(N);
 
+        // Add default 1e-6 S (1MΩ) pull-down leakage to GND for all non-power-rail active nodes
+        // This ensures floating switch output nodes & digital IC logic inputs properly collapse to 0V (LOW) when opened/disconnected
+        activeNodes.forEach((nId, idx) => {
+            if (!nId.includes('RAIL') && !nId.includes('BINDING')) {
+                A[idx][idx] += 1e-6;
+            }
+        });
+
         const addConductance = (n1, n2, g) => {
             const i1 = nodeIndexMap.get(n1);
             const i2 = nodeIndexMap.get(n2);
