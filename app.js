@@ -4,17 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=2000';
-import { MNASolver } from './src/engine/MNASolver.js?v=2000';
-import { FFT } from './src/engine/FFT.js?v=2000';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=2000';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=2000';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=2000';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=2000';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=2000';
-import { AICopilot } from './src/components/AICopilot.js?v=2000';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=2000';
-import { USER_PRESETS } from './src/engine/UserPresets.js?v=2000';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=2100';
+import { MNASolver } from './src/engine/MNASolver.js?v=2100';
+import { FFT } from './src/engine/FFT.js?v=2100';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=2100';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=2100';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=2100';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=2100';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=2100';
+import { AICopilot } from './src/components/AICopilot.js?v=2100';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=2100';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=2100';
 
 class AppController {
     constructor() {
@@ -1854,11 +1854,12 @@ class AppController {
 
         const presetSel = document.getElementById('presetSelect');
         if (presetSel) {
+            presetSel.value = 'empty';
             presetSel.addEventListener('change', (e) => {
                 const val = e.target.value;
                 if (val === 'empty') {
                     this.initEmptyBoard();
-                    this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
+                    if (this.breadboardCanvas) this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
                 } else if (USER_PRESETS[val]) {
                     this.loadUserPreset(val);
                 }
@@ -1903,6 +1904,7 @@ class AppController {
         if (this.breadboardCanvas) {
             this.breadboardCanvas.toastMsg = `🍞 ${preset.title} 로드 완료!`;
         }
+        this.renderAll();
     }
 
     updateCutoffFreqDisplay() {
@@ -2015,6 +2017,14 @@ class AppController {
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    window.app = new AppController();
-});
+function initApp() {
+    if (!window.app) {
+        window.app = new AppController();
+    }
+}
+
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
