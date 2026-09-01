@@ -1590,36 +1590,38 @@ class AppController {
         const btnResetScope = document.getElementById('btnResetScopeControls');
         if (btnResetScope) {
             btnResetScope.addEventListener('click', () => {
-                document.getElementById('voltDivChA').value = '5.0'; document.getElementById('numVoltDivChA').value = '5.0';
-                document.getElementById('voltDivChB').value = '2.0'; document.getElementById('numVoltDivChB').value = '2.0';
-                document.getElementById('voltDivChC').value = '2.0'; document.getElementById('numVoltDivChC').value = '2.0';
-                document.getElementById('voltDivChD').value = '5.0'; document.getElementById('numVoltDivChD').value = '5.0';
+                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+                const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+                const setChk = (id, chk) => { const el = document.getElementById(id); if (el) el.checked = chk; };
 
-                document.getElementById('posYChA').value = '0'; document.getElementById('numPosYChA').value = '0';
-                document.getElementById('posYChB').value = '0'; document.getElementById('numPosYChB').value = '0';
-                document.getElementById('posYChC').value = '0'; document.getElementById('numPosYChC').value = '0';
-                document.getElementById('posYChD').value = '0'; document.getElementById('numPosYChD').value = '0';
+                setVal('voltDivChA', '5.0'); setVal('numVoltDivChA', '5.0');
+                setVal('voltDivChB', '2.0'); setVal('numVoltDivChB', '2.0');
+                setVal('voltDivChC', '2.0'); setVal('numVoltDivChC', '2.0');
+                setVal('voltDivChD', '5.0'); setVal('numVoltDivChD', '5.0');
 
-                document.getElementById('txtValChA').innerText = 'Y: 0px';
-                document.getElementById('txtValChB').innerText = 'Y: 0px';
-                document.getElementById('txtValChC').innerText = 'Y: 0px';
-                document.getElementById('txtValChD').innerText = 'Y: 0px';
+                setVal('posYChA', '0'); setVal('numPosYChA', '0');
+                setVal('posYChB', '0'); setVal('numPosYChB', '0');
+                setVal('posYChC', '0'); setVal('numPosYChC', '0');
+                setVal('posYChD', '0'); setVal('numPosYChD', '0');
 
-                document.getElementById('chkChA').checked = true;
-                document.getElementById('chkChB').checked = true;
-                document.getElementById('chkChC').checked = true;
-                document.getElementById('chkChD').checked = true;
+                setTxt('txtValChA', 'Y: 0px');
+                setTxt('txtValChB', 'Y: 0px');
+                setTxt('txtValChC', 'Y: 0px');
+                setTxt('txtValChD', 'Y: 0px');
 
-                document.getElementById('timeDivSelect').value = '0.0002';
-                const rSlider = document.getElementById('rangeTimeDivMs');
-                if (rSlider) rSlider.value = '0.2';
-                document.getElementById('numTimeDivMs').value = '0.20';
-                document.getElementById('posXTime').value = '0';
-                document.getElementById('numPosXTime').value = '0';
+                setChk('chkChA', true);
+                setChk('chkChB', true);
+                setChk('chkChC', true);
+                setChk('chkChD', true);
+
+                setVal('timeDivSelect', '0.0002');
+                setVal('rangeTimeDivMs', '0.2');
+                setVal('numTimeDivMs', '0.20');
+                setVal('posXTime', '0');
+                setVal('numPosXTime', '0');
 
                 ['ChA', 'ChB', 'ChC', 'ChD'].forEach(chKey => {
-                    const el = document.getElementById(`timeDiv${chKey}`);
-                    if (el) el.value = '0.0002';
+                    setVal(`timeDiv${chKey}`, '0.0002');
                 });
 
                 this.oscilloscopeCanvas.resetControls();
@@ -1923,9 +1925,10 @@ class AppController {
     }
 
     updateCutoffFreqDisplay() {
-        const r = this.components.find(c => c.type === 'R');
-        const c = this.components.find(c => c.type === 'C');
         const cutoffEl = document.getElementById('cutoffFreqText');
+        if (!cutoffEl) return;
+        const r = this.components ? this.components.find(c => c.type === 'R') : null;
+        const c = this.components ? this.components.find(c => c.type === 'C') : null;
         if (r && c && r.isConfigured && c.isConfigured) {
             const fc = 1 / (2 * Math.PI * r.resistance * c.capacitance);
             cutoffEl.innerText = `Cutoff fc: ${fc.toFixed(1)} Hz`;
