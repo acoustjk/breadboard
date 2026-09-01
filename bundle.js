@@ -2103,7 +2103,13 @@ class BreadboardCanvas {
 
             this.selectedComponent = foundComp;
             if (foundComp) {
-                this.showToast(`🔍 선택됨: [${foundComp.type}] ${foundComp.id}`);
+                if (foundComp.type === 'SWITCH') {
+                    const isOpen = foundComp.toggle();
+                    this.showToast(isOpen ? '🔴 스위치 열림 (OPEN / OFF)' : '🟢 스위치 닫힘 (CLOSED / ON)');
+                    if (this.onSwitchToggled) this.onSwitchToggled(foundComp);
+                } else {
+                    this.showToast(`🔍 선택됨: [${foundComp.type}] ${foundComp.id}`);
+                }
             }
             if (this.onNeedsRender) this.onNeedsRender();
         });
@@ -2123,8 +2129,15 @@ class BreadboardCanvas {
             }
 
             // Check Component Double Click
-            if (this.selectedComponent && this.onComponentDblClicked) {
-                this.onComponentDblClicked(this.selectedComponent);
+            if (this.selectedComponent) {
+                if (this.selectedComponent.type === 'SWITCH') {
+                    const isOpen = this.selectedComponent.toggle();
+                    this.showToast(isOpen ? '🔴 스위치 열림 (OPEN / OFF)' : '🟢 스위치 닫힘 (CLOSED / ON)');
+                    if (this.onSwitchToggled) this.onSwitchToggled(this.selectedComponent);
+                    if (this.onNeedsRender) this.onNeedsRender();
+                } else if (this.onComponentDblClicked) {
+                    this.onComponentDblClicked(this.selectedComponent);
+                }
             }
         });
 
@@ -3152,7 +3165,8 @@ class BreadboardCanvas {
             this.ctx.fillText(`${comp.voltage}V`, midX, midY + 3);
 
         } else if (comp.type === 'SWITCH') {
-            this.ctx.strokeStyle = '#636e72';
+            // Metallic Connecting Leads
+            this.ctx.strokeStyle = '#94a3b8';
             this.ctx.lineWidth = 2.0;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
@@ -3162,15 +3176,41 @@ class BreadboardCanvas {
             const midX = (pA.x + pB.x) / 2;
             const midY = (pA.y + pB.y) / 2;
 
-            this.ctx.fillStyle = comp.isOpen ? '#ef4444' : '#22c55e';
+            // 3D Rocker Switch Main Housing Body
+            this.ctx.fillStyle = '#1e293b';
             this.ctx.beginPath();
-            this.ctx.roundRect(midX - 10, midY - 6, 20, 12, 3);
+            this.ctx.roundRect(midX - 16, midY - 10, 32, 20, 4);
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#475569';
+            this.ctx.lineWidth = isSelected ? 2.0 : 1.2;
+            this.ctx.stroke();
+
+            // Toggle Rocker Lever Track
+            this.ctx.fillStyle = '#0f172a';
+            this.ctx.beginPath();
+            this.ctx.roundRect(midX - 13, midY - 7, 26, 14, 3);
             this.ctx.fill();
 
+            // Active State Rocker Knob (RED when OPEN/OFF, GREEN when CLOSED/ON)
+            const knobX = comp.isOpen ? midX - 6 : midX + 6;
+            const knobColor = comp.isOpen ? '#ef4444' : '#22c55e';
+
+            this.ctx.fillStyle = knobColor;
+            this.ctx.beginPath();
+            this.ctx.roundRect(knobX - 6, midY - 5, 12, 10, 2);
+            this.ctx.fill();
+
+            // White Indicator Text
             this.ctx.fillStyle = '#ffffff';
             this.ctx.font = 'bold 8px sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(comp.isOpen ? 'OFF' : 'ON', midX, midY + 3);
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(comp.isOpen ? 'OFF' : 'ON', knobX, midY);
+
+            // Subtitle Status Label below switch
+            this.ctx.fillStyle = comp.isOpen ? '#f87171' : '#4ade80';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.fillText(comp.isOpen ? 'OPEN' : 'CLOSED', midX, midY + 15);
 
         } else if (comp.type === 'LED') {
             this.ctx.strokeStyle = '#636e72';
@@ -4401,6 +4441,12 @@ class AppController {
     initPlacementEngine() {
         this.breadboardCanvas.onPlacementCancelled = () => {
             this.resetToolState();
+        };
+
+        this.breadboardCanvas.onSwitchToggled = (switchComp) => {
+            if (this.oscilloscopeCanvas) this.oscilloscopeCanvas.resetBuffer();
+            this.warmupSimulationBuffer(1200);
+            this.renderAll();
         };
 
         this.breadboardCanvas.onComponentPlaced = (toolType, pinA, pinB) => {
