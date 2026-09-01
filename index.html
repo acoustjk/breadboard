@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=9000">
+    <link rel="stylesheet" href="./styles.css?v=10000">
 </head>
 <body>
     <!-- App Header Toolbar -->
@@ -15,7 +15,7 @@
         <div class="logo-group">
             <span class="logo-icon">🍞</span>
             <h1 class="logo-title">빵판시뮬레이터</h1>
-            <span class="logo-badge">Company-JK Workbench (v=9000)</span>
+            <span class="logo-badge">Company-JK Workbench (v=10000)</span>
         </div>
 
         <div class="header-controls">
@@ -210,7 +210,7 @@
         <!-- Center: Breadboard Workbench + 1-Row 4-Channel Oscilloscope Panel -->
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0;">
-                <span>Wanjie BB-4T7D Interactive Breadboard Workbench</span>
+                <span>Company-JK Workbench</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver);" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -222,7 +222,7 @@
                 <button id="btnToolbarFlipPolarity" class="btn btn-primary">소자 회전 (R)</button>
             </div>
 
-            <!-- Wanjie BB-4T7D Interactive Breadboard Canvas Workbench (Expanded Viewport) -->
+            <!-- Company-JK Interactive Breadboard Canvas Workbench (Expanded Viewport) -->
             <div class="canvas-wrapper scrollable-wrapper" style="flex: 1; min-height: 480px; border-bottom: 2px solid #1e293b; overflow: auto;">
                 <canvas id="breadboardCanvas" width="790" height="970"></canvas>
             </div>
@@ -235,9 +235,6 @@
                         <h3 style="margin: 0; color: var(--text-primary); font-size: 11px; font-weight: bold;">
                             📊 4채널 실시간 오실로스코프
                         </h3>
-                        <span style="font-size: 9px; background: rgba(203, 213, 225, 0.1); color: var(--accent-silver); border: 1px solid #334155; padding: 1px 4px; border-radius: 3px; font-weight: bold;">
-                            답안지 10:8 비율 (10 DIV × 8 DIV)
-                        </span>
                     </div>
 
                     <!-- Global Timebase & Control Toolbar -->
@@ -744,6 +741,6 @@
     </div>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=9000"></script>
+    <script src="./bundle.js?v=10000"></script>
 </body>
 </html>
