@@ -823,28 +823,47 @@ export class BreadboardCanvas {
         this.ctx.save();
 
         if (isSelected) {
-            this.ctx.shadowColor = '#00cec9';
-            this.ctx.shadowBlur = 10;
+            this.ctx.shadowColor = '#38bdf8';
+            this.ctx.shadowBlur = 12;
         }
 
         if (comp.type === 'WIRE') {
-            this.ctx.strokeStyle = comp.color || '#0984e3';
-            this.ctx.lineWidth = isSelected ? 5.0 : 3.0;
-
             const midX = (pA.x + pB.x) / 2;
             const midY = (pA.y + pB.y) / 2 - 12;
 
+            // 1. Drop Shadow
+            this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+            this.ctx.lineWidth = isSelected ? 6.5 : 4.5;
+            this.ctx.beginPath();
+            this.ctx.moveTo(pA.x + 1, pA.y + 2);
+            this.ctx.quadraticCurveTo(midX + 1, midY + 2, pB.x + 1, pB.y + 2);
+            this.ctx.stroke();
+
+            // 2. Main Insulated Wire Body
+            this.ctx.strokeStyle = comp.color || '#0984e3';
+            this.ctx.lineWidth = isSelected ? 4.5 : 3.2;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
             this.ctx.quadraticCurveTo(midX, midY, pB.x, pB.y);
             this.ctx.stroke();
 
-            // Terminal Pin Heads
-            this.ctx.fillStyle = '#2d3436';
+            // 3. Top Specular Gloss Line
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            this.ctx.lineWidth = 1.0;
             this.ctx.beginPath();
-            this.ctx.arc(pA.x, pA.y, 3.5, 0, Math.PI * 2);
-            this.ctx.arc(pB.x, pB.y, 3.5, 0, Math.PI * 2);
+            this.ctx.moveTo(pA.x, pA.y - 1);
+            this.ctx.quadraticCurveTo(midX, midY - 1, pB.x, pB.y - 1);
+            this.ctx.stroke();
+
+            // Metallic Terminal Pins
+            this.ctx.fillStyle = '#cbd5e1';
+            this.ctx.beginPath();
+            this.ctx.arc(pA.x, pA.y, 3.2, 0, Math.PI * 2);
+            this.ctx.arc(pB.x, pB.y, 3.2, 0, Math.PI * 2);
             this.ctx.fill();
+            this.ctx.strokeStyle = '#334155';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
 
         } else if (comp.type === 'BJT') {
             const pE = this.getPinPos(comp.pinEmitter || comp.pinA);
@@ -855,11 +874,10 @@ export class BreadboardCanvas {
             const midX = (pE.x + pBase.x + pC.x) / 3;
             const midY = (pE.y + pBase.y + pC.y) / 3;
 
-            // Body offset so TO-92 package does not obscure hole labels
             const bodyX = isVertical ? midX - 25 : midX;
             const bodyY = isVertical ? midY : midY - 20;
 
-            // Draw 3 Silver Metallic Lead Lines from Pin Holes to Package Body
+            // 3 Metallic Lead Wires
             this.ctx.strokeStyle = '#cbd5e1';
             this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
@@ -871,28 +889,33 @@ export class BreadboardCanvas {
             this.ctx.lineTo(bodyX, bodyY);
             this.ctx.stroke();
 
-            // TO-92 Black Plastic D-Shape Package Body
-            this.ctx.fillStyle = '#1e272e';
+            // TO-92 Photorealistic Black Plastic D-Shape Body
+            const bodyGrad = this.ctx.createLinearGradient(bodyX - 13, bodyY - 13, bodyX + 13, bodyY + 13);
+            bodyGrad.addColorStop(0, '#334155');
+            bodyGrad.addColorStop(0.4, '#1e293b');
+            bodyGrad.addColorStop(1, '#0f172a');
+
+            this.ctx.fillStyle = bodyGrad;
             this.ctx.beginPath();
             this.ctx.arc(bodyX, bodyY, 13, Math.PI, 0);
             this.ctx.lineTo(bodyX + 13, bodyY + 8);
             this.ctx.lineTo(bodyX - 13, bodyY + 8);
             this.ctx.closePath();
             this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
-            this.ctx.lineWidth = isSelected ? 2.2 : 1.2;
+
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#475569';
+            this.ctx.lineWidth = isSelected ? 2.0 : 1.2;
             this.ctx.stroke();
 
-            // Transistor Part Name (2N3904 / C1815)
-            this.ctx.fillStyle = '#f8fafc';
+            // Laser Etched Text
+            this.ctx.fillStyle = '#e2e8f0';
             this.ctx.font = 'bold 8px monospace';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(comp.transType || '2N3904', bodyX, bodyY + 3);
 
-            // Dynamic Pin Badge Labels: S, D, G for JFETs (2SK30A) vs E, C, B for BJTs
+            // Dynamic Pin Badges (S, D, G / E, C, B)
             this.ctx.font = 'bold 11px sans-serif';
             this.ctx.textBaseline = 'middle';
-
             const tagOffsetX = isVertical ? 12 : 0;
             const tagOffsetY = isVertical ? 0 : -10;
 
@@ -903,23 +926,21 @@ export class BreadboardCanvas {
             const labelPin2 = isJFET ? 'D' : 'C';
             const labelPin3 = isJFET ? 'G' : 'B';
 
-            // Pin 1 Label (S / E) - Bright Red
             this.ctx.fillStyle = '#ef4444';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
             this.ctx.fillText(labelPin1, pE.x + tagOffsetX, pE.y + tagOffsetY);
 
-            // Pin 2 Label (D / C) - Bright Yellow
-            this.ctx.fillStyle = '#facc15';
+            this.ctx.fillStyle = '#f59e0b';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
             this.ctx.fillText(labelPin2, pC.x + tagOffsetX, pC.y + tagOffsetY);
 
-            // Pin 3 Label (G / B) - Bright Cyan
             this.ctx.fillStyle = '#38bdf8';
             this.ctx.textAlign = isVertical ? 'left' : 'center';
             this.ctx.fillText(labelPin3, pBase.x + tagOffsetX, pBase.y + tagOffsetY);
 
         } else if (comp.type === 'R') {
-            this.ctx.strokeStyle = '#636e72';
+            // Metallic Silver Lead Wires
+            this.ctx.strokeStyle = '#94a3b8';
             this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
@@ -934,34 +955,51 @@ export class BreadboardCanvas {
             this.ctx.translate(midX, midY);
             this.ctx.rotate(angle);
 
-            this.ctx.fillStyle = '#f5f6fa';
+            // 3D Ceramic Cylindrical Resistor Body Gradient
+            const bodyGrad = this.ctx.createLinearGradient(0, -6, 0, 6);
+            bodyGrad.addColorStop(0, '#ffffff');
+            bodyGrad.addColorStop(0.3, '#f1f5f9');
+            bodyGrad.addColorStop(0.8, '#cbd5e1');
+            bodyGrad.addColorStop(1, '#94a3b8');
+
+            this.ctx.fillStyle = bodyGrad;
             this.ctx.beginPath();
-            this.ctx.roundRect(-14, -5, 28, 10, 3);
+            this.ctx.roundRect(-15, -6, 30, 12, 4);
             this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#2d3436';
+
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#475569';
             this.ctx.lineWidth = isSelected ? 2 : 1;
             this.ctx.stroke();
 
-            // 4 Resistor Color Bands
+            // Metallic End-Caps
+            this.ctx.fillStyle = '#94a3b8';
+            this.ctx.fillRect(-15, -6, 3, 12);
+            this.ctx.fillRect(12, -6, 3, 12);
+
+            // 4 Crisp Color Bands
             const bands = getResistorColorBands(comp.resistance);
-            const bandOffsets = [-9, -4, 1, 7];
+            const bandOffsets = [-10, -5, 0, 6];
             bands.forEach((bandColor, idx) => {
                 this.ctx.fillStyle = bandColor;
-                this.ctx.fillRect(bandOffsets[idx], -5, idx === 3 ? 2.5 : 2, 10);
+                this.ctx.fillRect(bandOffsets[idx], -6, idx === 3 ? 3 : 2.5, 12);
+
+                // Glossy Band Reflection Line
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                this.ctx.fillRect(bandOffsets[idx], -4, idx === 3 ? 3 : 2.5, 2);
             });
 
             if (this.showValueBadges && comp.isConfigured) {
                 const formatted = comp.resistance >= 1000 ? (comp.resistance / 1000) + 'k' : comp.resistance;
-                this.ctx.fillStyle = '#0284c7';
+                this.ctx.fillStyle = '#38bdf8';
                 this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${formatted}Ω`, 0, -8);
+                this.ctx.fillText(`${formatted}Ω`, 0, -9);
             }
 
             this.ctx.restore();
 
         } else if (comp.type === 'POT') {
-            this.ctx.strokeStyle = '#636e72';
+            this.ctx.strokeStyle = '#94a3b8';
             this.ctx.lineWidth = 2.0;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
@@ -971,34 +1009,46 @@ export class BreadboardCanvas {
             const midX = (pA.x + pB.x) / 2;
             const midY = (pA.y + pB.y) / 2;
 
-            this.ctx.fillStyle = '#0284c7';
+            // 3D Metallic Cermet Potentiometer Body
+            const potGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 15);
+            potGrad.addColorStop(0, '#38bdf8');
+            potGrad.addColorStop(0.7, '#0284c7');
+            potGrad.addColorStop(1, '#0369a1');
+
+            this.ctx.fillStyle = potGrad;
             this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 14, 0, Math.PI * 2);
+            this.ctx.arc(midX, midY, 15, 0, Math.PI * 2);
             this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#0f172a';
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#1e293b';
             this.ctx.lineWidth = 2;
             this.ctx.stroke();
 
-            // Knob Arrow Indicator
+            // Inner Metallic Dial Ring
+            this.ctx.fillStyle = '#e2e8f0';
+            this.ctx.beginPath();
+            this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Knob Arrow Slot
             const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
-            this.ctx.strokeStyle = '#ffffff';
+            this.ctx.strokeStyle = '#0f172a';
             this.ctx.lineWidth = 2.5;
             this.ctx.beginPath();
             this.ctx.moveTo(midX, midY);
-            this.ctx.lineTo(midX + Math.cos(knobAngle) * 10, midY + Math.sin(knobAngle) * 10);
+            this.ctx.lineTo(midX + Math.cos(knobAngle) * 8, midY + Math.sin(knobAngle) * 8);
             this.ctx.stroke();
 
             if (this.showValueBadges) {
                 const effRes = comp.getEffectiveResistance();
                 const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
-                this.ctx.fillStyle = '#facc15';
+                this.ctx.fillStyle = '#f59e0b';
                 this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 17);
+                this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 18);
             }
 
         } else if (comp.type === 'C') {
-            this.ctx.strokeStyle = '#636e72';
+            this.ctx.strokeStyle = '#94a3b8';
             this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(pA.x, pA.y);
@@ -1011,31 +1061,35 @@ export class BreadboardCanvas {
             const isElec = comp.capType === 'ELEC';
             const isCeramic = comp.capType === 'CERAMIC';
 
-            this.ctx.fillStyle = isElec ? '#0984e3' : (isCeramic ? '#f1c40f' : '#2ec4b6');
-            this.ctx.beginPath();
-
             if (isElec) {
-                // Electrolytic Cylinder Body
-                this.ctx.arc(midX, midY, 10, 0, Math.PI * 2);
+                // Electrolytic Photorealistic Aluminum Can Top
+                const capGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 11);
+                capGrad.addColorStop(0, '#cbd5e1');
+                capGrad.addColorStop(0.6, '#334155');
+                capGrad.addColorStop(1, '#0f172a');
+
+                this.ctx.fillStyle = capGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 11, 0, Math.PI * 2);
                 this.ctx.fill();
 
-                // Minus (-) Silver Stripe on pinB (Cathode) side
+                // Minus (-) Silver Cathode Stripe
                 const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x);
                 const stripeX = midX + Math.cos(angle) * 5;
                 const stripeY = midY + Math.sin(angle) * 5;
 
-                this.ctx.fillStyle = '#f1f2f6';
+                this.ctx.fillStyle = '#f8fafc';
                 this.ctx.beginPath();
                 this.ctx.arc(stripeX, stripeY, 5, 0, Math.PI * 2);
                 this.ctx.fill();
 
-                this.ctx.fillStyle = '#2d3436';
-                this.ctx.font = 'bold 9px monospace';
+                this.ctx.fillStyle = '#0f172a';
+                this.ctx.font = 'bold 10px monospace';
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
                 this.ctx.fillText('-', stripeX, stripeY);
 
-                // Bright Polarity Badges on Lead Holes: pinA = (+ Red), pinB = (- Blue)
+                // Polarity Lead Hole Badges
                 this.ctx.fillStyle = '#ef4444';
                 this.ctx.beginPath();
                 this.ctx.arc(pA.x, pA.y, 6, 0, Math.PI * 2);
@@ -1044,7 +1098,7 @@ export class BreadboardCanvas {
                 this.ctx.font = 'bold 10px monospace';
                 this.ctx.fillText('+', pA.x, pA.y + 1);
 
-                this.ctx.fillStyle = '#3b82f6';
+                this.ctx.fillStyle = '#38bdf8';
                 this.ctx.beginPath();
                 this.ctx.arc(pB.x, pB.y, 6, 0, Math.PI * 2);
                 this.ctx.fill();
@@ -1052,12 +1106,38 @@ export class BreadboardCanvas {
                 this.ctx.font = 'bold 10px monospace';
                 this.ctx.fillText('-', pB.x, pB.y + 1);
 
+            } else if (isCeramic) {
+                // Ceramic Disc Photorealistic Amber Texture
+                const cGrad = this.ctx.createRadialGradient(midX - 2, midY - 2, 2, midX, midY, 9);
+                cGrad.addColorStop(0, '#fef08a');
+                cGrad.addColorStop(0.6, '#d97706');
+                cGrad.addColorStop(1, '#78350f');
+
+                this.ctx.fillStyle = cGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 8px monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText('104', midX, midY);
+
             } else {
-                this.ctx.roundRect(midX - 7, midY - 8, 14, 16, 2);
+                // Mylar Film Green Capacitor Box
+                const mGrad = this.ctx.createLinearGradient(midX - 7, midY - 8, midX + 7, midY + 8);
+                mGrad.addColorStop(0, '#34d399');
+                mGrad.addColorStop(0.5, '#059669');
+                mGrad.addColorStop(1, '#064e3b');
+
+                this.ctx.fillStyle = mGrad;
+                this.ctx.beginPath();
+                this.ctx.roundRect(midX - 7, midY - 8, 14, 16, 3);
                 this.ctx.fill();
             }
 
-            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#2d3436';
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#334155';
             this.ctx.lineWidth = isSelected ? 2 : 1;
             this.ctx.stroke();
 
@@ -1066,7 +1146,7 @@ export class BreadboardCanvas {
                 this.ctx.fillStyle = '#e879f9';
                 this.ctx.font = 'bold 9px monospace';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${microVal < 0.1 ? (comp.capacitance * 1e9).toFixed(0) + 'n' : microVal.toFixed(1) + 'µ'}F`, midX, midY - 11);
+                this.ctx.fillText(`${microVal < 0.1 ? (comp.capacitance * 1e9).toFixed(0) + 'n' : microVal.toFixed(1) + 'µ'}F`, midX, midY - 12);
             }
 
         } else if (comp.type === 'IC') {
@@ -1078,34 +1158,71 @@ export class BreadboardCanvas {
             const chipHeight = (pinsPerSide - 1) * pitchY + 28;
             const topY = pA.y - 14;
 
-            // DIP Chip Body (Clean Professional Dark Slate)
-            this.ctx.fillStyle = '#1e272e';
+            // 1. Dual-In-Line Metallic Leads extending to Breadboard Holes
+            for (let i = 0; i < pinsPerSide; i++) {
+                const py = pA.y + i * pitchY;
+
+                // Left Pin Lead
+                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+                this.ctx.strokeStyle = '#475569';
+                this.ctx.lineWidth = 0.8;
+                this.ctx.strokeRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+
+                // Right Pin Lead
+                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
+                this.ctx.strokeRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
+            }
+
+            // 2. DIP Chip Photorealistic Matte Black Molded Body
+            const chipGrad = this.ctx.createLinearGradient(midX - chipWidth / 2, topY, midX + chipWidth / 2, topY + chipHeight);
+            chipGrad.addColorStop(0, '#334155');
+            chipGrad.addColorStop(0.3, '#1e293b');
+            chipGrad.addColorStop(0.8, '#0f172a');
+            chipGrad.addColorStop(1, '#090d16');
+
+            this.ctx.fillStyle = chipGrad;
             this.ctx.beginPath();
             this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
             this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#00cec9' : '#485460';
-            this.ctx.lineWidth = isSelected ? 2.5 : 1.5;
+
+            // Inner Bevel Contour Highlight
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#475569';
+            this.ctx.lineWidth = isSelected ? 2.5 : 1.2;
             this.ctx.stroke();
 
-            // Pin 1 Notch
-            this.ctx.fillStyle = '#0f172a';
+            // 3. Top Semicircular Notch
+            this.ctx.fillStyle = '#080c14';
             this.ctx.beginPath();
             this.ctx.arc(midX, topY, 5, 0, Math.PI);
             this.ctx.fill();
+            this.ctx.strokeStyle = '#334155';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
 
-            // Pin 1 Cyan Dot Indicator
-            this.ctx.fillStyle = '#38bdf8';
+            // 4. Pin 1 Silver Notch Dot
+            this.ctx.fillStyle = '#cbd5e1';
             this.ctx.beginPath();
             this.ctx.arc(midX - chipWidth / 2 + 6, topY + 8, 2.5, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Printed IC Name Text (White)
-            this.ctx.fillStyle = '#ffffff';
+            // 5. White Laser-Etched Chip Markings
+            this.ctx.fillStyle = '#f8fafc';
             this.ctx.font = 'bold 11px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(comp.icType || 'LF356', midX, topY + chipHeight / 2 + 3);
+            this.ctx.textBaseline = 'middle';
 
-            // Clean Metallic Silver Pins & Subtle Yellow Pin Numbers
+            const icName = (comp.icType || 'IC').toUpperCase();
+            this.ctx.fillText(icName, midX, topY + chipHeight / 2 - 2);
+
+            // Subtitle Description
+            this.ctx.fillStyle = '#94a3b8';
+            this.ctx.font = 'bold 8px sans-serif';
+            const meta = IC_CATALOG[comp.icType] || { desc: 'DIP CHIP' };
+            const descShort = meta.desc ? meta.desc.split(' ')[0] : 'DIP';
+            this.ctx.fillText(descShort, midX, topY + chipHeight / 2 + 10);
+            // 6. Clean Metallic Silver Pins & Subtle Yellow Pin Numbers
             this.ctx.font = 'bold 9px monospace';
             this.ctx.textBaseline = 'middle';
 
@@ -1116,29 +1233,19 @@ export class BreadboardCanvas {
                 const leftPinNum = i + 1;
                 const leftLegX = midX - chipWidth / 2;
 
-                // Silver Metallic Lead
-                this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(leftLegX - 4, legY - 2, 5, 4);
-
-                // Subtle Yellow Text
-                this.ctx.fillStyle = (leftPinNum === 1) ? '#38bdf8' : '#facc15';
+                // Subtle Pin Number Inside Body
+                this.ctx.fillStyle = (leftPinNum === 1) ? '#38bdf8' : '#f59e0b';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${leftPinNum}`, leftLegX + 7, legY);
+                this.ctx.fillText(`${leftPinNum}`, leftLegX + 8, legY);
 
                 // Right Pin Leg (Pin N..N/2+1)
                 const rightPinNum = numPinsTotal - i;
                 const rightLegX = midX + chipWidth / 2;
 
-                // Silver Metallic Lead
-                this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(rightLegX - 1, legY - 2, 5, 4);
-
-                // Subtle Yellow Text
-                this.ctx.fillStyle = '#facc15';
+                this.ctx.fillStyle = '#f59e0b';
                 this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${rightPinNum}`, rightLegX - 7, legY);
+                this.ctx.fillText(`${rightPinNum}`, rightLegX - 8, legY);
             }
-
         } else if (comp.type === 'DIODE' || comp.type === 'ZENER') {
             this.ctx.strokeStyle = '#636e72';
             this.ctx.lineWidth = 1.8;

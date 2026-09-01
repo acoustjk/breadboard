@@ -1,17 +1,16 @@
-/* styles.css */
+/* styles.css - Premium Monochrome Dark Slate Professional Theme */
 :root {
-    --bg-main: #070b12;
-    --card-bg: #0f172a;
-    --card-border: #1e293b;
-    --text-primary: #f8fafc;
+    --bg-main: #080c14;
+    --card-bg: #0f1724;
+    --card-border: #232d3f;
+    --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
 
     --accent-blue: #38bdf8;
-    --accent-amber: #fbbf24;
-    --accent-green: #22c55e;
+    --accent-silver: #cbd5e1;
+    --accent-amber: #f59e0b;
+    --accent-green: #10b981;
     --accent-red: #ef4444;
-    --accent-purple: #8b5cf6;
-    --accent-pink: #e879f9;
 }
 
 * {
@@ -35,6 +34,7 @@ body {
     padding: 10px 20px;
     background-color: var(--card-bg);
     border-bottom: 1px solid var(--card-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .logo-group {
@@ -50,13 +50,15 @@ body {
 .logo-title {
     font-size: 18px;
     font-weight: 700;
-    color: var(--accent-blue);
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
 }
 
 .logo-badge {
     background: #1e293b;
-    color: var(--accent-amber);
-    padding: 3px 8px;
+    color: var(--accent-silver);
+    border: 1px solid #334155;
+    padding: 3px 10px;
     border-radius: 4px;
     font-size: 11px;
     font-weight: 600;
