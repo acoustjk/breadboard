@@ -2208,11 +2208,11 @@ class BreadboardCanvas {
             this.pinCoords.set(key, { x: Math.round(x), y: Math.round(y) });
         };
 
-        // 1. Binding Posts (Centered exactly at y = 72 matching render())
-        setCoord('BINDING_Va', 70, 72);
-        setCoord('BINDING_Vb', 180, 72);
-        setCoord('BINDING_Vc', 290, 72);
-        setCoord('BINDING_GND', 400, 72);
+        // 1. Binding Posts (Centered exactly at y = 48 matching render())
+        setCoord('BINDING_Va', 520, 48);
+        setCoord('BINDING_Vb', 590, 48);
+        setCoord('BINDING_Vc', 660, 48);
+        setCoord('BINDING_GND', 730, 48);
 
         // 2. Top Horizontal Bus Rails (50 Columns evenly spaced across x = 45..780 inside top white power strip at y = 106..178)
         for (let c = 1; c <= 50; c++) {
