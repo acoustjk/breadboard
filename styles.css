@@ -163,17 +163,20 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .card-title {
     padding: 10px 14px;
-    background: #162032;
+    background: #161f2e;
     border-bottom: 1px solid var(--card-border);
     font-size: 13px;
     font-weight: 700;
+    color: var(--text-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    letter-spacing: -0.2px;
 }
 
 /* Left Palette Sidebar Styling */
@@ -186,7 +189,7 @@ body {
 }
 
 .palette-section {
-    background: #131c2e;
+    background: #121a28;
     border: 1px solid var(--card-border);
     border-radius: 6px;
     padding: 10px;
@@ -198,7 +201,7 @@ body {
 .palette-section-title {
     font-size: 12px;
     font-weight: 700;
-    color: var(--accent-blue);
+    color: var(--accent-silver);
     margin-bottom: 2px;
 }
 
@@ -226,7 +229,7 @@ body {
     display: flex;
     gap: 8px;
     padding: 8px 12px;
-    background: #162032;
+    background: #161f2e;
     border-bottom: 1px solid var(--card-border);
 }
 
@@ -235,7 +238,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #070b12;
+    background: #080c14;
     overflow: auto;
     position: relative;
 }
@@ -253,12 +256,13 @@ body {
     overflow-y: auto;
     font-size: 13px;
     line-height: 1.6;
-    background: #090d16;
+    background: #0b0f19;
+    color: var(--text-primary);
 }
 
 .copilot-actions {
     padding: 10px;
-    background: #162032;
+    background: #161f2e;
     border-top: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
@@ -266,19 +270,21 @@ body {
 }
 
 .action-chip {
-    background: #1e293b;
-    color: var(--accent-blue);
-    border: 1px solid #334155;
+    background: #1a2333;
+    color: var(--text-primary);
+    border: 1px solid #2e3a4e;
     padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
     text-align: left;
+    transition: all 0.15s ease;
 }
 
 .action-chip:hover {
-    background: #334155;
+    background: #273449;
     border-color: var(--accent-blue);
+    color: #ffffff;
 }
 
 /* Floating Instruments Modal Window */
@@ -288,7 +294,8 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.82);
+    backdrop-filter: blur(3px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -306,7 +313,7 @@ body {
     width: 90%;
     max-width: 620px;
     overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.7);
 }
 
 .modal-header {
@@ -314,7 +321,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: #162032;
+    background: #161f2e;
     border-bottom: 1px solid var(--card-border);
 }
 
@@ -323,7 +330,7 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    background: #162032;
+    background: #161f2e;
     border-top: 1px solid var(--card-border);
 }
 
@@ -335,14 +342,14 @@ body {
 }
 
 .select-input-sm {
-    background: #1e293b;
-    color: #f8fafc;
-    border: 1px solid #334155;
+    background: #1a2333;
+    color: var(--text-primary);
+    border: 1px solid #2e3a4e;
     border-radius: 4px;
     padding: 2px 4px;
 }
 
 .select-input-sm option {
-    background: #0f172a;
-    color: #f8fafc;
+    background: #0f1724;
+    color: var(--text-primary);
 }
