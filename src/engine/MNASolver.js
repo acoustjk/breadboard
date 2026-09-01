@@ -300,7 +300,7 @@ export class MNASolver {
                             const compId = (comp.id || '').toUpperCase();
 
                             const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_63' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17') || pinStr.includes('B3_F36')));
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_62' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46')));
+                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_62' || compId === 'IC_CATALOG_35' || (comp.icType === 'LF356' && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('F45') || pinStr.includes('F46'))) || pinStr.includes('B2_F48');
                             const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49')));
 
                             let vTarget = 0;
@@ -353,7 +353,7 @@ export class MNASolver {
                                 const stepBase = (4 - stepIdx) * 1.6; // 6.4V, 4.8V, 3.2V, 1.6V, 0.0V
                                 vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.3);
 
-                            } else if (pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56')) {
+                            } else if (pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56') || pinStr.includes('B4_F36')) {
                                 // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
                                 this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
                                 const rawSine = Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
