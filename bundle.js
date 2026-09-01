@@ -4272,6 +4272,21 @@ class AppController {
         this.renderAll();
     }
 
+    startSimulation() {
+        if (!this.isRunning) {
+            this.isRunning = true;
+            this.runLoop();
+        }
+    }
+
+    stopSimulation() {
+        this.isRunning = false;
+        if (this.animFrameId) {
+            cancelAnimationFrame(this.animFrameId);
+            this.animFrameId = null;
+        }
+    }
+
     parseValue(str) {
         if (!str) return null;
         str = str.trim().toLowerCase();

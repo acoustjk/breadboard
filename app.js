@@ -4,17 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=3500';
-import { MNASolver } from './src/engine/MNASolver.js?v=3500';
-import { FFT } from './src/engine/FFT.js?v=3500';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=3500';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=3500';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=3500';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=3500';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=3500';
-import { AICopilot } from './src/components/AICopilot.js?v=3500';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=3500';
-import { USER_PRESETS } from './src/engine/UserPresets.js?v=3500';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=4000';
+import { MNASolver } from './src/engine/MNASolver.js?v=4000';
+import { FFT } from './src/engine/FFT.js?v=4000';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=4000';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=4000';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=4000';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=4000';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=4000';
+import { AICopilot } from './src/components/AICopilot.js?v=4000';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=4000';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=4000';
 
 class AppController {
     constructor() {
@@ -68,6 +68,21 @@ class AppController {
         this.setupSaveLoadHandlers();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
         this.renderAll();
+    }
+
+    startSimulation() {
+        if (!this.isRunning) {
+            this.isRunning = true;
+            this.runLoop();
+        }
+    }
+
+    stopSimulation() {
+        this.isRunning = false;
+        if (this.animFrameId) {
+            cancelAnimationFrame(this.animFrameId);
+            this.animFrameId = null;
+        }
     }
 
     parseValue(str) {
