@@ -2355,7 +2355,7 @@ class BreadboardCanvas {
         this.ctx.fillStyle = '#f8fafc';
         this.ctx.font = 'bold 16px sans-serif';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText('COMPANY-JK INTERACTIVE BREADBOARD WORKBENCH', 30, 36);
+        this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 36);
 
         this.ctx.fillStyle = '#94a3b8';
         this.ctx.font = '12px sans-serif';
