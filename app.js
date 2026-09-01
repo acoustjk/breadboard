@@ -4,17 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1790';
-import { MNASolver } from './src/engine/MNASolver.js?v=1790';
-import { FFT } from './src/engine/FFT.js?v=1790';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1790';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1790';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1790';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1790';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1790';
-import { AICopilot } from './src/components/AICopilot.js?v=1790';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1790';
-import { USER_PRESETS } from './src/engine/UserPresets.js?v=1790';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1800';
+import { MNASolver } from './src/engine/MNASolver.js?v=1800';
+import { FFT } from './src/engine/FFT.js?v=1800';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1800';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1800';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1800';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1800';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1800';
+import { AICopilot } from './src/components/AICopilot.js?v=1800';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1800';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=1800';
 
 class AppController {
     constructor() {
@@ -513,14 +513,20 @@ class AppController {
         this.probeBPin = null;
         this.probeCPin = null;
         this.probeDPin = null;
-        this.breadboardCanvas.probeAPin = null;
-        this.breadboardCanvas.probeBPin = null;
-        this.breadboardCanvas.probeCPin = null;
-        this.breadboardCanvas.probeDPin = null;
-        this.breadboardCanvas.selectedComponent = null;
-        this.oscilloscopeCanvas.resetBuffer();
+        if (this.breadboardCanvas) {
+            this.breadboardCanvas.probeAPin = null;
+            this.breadboardCanvas.probeBPin = null;
+            this.breadboardCanvas.probeCPin = null;
+            this.breadboardCanvas.probeDPin = null;
+            this.breadboardCanvas.selectedComponent = null;
+            this.breadboardCanvas.componentsRef = this.components;
+        }
+        if (this.oscilloscopeCanvas) {
+            this.oscilloscopeCanvas.resetBuffer();
+        }
         this.simTime = 0;
         this.updateCutoffFreqDisplay();
+        this.renderAll();
     }
 
     warmupSimulationBuffer(steps = 60000) {
@@ -1153,6 +1159,9 @@ class AppController {
 
     applyLoadedCircuit(restored) {
         this.components = restored.components;
+        if (this.breadboardCanvas) {
+            this.breadboardCanvas.componentsRef = this.components;
+        }
 
         if (restored.power) {
             this.voltageVa = restored.power.voltageVa ?? 12.0;
@@ -1889,9 +1898,11 @@ class AppController {
     loadUserPreset(presetKey) {
         const preset = USER_PRESETS[presetKey];
         if (!preset || !preset.data) return;
-        const restored = CircuitSerializer.deserialize(preset.data, this.grid);
+        const restored = CircuitSerializer.deserialize(preset.data);
         this.applyLoadedCircuit(restored);
-        this.breadboardCanvas.toastMsg = `⚡ ${preset.title} 로드 완료!`;
+        if (this.breadboardCanvas) {
+            this.breadboardCanvas.toastMsg = `🍞 ${preset.title} 로드 완료!`;
+        }
     }
 
     updateCutoffFreqDisplay() {
