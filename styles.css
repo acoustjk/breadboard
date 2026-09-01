@@ -90,13 +90,13 @@ body {
 }
 
 .btn {
-    background: #1e293b;
+    background: #1a2333;
     color: var(--text-primary);
-    border: 1px solid var(--card-border);
+    border: 1px solid #2e3a4e;
     padding: 7px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
+    border-radius: 5px;
+    font-size: 12.5px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.15s ease;
     display: inline-flex;
@@ -104,47 +104,81 @@ body {
     justify-content: center;
     gap: 4px;
     white-space: nowrap;
+    letter-spacing: -0.2px;
 }
 
 .btn:hover {
-    background: #334155;
+    background: #273449;
     border-color: #475569;
+    color: #ffffff;
 }
 
 .btn.active {
-    background: var(--accent-blue);
-    color: #0f172a;
-    border-color: var(--accent-blue);
+    background: #273449;
+    color: #38bdf8;
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+    font-weight: 700;
 }
 
 .btn-success {
-    background: #166534;
-    border-color: #22c55e;
-    color: #f8fafc;
+    background: #12241d;
+    border-color: #059669;
+    color: #6ee7b7;
 }
 
 .btn-success:hover {
-    background: #15803d;
+    background: #1a382c;
+    border-color: #10b981;
 }
 
 .btn-primary {
-    background: #0284c7;
-    border-color: #38bdf8;
+    background: #1e293b;
+    border-color: #334155;
     color: #f8fafc;
 }
 
 .btn-primary:hover {
-    background: #0369a1;
+    background: #334155;
+    border-color: #0ea5e9;
+    color: #ffffff;
 }
 
 .btn-danger {
-    background: #991b1b;
-    border-color: #ef4444;
-    color: #f8fafc;
+    background: #24181a;
+    border-color: #7f1d1d;
+    color: #fca5a5;
 }
 
 .btn-danger:hover {
-    background: #b91c1c;
+    background: #3f1d24;
+    border-color: #ef4444;
+}
+
+/* Oscilloscope Probe Selector Buttons */
+.btn-probe-a {
+    background: #161f2e;
+    border: 1px solid #2e3a4e;
+    border-left: 3px solid #f59e0b;
+    color: #f8fafc;
+}
+.btn-probe-b {
+    background: #161f2e;
+    border: 1px solid #2e3a4e;
+    border-left: 3px solid #e879f9;
+    color: #f8fafc;
+}
+.btn-probe-c {
+    background: #161f2e;
+    border: 1px solid #2e3a4e;
+    border-left: 3px solid #38bdf8;
+    color: #f8fafc;
+}
+.btn-probe-d {
+    background: #161f2e;
+    border: 1px solid #2e3a4e;
+    border-left: 3px solid #10b981;
+    color: #f8fafc;
 }
 
 /* 3-Column Layout Grid (Left Palette | Center Breadboard | Right AI Copilot) */
