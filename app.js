@@ -4,16 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1770';
-import { MNASolver } from './src/engine/MNASolver.js?v=1770';
-import { FFT } from './src/engine/FFT.js?v=1770';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1770';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1770';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1770';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1770';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=1770';
-import { AICopilot } from './src/components/AICopilot.js?v=1770';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1770';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=1780';
+import { MNASolver } from './src/engine/MNASolver.js?v=1780';
+import { FFT } from './src/engine/FFT.js?v=1780';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=1780';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=1780';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=1780';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=1780';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=1780';
+import { AICopilot } from './src/components/AICopilot.js?v=1780';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=1780';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=1780';
 
 class AppController {
     constructor() {
@@ -62,7 +63,7 @@ class AppController {
         this.probeDPin = null;
 
         this.initPlacementEngine();
-        this.initBjtAstableOscillator(); // Load 2-Transistor Astable Multivibrator Layout by Default
+        this.loadUserPreset('pnm_circuit'); // Load Official PNM Circuit Layout by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
@@ -1849,26 +1850,8 @@ class AppController {
                 if (val === 'empty') {
                     this.initEmptyBoard();
                     this.breadboardCanvas.toastMsg = '🧹 빈 브레드보드 모드';
-                } else if (val === 'bjt_astable') {
-                    this.initBjtAstableOscillator();
-                } else if (val === 'exam_pnm') {
-                    this.initPNMExam();
-                } else if (val === 'square_osc') {
-                    this.initUserPreservedSquare();
-                } else if (val === 'lm358_osc') {
-                    this.initLM358Oscillator();
-                } else if (val === 'exam_master_comm') {
-                    this.initMasterCommExam();
-                } else if (val === 'exam_craftsman_elec') {
-                    this.initCraftsmanElecExam();
-                } else if (val === 'exam_engineer_elec') {
-                    this.initEngineerElecExam();
-                } else if (val === 'exam_wireless') {
-                    this.initWirelessExam();
-                } else if (val === 'exam_computer') {
-                    this.initComputerExam();
-                } else if (val === 'exam_phase_shift') {
-                    this.initPhaseShiftExam();
+                } else if (USER_PRESETS[val]) {
+                    this.loadUserPreset(val);
                 }
                 this.renderAll();
             });
@@ -1901,6 +1884,40 @@ class AppController {
 
         const btnAiTrans = document.getElementById('btnAiTransient');
         if (btnAiTrans) btnAiTrans.addEventListener('click', () => this.triggerAiDiagnostic('transient'));
+    }
+
+    loadUserPreset(presetKey) {
+        const preset = USER_PRESETS[presetKey];
+        if (!preset || !preset.data) return;
+        const restored = CircuitSerializer.deserialize(preset.data, this.grid);
+        this.components = restored.components;
+
+        if (preset.data.power) {
+            this.voltageVa = preset.data.power.voltageVa !== undefined ? preset.data.power.voltageVa : 9;
+            this.voltageVb = preset.data.power.voltageVb !== undefined ? preset.data.power.voltageVb : 0;
+            this.voltageVc = preset.data.power.voltageVc !== undefined ? preset.data.power.voltageVc : -9;
+            const vaEl = document.getElementById('inputVa');
+            const vbEl = document.getElementById('inputVb');
+            const vcEl = document.getElementById('inputVc');
+            if (vaEl) vaEl.value = this.voltageVa;
+            if (vbEl) vbEl.value = this.voltageVb;
+            if (vcEl) vcEl.value = this.voltageVc;
+        }
+
+        if (preset.data.probes) {
+            this.probeAPin = preset.data.probes.probeAPin || null;
+            this.probeBPin = preset.data.probes.probeBPin || null;
+            this.probeCPin = preset.data.probes.probeCPin || null;
+            this.probeDPin = preset.data.probes.probeDPin || null;
+            this.breadboardCanvas.probeAPin = this.probeAPin;
+            this.breadboardCanvas.probeBPin = this.probeBPin;
+            this.breadboardCanvas.probeCPin = this.probeCPin;
+            this.breadboardCanvas.probeDPin = this.probeDPin;
+        }
+
+        this.breadboardCanvas.components = this.components;
+        this.breadboardCanvas.toastMsg = `⚡ ${preset.title} 로드 완료!`;
+        this.renderAll();
     }
 
     updateCutoffFreqDisplay() {
