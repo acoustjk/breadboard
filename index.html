@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=7000">
+    <link rel="stylesheet" href="./styles.css?v=8000">
 </head>
 <body>
     <!-- App Header Toolbar -->
@@ -15,7 +15,7 @@
         <div class="logo-group">
             <span class="logo-icon">🍞</span>
             <h1 class="logo-title">빵판시뮬레이터</h1>
-            <span class="logo-badge">Company-JK Workbench (v=7000)</span>
+            <span class="logo-badge">Company-JK Workbench (v=8000)</span>
         </div>
 
         <div class="header-controls">
@@ -54,156 +54,156 @@
         <!-- Left Sidebar: Component Palette & Tools -->
         <aside class="card palette-sidebar">
             <div class="card-title">
-                <span>부품 라이브러리 (Component Palette)</span>
+                <span>🧰 부품 라이브러리 (Component Palette)</span>
             </div>
 
             <!-- Basic Placement Tools -->
             <div class="palette-section">
-                <div class="palette-section-title">기본 조작 (Basic Tools):</div>
+                <div class="palette-section-title">👆 기본 조작 (Basic Tools):</div>
                 <div class="palette-grid-2">
-                    <button id="toolSelect" class="btn active">선택 모드 (Select)</button>
-                    <button id="toolWire" class="btn">점퍼선 연결 (Wire)</button>
+                    <button id="toolSelect" class="btn active">👆 선택 모드</button>
+                    <button id="toolWire" class="btn">🔌 점퍼선 연결</button>
                 </div>
             </div>
 
             <!-- Resistor Family Dropdown (Resistor / Potentiometer) -->
             <div class="palette-section">
-                <div class="palette-section-title">저항 소자 (Resistor Family):</div>
+                <div class="palette-section-title">⚡ 저항 소자 (Resistor Family):</div>
                 <div class="palette-block-vertical">
                     <select id="resistorTypeSelect" class="select-input">
-                        <option value="R" selected>고정 저항 (Resistor)</option>
-                        <option value="POT">가변 저항 10kΩ</option>
-                        <option value="POT_50K">가변 저항 50kΩ</option>
-                        <option value="POT_1M">가변 저항 1MΩ</option>
+                        <option value="R" selected>⚡ 고정 저항 (Resistor)</option>
+                        <option value="POT">🎛️ 가변 저항 10kΩ</option>
+                        <option value="POT_50K">🎛️ 가변 저항 50kΩ</option>
+                        <option value="POT_1M">🎛️ 가변 저항 1MΩ</option>
                     </select>
-                    <button id="toolResistorCatalog" class="btn btn-primary">저항 소자 배치</button>
+                    <button id="toolResistorCatalog" class="btn btn-primary">⚡ 저항 소자 배치</button>
                 </div>
             </div>
 
             <!-- Capacitor Family Dropdown (Mylar / Elec / Ceramic) -->
             <div class="palette-section">
-                <div class="palette-section-title">콘덴서 소자 (Capacitor Family):</div>
+                <div class="palette-section-title">🔋 콘덴서 소자 (Capacitor Family):</div>
                 <div class="palette-block-vertical">
                     <select id="capacitorTypeSelect" class="select-input">
-                        <option value="C_MYLAR" selected>마일러 필름 콘덴서</option>
-                        <option value="C_ELEC">전해 콘덴서 (+/- 극성)</option>
-                        <option value="C_CERAMIC">세라믹 콘덴서 (104)</option>
+                        <option value="C_MYLAR" selected>🟢 마일러 필름 콘덴서</option>
+                        <option value="C_ELEC">🔋 전해 콘덴서 (+/- 극성)</option>
+                        <option value="C_CERAMIC">🟡 세라믹 콘덴서 (104)</option>
                     </select>
-                    <button id="toolCapacitorCatalog" class="btn btn-primary">콘덴서 소자 배치</button>
+                    <button id="toolCapacitorCatalog" class="btn btn-primary">🔋 콘덴서 소자 배치</button>
                 </div>
             </div>
 
             <!-- Transistor Family Dropdown (NPN / PNP BJT TO-92) -->
             <div class="palette-section">
-                <div class="palette-section-title">트랜지스터 (BJT Transistors):</div>
+                <div class="palette-section-title">🔺 트랜지스터 (BJT Transistors):</div>
                 <div class="palette-block-vertical">
                     <select id="transistorTypeSelect" class="select-input">
-                        <option value="2N3904" selected>2N3904 (NPN) TO-92</option>
-                        <option value="2N3906">2N3906 (PNP) TO-92</option>
-                        <option value="2N2222">2N2222 (NPN 고전류)</option>
-                        <option value="C1815">KSC1815 (NPN 저소음)</option>
-                        <option value="A1015">KSA1015 (PNP 저소음)</option>
-                        <option value="2SK30A">2SK30A / K30 (N-JFET)</option>
+                        <option value="2N3904" selected>🔺 2N3904 (NPN) TO-92</option>
+                        <option value="2N3906">🔻 2N3906 (PNP) TO-92</option>
+                        <option value="2N2222">⚡ 2N2222 (NPN 고전류)</option>
+                        <option value="C1815">🔺 KSC1815 (NPN 저소음)</option>
+                        <option value="A1015">🔻 KSA1015 (PNP 저소음)</option>
+                        <option value="2SK30A">⚡ 2SK30A / K30 (N-JFET)</option>
                     </select>
-                    <button id="toolTransistorCatalog" class="btn btn-primary">트랜지스터 배치</button>
+                    <button id="toolTransistorCatalog" class="btn btn-primary">🔺 트랜지스터 배치</button>
                 </div>
             </div>
 
             <!-- IC Catalog Dropdown (20 IC Chips) -->
             <div class="palette-section">
-                <div class="palette-section-title">IC 칩 카탈로그 (DIP Integrated Circuits):</div>
+                <div class="palette-section-title">🔲 IC 칩 카탈로그 (DIP Integrated Circuits):</div>
                 <div class="palette-block-vertical">
                     <select id="icLibrarySelect" class="select-input">
-                        <optgroup label="통신기능장 & 아날로그 IC">
-                            <option value="LF356" selected>LF356 (DIP-8) JFET Op-Amp</option>
-                            <option value="LM301">LM301 (DIP-8) 정밀 Op-Amp</option>
-                            <option value="NE555">NE555 (DIP-8) 정밀 타이머</option>
-                            <option value="NE556">NE556 (DIP-14) 듀얼 타이머</option>
-                            <option value="LM358">LM358 (DIP-8) 듀얼 Op-Amp</option>
-                            <option value="LM741">LM741 (DIP-8) 싱글 Op-Amp</option>
-                            <option value="LM386">LM386 (DIP-8) 오디오 증폭기</option>
-                            <option value="LM393">LM393 (DIP-8) 듀얼 비교기</option>
+                        <optgroup label="⏱️ 통신기능장 & 아날로그 IC">
+                            <option value="LF356" selected>🔲 LF356 (DIP-8) JFET Op-Amp</option>
+                            <option value="LM301">🔲 LM301 (DIP-8) 정밀 Op-Amp</option>
+                            <option value="NE555">⏱️ NE555 (DIP-8) 정밀 타이머</option>
+                            <option value="NE556">⏱️ NE556 (DIP-14) 듀얼 타이머</option>
+                            <option value="LM358">🔲 LM358 (DIP-8) 듀얼 Op-Amp</option>
+                            <option value="LM741">🔲 LM741 (DIP-8) 싱글 Op-Amp</option>
+                            <option value="LM386">🔲 LM386 (DIP-8) 오디오 증폭기</option>
+                            <option value="LM393">🔲 LM393 (DIP-8) 듀얼 비교기</option>
                         </optgroup>
-                        <optgroup label="전원 레귤레이터 IC">
-                            <option value="LM7805">LM7805 (DIP-8) +5V 레귤레이터</option>
-                            <option value="LM7812">LM7812 (DIP-8) +12V 레귤레이터</option>
-                            <option value="LM317">LM317 (DIP-8) 가변 레귤레이터</option>
+                        <optgroup label="⚡ 전원 레귤레이터 IC">
+                            <option value="LM7805">⚡ LM7805 (DIP-8) +5V 레귤레이터</option>
+                            <option value="LM7812">⚡ LM7812 (DIP-8) +12V 레귤레이터</option>
+                            <option value="LM317">⚡ LM317 (DIP-8) 가변 레귤레이터</option>
                         </optgroup>
-                        <optgroup label="74HC 시리즈 논리 게이트 (DIP-14)">
-                            <option value="74HC00">74HC00 Quad NAND Gate</option>
-                            <option value="74HC02">74HC02 Quad NOR Gate</option>
-                            <option value="74HC04">74HC04 Hex Inverter (NOT)</option>
-                            <option value="74HC08">74HC08 Quad AND Gate</option>
-                            <option value="74HC32">74HC32 Quad OR Gate</option>
-                            <option value="74HC86">74HC86 Quad XOR Gate</option>
+                        <optgroup label="🔢 74HC 시리즈 논리 게이트 (DIP-14)">
+                            <option value="74HC00">🔢 74HC00 Quad NAND Gate</option>
+                            <option value="74HC02">🔢 74HC02 Quad NOR Gate</option>
+                            <option value="74HC04">🔢 74HC04 Hex Inverter (NOT)</option>
+                            <option value="74HC08">🔢 74HC08 Quad AND Gate</option>
+                            <option value="74HC32">🔢 74HC32 Quad OR Gate</option>
+                            <option value="74HC86">🔢 74HC86 Quad XOR Gate</option>
                         </optgroup>
-                        <optgroup label="핵심 TTL/CMOS IC (DIP-14/16)">
-                            <option value="74LS393">74LS393 Dual 4-Bit Binary Counter (DIP-14)</option>
-                            <option value="74LS151">74LS151 8-to-1 Line Multiplexer (DIP-16)</option>
-                            <option value="74LS93">74LS93 4-Bit Binary Counter (DIP-14)</option>
-                            <option value="74LS86">74LS86 Quad 2-Input XOR Gate (DIP-14)</option>
-                            <option value="74HC595">74HC595 8-Bit Shift Register</option>
-                            <option value="CD4017">CD4017 Decade Counter / Sequencer</option>
-                            <option value="CD4026">CD4026 7-Seg Counter Driver</option>
-                            <option value="CD4049">CD4049 Hex Inverting Buffer (DIP-16)</option>
-                            <option value="CD4069">CD4069 Hex Inverter (DIP-14)</option>
-                            <option value="CD4510">CD4510 BCD Up/Down Counter (DIP-16)</option>
-                            <option value="CD4518">CD4518 Dual BCD Up Counter (DIP-16)</option>
-                            <option value="XR2206">XR-2206 Monolithic Function Generator (DIP-16)</option>
-                            <option value="CD4027">CD4027 Dual J-K Flip-Flop (DIP-16)</option>
+                        <optgroup label="📊 핵심 TTL/CMOS IC (DIP-14/16)">
+                            <option value="74LS393">📊 74LS393 Dual 4-Bit Binary Counter</option>
+                            <option value="74LS151">📊 74LS151 8-to-1 Line Multiplexer</option>
+                            <option value="74LS93">📊 74LS93 4-Bit Binary Counter</option>
+                            <option value="74LS86">📊 74LS86 Quad 2-Input XOR Gate</option>
+                            <option value="74HC595">📊 74HC595 8-Bit Shift Register</option>
+                            <option value="CD4017">📊 CD4017 Decade Counter</option>
+                            <option value="CD4026">📊 CD4026 7-Seg Counter Driver</option>
+                            <option value="CD4049">📊 CD4049 Hex Inverting Buffer</option>
+                            <option value="CD4069">📊 CD4069 Hex Inverter</option>
+                            <option value="CD4510">📊 CD4510 BCD Up/Down Counter</option>
+                            <option value="CD4518">📊 CD4518 Dual BCD Up Counter</option>
+                            <option value="XR2206">📊 XR-2206 Monolithic Function Generator</option>
+                            <option value="CD4027">📊 CD4027 Dual J-K Flip-Flop</option>
                         </optgroup>
                     </select>
-                    <button id="toolIcCatalog" class="btn btn-primary">IC 칩 배치</button>
+                    <button id="toolIcCatalog" class="btn btn-primary">🔲 IC 칩 배치</button>
                 </div>
             </div>
 
             <!-- 4CH Oscilloscope Probes -->
             <div class="palette-section">
-                <div class="palette-section-title">오실로스코프 프로브 (Oscilloscope Probes):</div>
+                <div class="palette-section-title">📊 오실로스코프 프로브 (Oscilloscope Probes):</div>
                 <div class="palette-grid-2">
-                    <button id="toolProbeA" class="btn btn-probe-a">CH A</button>
-                    <button id="toolProbeB" class="btn btn-probe-b">CH B</button>
-                    <button id="toolProbeC" class="btn btn-probe-c">CH C</button>
-                    <button id="toolProbeD" class="btn btn-probe-d">CH D</button>
+                    <button id="toolProbeA" class="btn btn-probe-a">📍 CH A</button>
+                    <button id="toolProbeB" class="btn btn-probe-b">📍 CH B</button>
+                    <button id="toolProbeC" class="btn btn-probe-c">📍 CH C</button>
+                    <button id="toolProbeD" class="btn btn-probe-d">📍 CH D</button>
                 </div>
             </div>
 
             <!-- Continuity & BEEP Tester Section -->
             <div class="palette-section" style="background: #121a28; border: 1px solid var(--card-border); padding: 8px; border-radius: 6px; box-sizing: border-box; width: 100%;">
-                <div class="palette-section-title" style="color: var(--accent-silver); font-weight: bold; font-size: 11px;">도통 테스터기 (Continuity Tester):</div>
+                <div class="palette-section-title" style="color: var(--accent-silver); font-weight: bold; font-size: 11px;">🔔 도통 테스터기 (Continuity Tester):</div>
                 <div style="display: flex; gap: 4px; margin-bottom: 6px; width: 100%;">
-                    <button id="toolContinuityRed" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 11px; white-space: nowrap;" title="탐침 (+) 핀 지정">탐침 (+)</button>
-                    <button id="toolContinuityBlack" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 11px; white-space: nowrap;" title="탐침 (-) 핀 지정">탐침 (-)</button>
+                    <button id="toolContinuityRed" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 11px; white-space: nowrap;" title="탐침 (+) 핀 지정">🔴 탐침 (+)</button>
+                    <button id="toolContinuityBlack" class="btn" style="flex: 1; min-width: 0; padding: 4px 2px; font-size: 11px; white-space: nowrap;" title="탐침 (-) 핀 지정">⚫ 탐침 (-)</button>
                 </div>
                 <div style="font-size: 10.5px; display: flex; align-items: center; justify-content: space-between; background: #0b0f19; padding: 6px 6px; border-radius: 4px; border: 1px solid #232d3f; width: 100%; box-sizing: border-box;">
-                    <span id="continuityStatusText" style="font-weight: bold; color: var(--text-secondary); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">단선 (미연결 - ∞ Ω)</span>
-                    <button id="btnToggleBeepSound" class="btn" style="padding: 2px 5px; font-size: 9.5px; background: #1e293b; color: var(--text-primary); border: 1px solid #334155; white-space: nowrap; flex-shrink: 0;">BEEP: ON</button>
+                    <span id="continuityStatusText" style="font-weight: bold; color: var(--text-secondary); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔴 단선 (미연결 - ∞ Ω)</span>
+                    <button id="btnToggleBeepSound" class="btn" style="padding: 2px 5px; font-size: 9.5px; background: #1e293b; color: var(--text-primary); border: 1px solid #334155; white-space: nowrap; flex-shrink: 0;">🔊 BEEP: ON</button>
                 </div>
             </div>
 
             <!-- Other Semiconductor Components -->
             <div class="palette-section">
-                <div class="palette-section-title">기타 반도체 & 전원 소자:</div>
+                <div class="palette-section-title">🔻 기타 반도체 & 전원 소자:</div>
                 <div class="palette-grid-2">
-                    <button id="toolDiode" class="btn">1N4148 다이오드</button>
-                    <button id="toolZener" class="btn">9.1V 제너 다이오드</button>
-                    <button id="toolDcSource" class="btn">5V 전원 소자</button>
-                    <button id="toolSwitch" class="btn">스위치 소자</button>
+                    <button id="toolDiode" class="btn">🔻 1N4148 다이오드</button>
+                    <button id="toolZener" class="btn">⚡ 9.1V 제너 다이오드</button>
+                    <button id="toolDcSource" class="btn">🔴 5V 전원 소자</button>
+                    <button id="toolSwitch" class="btn">🔘 스위치 소자</button>
                 </div>
-                <button id="toolLed" class="btn" style="width: 100%; margin-top: 2px;">LED 점등 소자</button>
+                <button id="toolLed" class="btn" style="width: 100%; margin-top: 2px;">💡 LED 점등 소자</button>
             </div>
 
             <!-- Instrument Popup Triggers -->
             <div class="palette-section" style="margin-top: auto;">
-                <div class="palette-section-title">계측기 팝업 (Instruments):</div>
+                <div class="palette-section-title">🎛️ 계측기 팝업 (Instruments):</div>
                 <button id="btnOpenScopeModal" class="btn btn-primary" style="width: 100%;">
-                    오실로스코프 팝업 열기
+                    📊 오실로스코프 팝업 열기
                 </button>
             </div>
 
             <div style="display: flex; gap: 6px; margin-top: 6px;">
-                <button id="btnFlipPolarity" class="btn btn-primary" style="width: 50%;">소자 회전</button>
-                <button id="btnDeleteSelected" class="btn btn-danger" style="width: 50%;">선택 삭제</button>
+                <button id="btnFlipPolarity" class="btn btn-primary" style="width: 50%;">🔄 소자 회전</button>
+                <button id="btnDeleteSelected" class="btn btn-danger" style="width: 50%;">🗑️ 선택 삭제</button>
             </div>
         </aside>
 
@@ -744,6 +744,6 @@
     </div>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=7000"></script>
+    <script src="./bundle.js?v=8000"></script>
 </body>
 </html>
