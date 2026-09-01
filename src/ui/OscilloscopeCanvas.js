@@ -236,8 +236,8 @@ export class OscilloscopeCanvas {
 
         ctx.save();
         ctx.strokeStyle = '#1e293b';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]); // Dashed grid lines as in exam photo media_1788162478342.png
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([6, 6]); // Ultra HD Dashed grid lines
 
         ctx.beginPath();
         for (let i = 1; i < numDivsX; i++) {
@@ -253,7 +253,7 @@ export class OscilloscopeCanvas {
         // 2. Solid Center Axes (X=5 div, Y=4 div)
         ctx.setLineDash([]);
         ctx.strokeStyle = '#475569';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2.0;
         ctx.beginPath();
         ctx.moveTo(width / 2, 0);
         ctx.lineTo(width / 2, height);
@@ -263,7 +263,7 @@ export class OscilloscopeCanvas {
 
         // 3. Outer Solid Rectangular Frame Border
         ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3.0;
         ctx.strokeRect(0, 0, width, height);
         ctx.restore();
 
@@ -273,9 +273,9 @@ export class OscilloscopeCanvas {
         if (ringBuffer && ringBuffer.count > 0) {
             ctx.save();
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2.2;
+            ctx.lineWidth = 3.6;
             ctx.shadowColor = color;
-            ctx.shadowBlur = 5;
+            ctx.shadowBlur = 8;
 
             const channelTimeDiv = timePerDivOverride || this.timePerDiv || 0.0002;
             const totalTimeScreen = 10 * channelTimeDiv; // 10 DIVs total across screen
