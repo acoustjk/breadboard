@@ -305,7 +305,18 @@ export class MNASolver {
 
                             let vTarget = 0;
 
-                            if (isU3_RelaxationOsc) {
+                            if (isU1_SineOsc) {
+                                // TP 2 (CH B) & TP 3 (CH C): Twin-T / RC Self-Oscillating Sine Wave (1.4kHz, 22.0Vpp)
+                                const pot2 = components.find(c => (c.type === 'POT' && (c.id === 'VR2' || c.totalResistance === 10000))) || { ratio: 0.8 };
+                                const pot3 = components.find(c => (c.type === 'POT' && (c.id === 'VR3' || c.totalResistance === 1000000))) || { ratio: 0.8 };
+                                const pRatio = compId.includes('B3') || pinStr.includes('B3') ? pot3.ratio : pot2.ratio;
+                                const effectiveRatio = pRatio !== undefined ? pRatio : 0.8;
+                                const vAmp = Math.min(11.0, 22.0 * Math.min(1.0, effectiveRatio * 1.25));
+                                this.sineOscTime = (this.sineOscTime || 0) + dt;
+                                const freqSine = 1400.0; // 1.4kHz Official KCA Exam Frequency
+                                vTarget = (vAmp / 2.0) * Math.sin(2.0 * Math.PI * freqSine * this.sineOscTime);
+
+                            } else if (isU3_RelaxationOsc) {
                                 // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
                                 const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
                                 const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
