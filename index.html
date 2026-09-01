@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=16000">
+    <link rel="stylesheet" href="./styles.css?v=17000">
 </head>
 <body>
     <!-- App Header Toolbar -->
@@ -213,7 +213,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=16000</span>
+                <span class="logo-badge">v=17000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -469,14 +469,17 @@
                 <span class="logo-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Community</span>
             </div>
 
-            <!-- Sponsor / Announcement Banner Section -->
-            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid #334155; border-radius: 8px; padding: 10px; flex-shrink: 0;">
+            <!-- Google AdSense / Sponsor Banner Section Container -->
+            <div id="googleAdsenseSlot" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: 1px solid #334155; border-radius: 8px; padding: 10px; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
                     <span style="font-size: 11px; font-weight: bold; color: #facc15; display: flex; align-items: center; gap: 4px;">
                         🎁 [공지 / 추천 스폰서]
                     </span>
-                    <span style="font-size: 9px; background: #0284c7; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: bold;">AD / NOTICE</span>
+                    <span style="font-size: 9px; background: #0284c7; color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: bold;">Google AdSense Ready</span>
                 </div>
+                
+                <!-- Google AdSense Unit Tag Placeholder (AdSense 승인 후 ca-pub-XXX 수록 가능) -->
+                <!-- <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins> -->
                 <a href="http://company-jk.com" target="_blank" rel="noopener noreferrer" style="display: block; text-decoration: none; color: #f8fafc;">
                     <div style="font-size: 11.5px; font-weight: bold; margin-bottom: 4px; color: #38bdf8;">
                         ⚡ Company-JK 실습키트 & 전자부품 할인 기획전
@@ -780,6 +783,6 @@
     </div>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=16000"></script>
+    <script src="./bundle.js?v=17000"></script>
 </body>
 </html>
