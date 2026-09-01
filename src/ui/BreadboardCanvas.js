@@ -499,16 +499,12 @@ export class BreadboardCanvas {
         this.ctx.textAlign = 'left';
         this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 36);
 
-        this.ctx.fillStyle = '#94a3b8';
-        this.ctx.font = '12px sans-serif';
-        this.ctx.fillText('3220 Tie-Points | 4-Block Terminal Matrix | Quad Bus Rails | 4CH Oscilloscope Engine', 30, 56);
-
         // 3. 4 Heavy Metal Binding Posts with Dynamic Voltage Values
         const bindingPosts = [
-            { id: 'BINDING_Va', label: 'Va', color: '#ef4444', x: 70, y: 72, valText: `${(this.voltageVa || 12.0) > 0 ? '+' : ''}${(this.voltageVa || 12.0).toFixed(1)}V` },
-            { id: 'BINDING_Vb', label: 'Vb', color: '#10b981', x: 180, y: 72, valText: `${(this.voltageVb || 0.0) > 0 ? '+' : ''}${(this.voltageVb || 0.0).toFixed(1)}V` },
-            { id: 'BINDING_Vc', label: 'Vc', color: '#0284c7', x: 290, y: 72, valText: `${(this.voltageVc || -12.0) > 0 ? '+' : ''}${(this.voltageVc || -12.0).toFixed(1)}V` },
-            { id: 'BINDING_GND', label: 'GND', color: '#64748b', x: 400, y: 72, valText: 'GND' }
+            { id: 'BINDING_Va', label: 'Va', color: '#ef4444', x: 520, y: 48, valText: `${(this.voltageVa || 12.0) > 0 ? '+' : ''}${(this.voltageVa || 12.0).toFixed(1)}V` },
+            { id: 'BINDING_Vb', label: 'Vb', color: '#10b981', x: 590, y: 48, valText: `${(this.voltageVb || 0.0) > 0 ? '+' : ''}${(this.voltageVb || 0.0).toFixed(1)}V` },
+            { id: 'BINDING_Vc', label: 'Vc', color: '#0284c7', x: 660, y: 48, valText: `${(this.voltageVc || -12.0) > 0 ? '+' : ''}${(this.voltageVc || -12.0).toFixed(1)}V` },
+            { id: 'BINDING_GND', label: 'GND', color: '#64748b', x: 730, y: 48, valText: 'GND' }
         ];
 
         bindingPosts.forEach(bp => {
@@ -520,14 +516,10 @@ export class BreadboardCanvas {
             this.ctx.lineWidth = 2;
             this.ctx.stroke();
 
-            this.ctx.fillStyle = '#f8fafc';
-            this.ctx.font = 'bold 11px sans-serif';
-            this.ctx.textAlign = 'center';
-            this.ctx.fillText(bp.label, bp.x, 34);
-
             this.ctx.fillStyle = '#facc15';
             this.ctx.font = 'bold 10px monospace';
-            this.ctx.fillText(bp.valText, bp.x, 92);
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(bp.valText, bp.x, 74);
         });
 
         // 4. Render Top 4 Horizontal Bus Lines Panel
