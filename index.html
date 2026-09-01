@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=17000">
+    <link rel="stylesheet" href="./styles.css?v=18000">
 </head>
 <body>
     <!-- App Header Toolbar -->
@@ -213,7 +213,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=17000</span>
+                <span class="logo-badge">v=18000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -782,7 +782,11 @@
         </div>
     </div>
 
+    <!-- Google Firebase Realtime Database SDK (for Global Live Feedback Board) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=17000"></script>
+    <script src="./bundle.js?v=18000"></script>
 </body>
 </html>

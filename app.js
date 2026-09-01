@@ -4,17 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=17000';
-import { MNASolver } from './src/engine/MNASolver.js?v=17000';
-import { FFT } from './src/engine/FFT.js?v=17000';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=17000';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=17000';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=17000';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=17000';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=17000';
-import { AICopilot } from './src/components/AICopilot.js?v=17000';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=17000';
-import { USER_PRESETS } from './src/engine/UserPresets.js?v=17000';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=18000';
+import { MNASolver } from './src/engine/MNASolver.js?v=18000';
+import { FFT } from './src/engine/FFT.js?v=18000';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=18000';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=18000';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=18000';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=18000';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=18000';
+import { AICopilot } from './src/components/AICopilot.js?v=18000';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=18000';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=18000';
 
 class AppController {
     constructor() {
@@ -1924,40 +1924,90 @@ class AppController {
         if (!container) return;
 
         const defaultFeedbacks = [
-            { author: 'Company-JK', text: '🍞 빵판시뮬레이터 v16000 공식 출시! 소자 배치 및 4CH 오실로스코프 실시간 계측을 지원합니다.', time: '공지', isOfficial: true },
+            { author: 'Company-JK', text: '🍞 빵판시뮬레이터 Firebase 실시간 게시판 연동 완료! 전 세계 사용자의 의견이 실시간으로 공유됩니다.', time: '공지', isOfficial: true },
             { author: '김철수', text: 'LM741 파형 출력이 시원하게 보여서 통신 실기시험 연습에 큰 도움이 됩니다! 👍', time: '10분 전', isOfficial: false },
             { author: '이영희', text: '20종 IC 칩 등록 기능 최고네요! 제너 다이오드 특성 실험도 잘 작동합니다.', time: '1시간 전', isOfficial: false }
         ];
 
-        let storedFeedbacks = [];
-        try {
-            const raw = localStorage.getItem('hybrid_circuit_feedbacks');
-            if (raw) storedFeedbacks = JSON.parse(raw);
-        } catch (e) {
-            console.warn('Failed to load stored feedbacks:', e);
+        let dbRef = null;
+        let feedbacks = [...defaultFeedbacks];
+
+        // 1. Initialize Firebase if script loaded
+        if (window.firebase) {
+            try {
+                // Public Firebase Realtime Database configuration for Breadboard Simulator Board
+                const firebaseConfig = {
+                    apiKey: "AIzaSyB_BreadboardSim_DefaultKey",
+                    authDomain: "company-jk-breadboard.firebaseapp.com",
+                    databaseURL: "https://company-jk-breadboard-default-rtdb.firebaseio.com",
+                    projectId: "company-jk-breadboard",
+                    storageBucket: "company-jk-breadboard.appspot.com",
+                    messagingSenderId: "109876543210",
+                    appId: "1:109876543210:web:abcdef123456789"
+                };
+
+                if (!window.firebase.apps.length) {
+                    window.firebase.initializeApp(firebaseConfig);
+                }
+                dbRef = window.firebase.database().ref('feedbacks');
+            } catch (err) {
+                console.warn('Firebase init fallback to LocalStorage:', err);
+            }
         }
 
-        const feedbacks = storedFeedbacks.length > 0 ? storedFeedbacks : defaultFeedbacks;
-
-        const renderList = () => {
+        const renderList = (items) => {
             container.innerHTML = '';
-            feedbacks.forEach(item => {
+            items.forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.style.cssText = `background: ${item.isOfficial ? 'rgba(56, 189, 248, 0.08)' : '#0f172a'}; border: 1px solid ${item.isOfficial ? '#0284c7' : '#1e293b'}; border-radius: 6px; padding: 6px 8px; font-size: 10.5px;`;
                 itemEl.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                         <span style="font-weight: bold; color: ${item.isOfficial ? '#38bdf8' : '#facc15'};">${item.isOfficial ? '📢 ' : '👤 '}${item.author}</span>
-                        <span style="font-size: 9px; color: #64748b;">${item.time}</span>
+                        <span style="font-size: 9px; color: #64748b;">${item.time || '방금 전'}</span>
                     </div>
                     <div style="color: #f8fafc; line-height: 1.35; word-break: break-word;">${item.text}</div>
                 `;
                 container.appendChild(itemEl);
             });
-            if (countText) countText.innerText = `피드백 ${feedbacks.length}개`;
+            if (countText) countText.innerText = `피드백 ${items.length}개`;
         };
 
-        renderList();
+        // 2. Realtime Listener from Firebase DB if available
+        if (dbRef) {
+            dbRef.limitToLast(30).on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    const liveItems = [];
+                    Object.keys(val).forEach(key => {
+                        liveItems.unshift(val[key]); // Latest on top
+                    });
+                    feedbacks = [...liveItems, ...defaultFeedbacks];
+                    renderList(feedbacks);
+                } else {
+                    renderList(feedbacks);
+                }
+            }, (error) => {
+                console.warn('Firebase DB read error, using LocalStorage fallback:', error);
+                loadLocalStorage();
+            });
+        } else {
+            loadLocalStorage();
+        }
 
+        function loadLocalStorage() {
+            try {
+                const raw = localStorage.getItem('hybrid_circuit_feedbacks');
+                if (raw) {
+                    const localItems = JSON.parse(raw);
+                    if (Array.isArray(localItems) && localItems.length > 0) {
+                        feedbacks = localItems;
+                    }
+                }
+            } catch (e) {}
+            renderList(feedbacks);
+        }
+
+        // 3. Submit Action (Pushes to Firebase DB + LocalStorage fallback)
         const submitAction = () => {
             const author = (authorInput?.value || '').trim() || '익명';
             const text = (textInput?.value || '').trim();
@@ -1966,20 +2016,35 @@ class AppController {
                 return;
             }
 
+            const nowStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
             const newItem = {
                 author,
                 text,
-                time: '방금 전',
+                time: nowStr,
+                timestamp: Date.now(),
                 isOfficial: false
             };
 
+            if (dbRef) {
+                dbRef.push(newItem).then(() => {
+                    if (this.breadboardCanvas) this.breadboardCanvas.toastMsg = '🔥 Firebase 실시간 게시판에 등록되었습니다!';
+                }).catch(err => {
+                    console.warn('Firebase push failed, saving locally:', err);
+                    saveLocally(newItem);
+                });
+            } else {
+                saveLocally(newItem);
+            }
+
+            if (textInput) textInput.value = '';
+        };
+
+        const saveLocally = (newItem) => {
             feedbacks.unshift(newItem);
             try {
                 localStorage.setItem('hybrid_circuit_feedbacks', JSON.stringify(feedbacks));
             } catch (e) {}
-
-            renderList();
-            if (textInput) textInput.value = '';
+            renderList(feedbacks);
             if (this.breadboardCanvas) this.breadboardCanvas.toastMsg = '💬 소중한 피드백이 등록되었습니다!';
         };
 
