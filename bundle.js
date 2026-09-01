@@ -4367,6 +4367,7 @@ class AppController {
         this.initEmptyBoard(); // Start with a Clean Empty Breadboard by Default
         this.setupUIEventListeners();
         this.setupSaveLoadHandlers();
+        this.initFeedbackBoard();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
         this.renderAll();
     }
@@ -6212,6 +6213,83 @@ class AppController {
 
         const btnAiTrans = document.getElementById('btnAiTransient');
         if (btnAiTrans) btnAiTrans.addEventListener('click', () => this.triggerAiDiagnostic('transient'));
+    }
+
+    initFeedbackBoard() {
+        const container = document.getElementById('feedbackListContainer');
+        const countText = document.getElementById('feedbackCountText');
+        const authorInput = document.getElementById('feedbackAuthorInput');
+        const textInput = document.getElementById('feedbackTextInput');
+        const btnSubmit = document.getElementById('btnSubmitFeedback');
+
+        if (!container) return;
+
+        const defaultFeedbacks = [
+            { author: 'Company-JK', text: '🍞 빵판시뮬레이터 v16000 공식 출시! 소자 배치 및 4CH 오실로스코프 실시간 계측을 지원합니다.', time: '공지', isOfficial: true },
+            { author: '김철수', text: 'LM741 파형 출력이 시원하게 보여서 통신 실기시험 연습에 큰 도움이 됩니다! 👍', time: '10분 전', isOfficial: false },
+            { author: '이영희', text: '20종 IC 칩 등록 기능 최고네요! 제너 다이오드 특성 실험도 잘 작동합니다.', time: '1시간 전', isOfficial: false }
+        ];
+
+        let storedFeedbacks = [];
+        try {
+            const raw = localStorage.getItem('hybrid_circuit_feedbacks');
+            if (raw) storedFeedbacks = JSON.parse(raw);
+        } catch (e) {
+            console.warn('Failed to load stored feedbacks:', e);
+        }
+
+        const feedbacks = storedFeedbacks.length > 0 ? storedFeedbacks : defaultFeedbacks;
+
+        const renderList = () => {
+            container.innerHTML = '';
+            feedbacks.forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.style.cssText = `background: ${item.isOfficial ? 'rgba(56, 189, 248, 0.08)' : '#0f172a'}; border: 1px solid ${item.isOfficial ? '#0284c7' : '#1e293b'}; border-radius: 6px; padding: 6px 8px; font-size: 10.5px;`;
+                itemEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                        <span style="font-weight: bold; color: ${item.isOfficial ? '#38bdf8' : '#facc15'};">${item.isOfficial ? '📢 ' : '👤 '}${item.author}</span>
+                        <span style="font-size: 9px; color: #64748b;">${item.time}</span>
+                    </div>
+                    <div style="color: #f8fafc; line-height: 1.35; word-break: break-word;">${item.text}</div>
+                `;
+                container.appendChild(itemEl);
+            });
+            if (countText) countText.innerText = `피드백 ${feedbacks.length}개`;
+        };
+
+        renderList();
+
+        const submitAction = () => {
+            const author = (authorInput?.value || '').trim() || '익명';
+            const text = (textInput?.value || '').trim();
+            if (!text) {
+                if (this.breadboardCanvas) this.breadboardCanvas.toastMsg = '⚠️ 피드백 내용을 입력해주세요.';
+                return;
+            }
+
+            const newItem = {
+                author,
+                text,
+                time: '방금 전',
+                isOfficial: false
+            };
+
+            feedbacks.unshift(newItem);
+            try {
+                localStorage.setItem('hybrid_circuit_feedbacks', JSON.stringify(feedbacks));
+            } catch (e) {}
+
+            renderList();
+            if (textInput) textInput.value = '';
+            if (this.breadboardCanvas) this.breadboardCanvas.toastMsg = '💬 소중한 피드백이 등록되었습니다!';
+        };
+
+        if (btnSubmit) btnSubmit.addEventListener('click', submitAction);
+        if (textInput) {
+            textInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') submitAction();
+            });
+        }
     }
 
     loadUserPreset(presetKey) {
