@@ -7,15 +7,14 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=13000">
+    <link rel="stylesheet" href="./styles.css?v=14000">
 </head>
 <body>
     <!-- App Header Toolbar -->
     <header class="app-header">
         <div class="logo-group">
             <span class="logo-icon">🍞</span>
-            <h1 class="logo-title">Company-JK Workbench</h1>
-            <span class="logo-badge">v=13000</span>
+            <h1 class="logo-title">빵판시뮬레이터</h1>
         </div>
 
         <div class="header-controls">
@@ -209,9 +208,10 @@
 
         <!-- Center: Breadboard Workbench + 1-Row 4-Channel Oscilloscope Panel -->
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
-            <div class="card-title" style="flex-shrink: 0;">
+            <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver);" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
+                <span class="logo-badge">v=14000</span>
+                <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
             <div class="breadboard-toolbar" style="flex-shrink: 0;">
@@ -741,6 +741,6 @@
     </div>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=13000"></script>
+    <script src="./bundle.js?v=14000"></script>
 </body>
 </html>
