@@ -1481,6 +1481,41 @@ export class BreadboardCanvas {
             const modeText = comp.mode === 'CC' ? 'FND (CC)' : 'FND (CA)';
             const dispChar = (comp.digitChar && comp.digitChar !== ' ') ? ` [${comp.digitChar}]` : '';
             this.ctx.fillText(`${modeText}${dispChar}`, midX, faceY + faceH - 1);
+
+            // 6. Pin 1 Silver Notch Marker
+            this.ctx.fillStyle = '#38bdf8';
+            this.ctx.beginPath();
+            this.ctx.arc(midX - chipWidth / 2 + 5, topY + 5, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // 7. Clear Metallic Silver Pin Numbers (1~10) & Segment Function Labels
+            this.ctx.font = 'bold 8.5px monospace';
+            this.ctx.textBaseline = 'middle';
+
+            const leftLabels = ['e', 'd', 'COM', 'c', 'dp'];
+            const rightLabels = ['g', 'f', 'COM', 'a', 'b'];
+
+            for (let i = 0; i < pinsPerSide; i++) {
+                const legY = pA.y + i * pitchY;
+
+                // Left Pin Leg (Pin 1..5)
+                const leftPinNum = i + 1;
+                const leftLabel = leftLabels[i];
+                const leftLegX = midX - chipWidth / 2;
+
+                this.ctx.fillStyle = (leftPinNum === 1) ? '#38bdf8' : '#f59e0b';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`${leftPinNum}:${leftLabel}`, leftLegX + 2, legY);
+
+                // Right Pin Leg (Pin 10..6)
+                const rightPinNum = 10 - i;
+                const rightLabel = rightLabels[i];
+                const rightLegX = midX + chipWidth / 2;
+
+                this.ctx.fillStyle = '#f59e0b';
+                this.ctx.textAlign = 'right';
+                this.ctx.fillText(`${rightLabel}:${rightPinNum}`, rightLegX - 2, legY);
+            }
         }
 
         // Render Glowing Drag Handles on Selected Component
