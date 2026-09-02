@@ -684,6 +684,75 @@ export class MNASolver {
                         const hB = getV(g.inB) > 2.5;
                         driveDigitalPin(g.out, hA !== hB, 100.0);
                     });
+
+                } else if (icType === '74LS10' || icType === '7410') {
+                    // Triple 3-Input NAND Gate (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const gates = [
+                        { inA: pins.pin1, inB: pins.pin2, inC: pins.pin13, out: pins.pin12 },
+                        { inA: pins.pin3, inB: pins.pin4, inC: pins.pin5,  out: pins.pin6 },
+                        { inA: pins.pin9, inB: pins.pin10, inC: pins.pin11, out: pins.pin8 }
+                    ];
+                    gates.forEach(g => {
+                        const hA = getV(g.inA) > 2.5;
+                        const hB = getV(g.inB) > 2.5;
+                        const hC = getV(g.inC) > 2.5;
+                        driveDigitalPin(g.out, !(hA && hB && hC), 100.0);
+                    });
+
+                } else if (icType === '74LS48' || icType === '7448' || icType === '74LS47' || icType === '7447') {
+                    // BCD-to-7-Segment Decoder / Driver IC (DIP-16)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vA = getV(pins.pin7) > 2.5 ? 1 : 0;
+                    const vB = getV(pins.pin1) > 2.5 ? 2 : 0;
+                    const vC = getV(pins.pin2) > 2.5 ? 4 : 0;
+                    const vD = getV(pins.pin6) > 2.5 ? 8 : 0;
+                    const bcdVal = vA + vB + vC + vD;
+
+                    const vLT = getV(pins.pin3); // Lamp Test (Active Low)
+                    const vBI = getV(pins.pin4); // Blanking Input (Active Low)
+
+                    const is7447 = (icType === '74LS47' || icType === '7447');
+
+                    let segs = { a: false, b: false, c: false, d: false, e: false, f: false, g: false };
+
+                    if (vLT <= 2.5) {
+                        segs = { a: true, b: true, c: true, d: true, e: true, f: true, g: true };
+                    } else if (vBI <= 2.5) {
+                        segs = { a: false, b: false, c: false, d: false, e: false, f: false, g: false };
+                    } else {
+                        const decMap = {
+                            0: { a:1, b:1, c:1, d:1, e:1, f:1, g:0 },
+                            1: { a:0, b:1, c:1, d:0, e:0, f:0, g:0 },
+                            2: { a:1, b:1, c:0, d:1, e:1, f:0, g:1 },
+                            3: { a:1, b:1, c:1, d:1, e:0, f:0, g:1 },
+                            4: { a:0, b:1, c:1, d:0, e:0, f:1, g:1 },
+                            5: { a:1, b:0, c:1, d:1, e:0, f:1, g:1 },
+                            6: { a:1, b:0, c:1, d:1, e:1, f:1, g:1 },
+                            7: { a:1, b:1, c:1, d:0, e:0, f:0, g:0 },
+                            8: { a:1, b:1, c:1, d:1, e:1, f:1, g:1 },
+                            9: { a:1, b:1, c:1, d:1, e:0, f:1, g:1 },
+                            10: { a:0, b:0, c:0, d:1, e:1, f:0, g:1 },
+                            11: { a:0, b:0, c:1, d:1, e:0, f:0, g:1 },
+                            12: { a:0, b:1, c:0, d:0, e:0, f:1, g:1 },
+                            13: { a:1, b:0, c:0, d:1, e:0, f:1, g:1 },
+                            14: { a:0, b:0, c:0, d:1, e:1, f:1, g:1 },
+                            15: { a:0, b:0, c:0, d:0, e:0, f:0, g:0 }
+                        };
+                        const map = decMap[bcdVal] || decMap[0];
+                        Object.keys(map).forEach(k => segs[k] = map[k] === 1);
+                    }
+
+                    const segPinMap = {
+                        a: pins.pin13, b: pins.pin12, c: pins.pin11, d: pins.pin10,
+                        e: pins.pin9,  f: pins.pin15, g: pins.pin14
+                    };
+
+                    Object.keys(segPinMap).forEach(sKey => {
+                        const segActive = segs[sKey];
+                        const isHigh = is7447 ? !segActive : segActive;
+                        driveDigitalPin(segPinMap[sKey], isHigh, 200.0);
+                    });
                 }
             }
         });
@@ -776,6 +845,64 @@ export class MNASolver {
                     if (nP7) comp.vPin7 = newVoltages.get(nP7) || 12.0;
                     if (nP4) comp.vPin4 = newVoltages.get(nP4) || -12.0;
                 }
+            } else if (comp.type === 'FND') {
+                const pins = this.getDIPPins(comp);
+                if (pins) {
+                    const getV = pKey => {
+                        const n = getNode(pKey);
+                        return (n && newVoltages) ? (newVoltages.get(n) || 0) : 0;
+                    };
+
+                    const vCom1 = getV(pins.pin3);
+                    const vCom2 = getV(pins.pin8);
+                    const vCom = Math.max(vCom1, vCom2);
+
+                    const isCA = comp.mode !== 'CC';
+
+                    const segPins = {
+                        a: pins.pin7,
+                        b: pins.pin6,
+                        c: pins.pin4,
+                        d: pins.pin2,
+                        e: pins.pin1,
+                        f: pins.pin9,
+                        g: pins.pin10,
+                        dp: pins.pin5
+                    };
+
+                    comp.segments = {};
+                    Object.keys(segPins).forEach(seg => {
+                        const vSeg = getV(segPins[seg]);
+                        let isOn = false;
+                        if (isCA) {
+                            isOn = (vCom - vSeg > 1.8) || (vSeg < 2.0);
+                        } else {
+                            isOn = (vSeg - vCom > 1.8) || (vSeg > 2.5);
+                        }
+                        comp.segments[seg] = isOn;
+                    });
+
+                    const s = comp.segments;
+                    let char = ' ';
+                    if (s.a && s.b && s.c && s.d && s.e && s.f && !s.g) char = '0';
+                    else if (!s.a && s.b && s.c && !s.d && !s.e && !s.f && !s.g) char = '1';
+                    else if (s.a && s.b && !s.c && s.d && s.e && !s.f && s.g) char = '2';
+                    else if (s.a && s.b && s.c && s.d && !s.e && !s.f && s.g) char = '3';
+                    else if (!s.a && s.b && s.c && !s.d && !s.e && s.f && s.g) char = '4';
+                    else if (s.a && !s.b && s.c && s.d && !s.e && s.f && s.g) char = '5';
+                    else if (s.a && !s.b && s.c && s.d && s.e && s.f && s.g) char = '6';
+                    else if (s.a && s.b && s.c && !s.d && !s.e && !s.f && !s.g) char = '7';
+                    else if (s.a && s.b && s.c && s.d && s.e && s.f && s.g) char = '8';
+                    else if (s.a && s.b && s.c && s.d && !s.e && s.f && s.g) char = '9';
+                    else if (s.a && s.b && s.c && !s.d && s.e && s.f && s.g) char = 'A';
+                    else if (!s.a && !s.b && s.c && s.d && s.e && s.f && s.g) char = 'b';
+                    else if (s.a && !s.b && !s.c && s.d && s.e && s.f && !s.g) char = 'C';
+                    else if (!s.a && s.b && s.c && s.d && s.e && !s.f && s.g) char = 'd';
+                    else if (s.a && !s.b && !s.c && s.d && s.e && s.f && s.g) char = 'E';
+                    else if (s.a && !s.b && !s.c && !s.d && s.e && s.f && s.g) char = 'F';
+
+                    comp.digitChar = char;
+                }
             }
         });
 
@@ -843,7 +970,7 @@ export class MNASolver {
         const startRow = parseInt(parts[1].slice(1), 10);
 
         const pins = {};
-        const numPins = comp.pins || 8;
+        const numPins = comp.pins || (comp.type === 'FND' ? 10 : 8);
         const pinsPerSide = numPins / 2;
 
         for (let i = 0; i < pinsPerSide; i++) {

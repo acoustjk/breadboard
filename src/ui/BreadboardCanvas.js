@@ -277,6 +277,10 @@ export class BreadboardCanvas {
                     this.showToast(isOpen ? '🔴 스위치 열림 (OPEN / OFF)' : '🟢 스위치 닫힘 (CLOSED / ON)');
                     if (this.onSwitchToggled) this.onSwitchToggled(this.selectedComponent);
                     if (this.onNeedsRender) this.onNeedsRender();
+                } else if (this.selectedComponent.type === 'FND') {
+                    this.selectedComponent.mode = this.selectedComponent.mode === 'CC' ? 'CA' : 'CC';
+                    this.showToast(`🔄 FND 모드 전환: ${this.selectedComponent.mode === 'CC' ? 'Common Cathode (CC)' : 'Common Anode (CA)'}`);
+                    if (this.onNeedsRender) this.onNeedsRender();
                 } else if (this.onComponentDblClicked) {
                     this.onComponentDblClicked(this.selectedComponent);
                 }
@@ -1374,6 +1378,109 @@ export class BreadboardCanvas {
             this.ctx.beginPath();
             this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
             this.ctx.fill();
+
+        } else if (comp.type === 'FND') {
+            const midX = (pA.x + pB.x) / 2;
+            const pinsPerSide = 5;
+            const pitchY = 11.2;
+            const chipWidth = Math.abs(pB.x - pA.x) + 32;
+            const chipHeight = (pinsPerSide - 1) * pitchY + 28;
+            const topY = pA.y - 14;
+
+            // 1. DIP Metallic Leads
+            for (let i = 0; i < pinsPerSide; i++) {
+                const py = pA.y + i * pitchY;
+                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+                this.ctx.fillRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
+            }
+
+            // 2. FND Matte Black Housing
+            this.ctx.fillStyle = '#0f172a';
+            this.ctx.beginPath();
+            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 5);
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#334155';
+            this.ctx.lineWidth = isSelected ? 2.5 : 1.2;
+            this.ctx.stroke();
+
+            // 3. FND Display Face
+            const faceW = chipWidth - 12;
+            const faceH = chipHeight - 10;
+            const faceX = midX - faceW / 2;
+            const faceY = topY + 5;
+
+            this.ctx.fillStyle = '#050505';
+            this.ctx.beginPath();
+            this.ctx.roundRect(faceX, faceY, faceW, faceH, 3);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#1e293b';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // 4. Render 7 Segments & DP
+            const segs = comp.segments || {};
+            const segW = 16;
+            const segH = 26;
+            const segX = midX - segW / 2;
+            const segY = faceY + 5;
+            const thick = 3.0;
+
+            const drawSeg = (isOn, x1, y1, x2, y2) => {
+                this.ctx.save();
+                if (isOn) {
+                    this.ctx.shadowColor = '#ef4444';
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.strokeStyle = '#ef4444';
+                    this.ctx.lineWidth = thick;
+                } else {
+                    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.12)';
+                    this.ctx.lineWidth = thick - 0.5;
+                }
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                this.ctx.lineTo(x2, y2);
+                this.ctx.stroke();
+                this.ctx.restore();
+            };
+
+            // a (top)
+            drawSeg(segs.a, segX, segY, segX + segW, segY);
+            // b (top-right)
+            drawSeg(segs.b, segX + segW, segY, segX + segW, segY + segH / 2);
+            // c (bottom-right)
+            drawSeg(segs.c, segX + segW, segY + segH / 2, segX + segW, segY + segH);
+            // d (bottom)
+            drawSeg(segs.d, segX, segY + segH, segX + segW, segY + segH);
+            // e (bottom-left)
+            drawSeg(segs.e, segX, segY + segH / 2, segX, segY + segH);
+            // f (top-left)
+            drawSeg(segs.f, segX, segY, segX, segY + segH / 2);
+            // g (middle)
+            drawSeg(segs.g, segX, segY + segH / 2, segX + segW, segY + segH / 2);
+
+            // dp
+            this.ctx.save();
+            if (segs.dp) {
+                this.ctx.shadowColor = '#ef4444';
+                this.ctx.shadowBlur = 10;
+                this.ctx.fillStyle = '#ef4444';
+            } else {
+                this.ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+            }
+            this.ctx.beginPath();
+            this.ctx.arc(segX + segW + 4, segY + segH, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+
+            // 5. Header Label: Mode & Decoded Digit
+            this.ctx.fillStyle = '#f8fafc';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'bottom';
+            const modeText = comp.mode === 'CC' ? 'FND (CC)' : 'FND (CA)';
+            const dispChar = (comp.digitChar && comp.digitChar !== ' ') ? ` [${comp.digitChar}]` : '';
+            this.ctx.fillText(`${modeText}${dispChar}`, midX, faceY + faceH - 1);
         }
 
         // Render Glowing Drag Handles on Selected Component

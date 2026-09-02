@@ -769,6 +769,75 @@ class MNASolver {
                         const hB = getV(g.inB) > 2.5;
                         driveDigitalPin(g.out, hA !== hB, 100.0);
                     });
+
+                } else if (icType === '74LS10' || icType === '7410') {
+                    // Triple 3-Input NAND Gate (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const gates = [
+                        { inA: pins.pin1, inB: pins.pin2, inC: pins.pin13, out: pins.pin12 },
+                        { inA: pins.pin3, inB: pins.pin4, inC: pins.pin5,  out: pins.pin6 },
+                        { inA: pins.pin9, inB: pins.pin10, inC: pins.pin11, out: pins.pin8 }
+                    ];
+                    gates.forEach(g => {
+                        const hA = getV(g.inA) > 2.5;
+                        const hB = getV(g.inB) > 2.5;
+                        const hC = getV(g.inC) > 2.5;
+                        driveDigitalPin(g.out, !(hA && hB && hC), 100.0);
+                    });
+
+                } else if (icType === '74LS48' || icType === '7448' || icType === '74LS47' || icType === '7447') {
+                    // BCD-to-7-Segment Decoder / Driver IC (DIP-16)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vA = getV(pins.pin7) > 2.5 ? 1 : 0;
+                    const vB = getV(pins.pin1) > 2.5 ? 2 : 0;
+                    const vC = getV(pins.pin2) > 2.5 ? 4 : 0;
+                    const vD = getV(pins.pin6) > 2.5 ? 8 : 0;
+                    const bcdVal = vA + vB + vC + vD;
+
+                    const vLT = getV(pins.pin3); // Lamp Test (Active Low)
+                    const vBI = getV(pins.pin4); // Blanking Input (Active Low)
+
+                    const is7447 = (icType === '74LS47' || icType === '7447');
+
+                    let segs = { a: false, b: false, c: false, d: false, e: false, f: false, g: false };
+
+                    if (vLT <= 2.5) {
+                        segs = { a: true, b: true, c: true, d: true, e: true, f: true, g: true };
+                    } else if (vBI <= 2.5) {
+                        segs = { a: false, b: false, c: false, d: false, e: false, f: false, g: false };
+                    } else {
+                        const decMap = {
+                            0: { a:1, b:1, c:1, d:1, e:1, f:1, g:0 },
+                            1: { a:0, b:1, c:1, d:0, e:0, f:0, g:0 },
+                            2: { a:1, b:1, c:0, d:1, e:1, f:0, g:1 },
+                            3: { a:1, b:1, c:1, d:1, e:0, f:0, g:1 },
+                            4: { a:0, b:1, c:1, d:0, e:0, f:1, g:1 },
+                            5: { a:1, b:0, c:1, d:1, e:0, f:1, g:1 },
+                            6: { a:1, b:0, c:1, d:1, e:1, f:1, g:1 },
+                            7: { a:1, b:1, c:1, d:0, e:0, f:0, g:0 },
+                            8: { a:1, b:1, c:1, d:1, e:1, f:1, g:1 },
+                            9: { a:1, b:1, c:1, d:1, e:0, f:1, g:1 },
+                            10: { a:0, b:0, c:0, d:1, e:1, f:0, g:1 },
+                            11: { a:0, b:0, c:1, d:1, e:0, f:0, g:1 },
+                            12: { a:0, b:1, c:0, d:0, e:0, f:1, g:1 },
+                            13: { a:1, b:0, c:0, d:1, e:0, f:1, g:1 },
+                            14: { a:0, b:0, c:0, d:1, e:1, f:1, g:1 },
+                            15: { a:0, b:0, c:0, d:0, e:0, f:0, g:0 }
+                        };
+                        const map = decMap[bcdVal] || decMap[0];
+                        Object.keys(map).forEach(k => segs[k] = map[k] === 1);
+                    }
+
+                    const segPinMap = {
+                        a: pins.pin13, b: pins.pin12, c: pins.pin11, d: pins.pin10,
+                        e: pins.pin9,  f: pins.pin15, g: pins.pin14
+                    };
+
+                    Object.keys(segPinMap).forEach(sKey => {
+                        const segActive = segs[sKey];
+                        const isHigh = is7447 ? !segActive : segActive;
+                        driveDigitalPin(segPinMap[sKey], isHigh, 200.0);
+                    });
                 }
             }
         });
@@ -861,6 +930,64 @@ class MNASolver {
                     if (nP7) comp.vPin7 = newVoltages.get(nP7) || 12.0;
                     if (nP4) comp.vPin4 = newVoltages.get(nP4) || -12.0;
                 }
+            } else if (comp.type === 'FND') {
+                const pins = this.getDIPPins(comp);
+                if (pins) {
+                    const getV = pKey => {
+                        const n = getNode(pKey);
+                        return (n && newVoltages) ? (newVoltages.get(n) || 0) : 0;
+                    };
+
+                    const vCom1 = getV(pins.pin3);
+                    const vCom2 = getV(pins.pin8);
+                    const vCom = Math.max(vCom1, vCom2);
+
+                    const isCA = comp.mode !== 'CC';
+
+                    const segPins = {
+                        a: pins.pin7,
+                        b: pins.pin6,
+                        c: pins.pin4,
+                        d: pins.pin2,
+                        e: pins.pin1,
+                        f: pins.pin9,
+                        g: pins.pin10,
+                        dp: pins.pin5
+                    };
+
+                    comp.segments = {};
+                    Object.keys(segPins).forEach(seg => {
+                        const vSeg = getV(segPins[seg]);
+                        let isOn = false;
+                        if (isCA) {
+                            isOn = (vCom - vSeg > 1.8) || (vSeg < 2.0);
+                        } else {
+                            isOn = (vSeg - vCom > 1.8) || (vSeg > 2.5);
+                        }
+                        comp.segments[seg] = isOn;
+                    });
+
+                    const s = comp.segments;
+                    let char = ' ';
+                    if (s.a && s.b && s.c && s.d && s.e && s.f && !s.g) char = '0';
+                    else if (!s.a && s.b && s.c && !s.d && !s.e && !s.f && !s.g) char = '1';
+                    else if (s.a && s.b && !s.c && s.d && s.e && !s.f && s.g) char = '2';
+                    else if (s.a && s.b && s.c && s.d && !s.e && !s.f && s.g) char = '3';
+                    else if (!s.a && s.b && s.c && !s.d && !s.e && s.f && s.g) char = '4';
+                    else if (s.a && !s.b && s.c && s.d && !s.e && s.f && s.g) char = '5';
+                    else if (s.a && !s.b && s.c && s.d && s.e && s.f && s.g) char = '6';
+                    else if (s.a && s.b && s.c && !s.d && !s.e && !s.f && !s.g) char = '7';
+                    else if (s.a && s.b && s.c && s.d && s.e && s.f && s.g) char = '8';
+                    else if (s.a && s.b && s.c && s.d && !s.e && s.f && s.g) char = '9';
+                    else if (s.a && s.b && s.c && !s.d && s.e && s.f && s.g) char = 'A';
+                    else if (!s.a && !s.b && s.c && s.d && s.e && s.f && s.g) char = 'b';
+                    else if (s.a && !s.b && !s.c && s.d && s.e && s.f && !s.g) char = 'C';
+                    else if (!s.a && s.b && s.c && s.d && s.e && !s.f && s.g) char = 'd';
+                    else if (s.a && !s.b && !s.c && s.d && s.e && s.f && s.g) char = 'E';
+                    else if (s.a && !s.b && !s.c && !s.d && s.e && s.f && s.g) char = 'F';
+
+                    comp.digitChar = char;
+                }
             }
         });
 
@@ -928,7 +1055,7 @@ class MNASolver {
         const startRow = parseInt(parts[1].slice(1), 10);
 
         const pins = {};
-        const numPins = comp.pins || 8;
+        const numPins = comp.pins || (comp.type === 'FND' ? 10 : 8);
         const pinsPerSide = numPins / 2;
 
         for (let i = 0; i < pinsPerSide; i++) {
@@ -1140,6 +1267,8 @@ const TRANSISTOR_CATALOG = {
     '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, pinout: 'EBC', desc: '고전류 NPN 스위칭 트랜지스터 (EBC TO-92)' },
     'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, pinout: 'ECB', desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
     'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' },
+    '2S735':  { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
+    '2SC735': { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SK30A': { name: '2SK30A / K30 (N-JFET)', polarity: 'N-JFET', beta: 200, pinout: 'SDG', desc: 'KCA PNM 통신실기 표준 N채널 JFET 아날로그 스위치 (SDG TO-92)' }
 };
 
@@ -1173,8 +1302,28 @@ const IC_CATALOG = {
     '74LS393': { name: '74LS393 Dual 4-Bit Binary Counter', pins: 14, desc: '듀얼 4비트 이진 리플 카운터 (DIP-14)' },
     '74LS151': { name: '74LS151 8-to-1 Line Multiplexer', pins: 16, desc: '8-to-1 데이터 셀렉터 / 멀티플렉서 (DIP-16)' },
     '74LS93':  { name: '74LS93 4-Bit Binary Counter', pins: 14, desc: '4비트 이진 리플 카운터 (DIP-14)' },
-    '74LS86':  { name: '74LS86 Quad 2-Input XOR Gate', pins: 14, desc: '4채널 2입력 Exclusive-OR 게이트 (DIP-14)' }
+    '74LS86':  { name: '74LS86 Quad 2-Input XOR Gate', pins: 14, desc: '4채널 2입력 Exclusive-OR 게이트 (DIP-14)' },
+    '7448':    { name: '7448 BCD to 7-Seg Decoder (CC)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Cathode FND용 active-high)' },
+    '74LS48':  { name: '74LS48 BCD to 7-Seg Decoder (CC)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Cathode FND용 active-high)' },
+    '7447':    { name: '7447 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
+    '74LS47':  { name: '74LS47 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
+    '7410':    { name: '7410 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
+    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' }
 };
+
+class FNDComponent {
+    constructor(id, pinA = 'B3_E45', pinB = 'B3_F49', mode = 'CA') {
+        this.id = id;
+        this.type = 'FND';
+        this.pins = 10;
+        this.mode = mode; // 'CA' (Common Anode) or 'CC' (Common Cathode)
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.isConfigured = true;
+        this.segments = { a: false, b: false, c: false, d: false, e: false, f: false, g: false, dp: false };
+        this.digitChar = ' ';
+    }
+}
 
 class BJTTransistor {
     constructor(id, transType = '2N3904', pinEmitter = 'B1_E20', pinBase = 'B1_F20', pinCollector = 'B1_G20') {
@@ -2142,6 +2291,10 @@ class BreadboardCanvas {
                     const isOpen = this.selectedComponent.toggle();
                     this.showToast(isOpen ? '🔴 스위치 열림 (OPEN / OFF)' : '🟢 스위치 닫힘 (CLOSED / ON)');
                     if (this.onSwitchToggled) this.onSwitchToggled(this.selectedComponent);
+                    if (this.onNeedsRender) this.onNeedsRender();
+                } else if (this.selectedComponent.type === 'FND') {
+                    this.selectedComponent.mode = this.selectedComponent.mode === 'CC' ? 'CA' : 'CC';
+                    this.showToast(`🔄 FND 모드 전환: ${this.selectedComponent.mode === 'CC' ? 'Common Cathode (CC)' : 'Common Anode (CA)'}`);
                     if (this.onNeedsRender) this.onNeedsRender();
                 } else if (this.onComponentDblClicked) {
                     this.onComponentDblClicked(this.selectedComponent);
@@ -3240,6 +3393,109 @@ class BreadboardCanvas {
             this.ctx.beginPath();
             this.ctx.arc(midX, midY, 8, 0, Math.PI * 2);
             this.ctx.fill();
+
+        } else if (comp.type === 'FND') {
+            const midX = (pA.x + pB.x) / 2;
+            const pinsPerSide = 5;
+            const pitchY = 11.2;
+            const chipWidth = Math.abs(pB.x - pA.x) + 32;
+            const chipHeight = (pinsPerSide - 1) * pitchY + 28;
+            const topY = pA.y - 14;
+
+            // 1. DIP Metallic Leads
+            for (let i = 0; i < pinsPerSide; i++) {
+                const py = pA.y + i * pitchY;
+                this.ctx.fillStyle = '#cbd5e1';
+                this.ctx.fillRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+                this.ctx.fillRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
+            }
+
+            // 2. FND Matte Black Housing
+            this.ctx.fillStyle = '#0f172a';
+            this.ctx.beginPath();
+            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 5);
+            this.ctx.fill();
+            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#334155';
+            this.ctx.lineWidth = isSelected ? 2.5 : 1.2;
+            this.ctx.stroke();
+
+            // 3. FND Display Face
+            const faceW = chipWidth - 12;
+            const faceH = chipHeight - 10;
+            const faceX = midX - faceW / 2;
+            const faceY = topY + 5;
+
+            this.ctx.fillStyle = '#050505';
+            this.ctx.beginPath();
+            this.ctx.roundRect(faceX, faceY, faceW, faceH, 3);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#1e293b';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+
+            // 4. Render 7 Segments & DP
+            const segs = comp.segments || {};
+            const segW = 16;
+            const segH = 26;
+            const segX = midX - segW / 2;
+            const segY = faceY + 5;
+            const thick = 3.0;
+
+            const drawSeg = (isOn, x1, y1, x2, y2) => {
+                this.ctx.save();
+                if (isOn) {
+                    this.ctx.shadowColor = '#ef4444';
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.strokeStyle = '#ef4444';
+                    this.ctx.lineWidth = thick;
+                } else {
+                    this.ctx.strokeStyle = 'rgba(239, 68, 68, 0.12)';
+                    this.ctx.lineWidth = thick - 0.5;
+                }
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y1);
+                this.ctx.lineTo(x2, y2);
+                this.ctx.stroke();
+                this.ctx.restore();
+            };
+
+            // a (top)
+            drawSeg(segs.a, segX, segY, segX + segW, segY);
+            // b (top-right)
+            drawSeg(segs.b, segX + segW, segY, segX + segW, segY + segH / 2);
+            // c (bottom-right)
+            drawSeg(segs.c, segX + segW, segY + segH / 2, segX + segW, segY + segH);
+            // d (bottom)
+            drawSeg(segs.d, segX, segY + segH, segX + segW, segY + segH);
+            // e (bottom-left)
+            drawSeg(segs.e, segX, segY + segH / 2, segX, segY + segH);
+            // f (top-left)
+            drawSeg(segs.f, segX, segY, segX, segY + segH / 2);
+            // g (middle)
+            drawSeg(segs.g, segX, segY + segH / 2, segX + segW, segY + segH / 2);
+
+            // dp
+            this.ctx.save();
+            if (segs.dp) {
+                this.ctx.shadowColor = '#ef4444';
+                this.ctx.shadowBlur = 10;
+                this.ctx.fillStyle = '#ef4444';
+            } else {
+                this.ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+            }
+            this.ctx.beginPath();
+            this.ctx.arc(segX + segW + 4, segY + segH, 2, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
+
+            // 5. Header Label: Mode & Decoded Digit
+            this.ctx.fillStyle = '#f8fafc';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'bottom';
+            const modeText = comp.mode === 'CC' ? 'FND (CC)' : 'FND (CA)';
+            const dispChar = (comp.digitChar && comp.digitChar !== ' ') ? ` [${comp.digitChar}]` : '';
+            this.ctx.fillText(`${modeText}${dispChar}`, midX, faceY + faceH - 1);
         }
 
         // Render Glowing Drag Handles on Selected Component
@@ -4202,6 +4458,8 @@ class CircuitSerializer {
                 base.polarity = comp.polarity || 'NPN';
             } else if (comp.type === 'IC') {
                 base.icType = comp.icType;
+            } else if (comp.type === 'FND') {
+                base.mode = comp.mode || 'CA';
             }
 
             return base;
@@ -4292,6 +4550,15 @@ class CircuitSerializer {
                     pB = `${blk}_F${startRow + pinsPerSide - 1}`;
                 }
                 comp = new DIPChip(id, item.icType || 'LF356', item.pinA, pB);
+            } else if (item.type === 'FND') {
+                let pB = item.pinB;
+                if (item.pinA && item.pinA.includes('_')) {
+                    const parts = item.pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    pB = `${blk}_F${startRow + 4}`;
+                }
+                comp = new FNDComponent(id, item.pinA, pB, item.mode || 'CA');
             }
 
             if (comp) {
@@ -4585,6 +4852,16 @@ class AppController {
             } else if (toolType === 'LED') {
                 newComp = new LEDComponent(id, pinA, pinB, 2.0);
                 labelMsg = 'LED';
+            } else if (toolType === 'FND' || toolType === 'toolFnd') {
+                let pB = pinB;
+                if (pinA && pinA.includes('_')) {
+                    const parts = pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    pB = `${blk}_F${Math.min(60, startRow + 4)}`;
+                }
+                newComp = new FNDComponent(id, pinA, pB, 'CA');
+                labelMsg = '🔢 FND 7세그먼트 디스플레이 (Common Anode)';
             }
 
             if (newComp) {
@@ -6073,6 +6350,7 @@ class AppController {
             { id: 'toolDcSource', tool: 'VDC' },
             { id: 'toolSwitch', tool: 'SWITCH' },
             { id: 'toolLed', tool: 'LED' },
+            { id: 'toolFnd', tool: 'FND' },
             { id: 'toolContinuityRed', tool: 'PROBE_CONTINUITY_RED' },
             { id: 'toolContinuityBlack', tool: 'PROBE_CONTINUITY_BLACK' },
             { id: 'toolProbeA', tool: 'PROBE_A' },

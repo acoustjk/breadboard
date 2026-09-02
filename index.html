@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=21000">
+    <link rel="stylesheet" href="./styles.css?v=22000">
 
     <!-- Google AdSense Main Auto-Ads Code (애드센스 승인 및 발급받으신 ca-pub-ID 입력) -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
@@ -108,13 +108,14 @@
                         <option value="2N2222">⚡ 2N2222 (NPN 고전류)</option>
                         <option value="C1815">🔺 KSC1815 (NPN 저소음)</option>
                         <option value="A1015">🔻 KSA1015 (PNP 저소음)</option>
+                        <option value="2S735">🔺 2S735 / 2SC735 (NPN 표준)</option>
                         <option value="2SK30A">⚡ 2SK30A / K30 (N-JFET)</option>
                     </select>
                     <button id="toolTransistorCatalog" class="btn btn-primary">🔺 트랜지스터 배치</button>
                 </div>
             </div>
 
-            <!-- IC Catalog Dropdown (20 IC Chips) -->
+            <!-- IC Catalog Dropdown (20+ IC Chips) -->
             <div class="palette-section">
                 <div class="palette-section-title">🔲 IC 칩 카탈로그 (DIP Integrated Circuits):</div>
                 <div class="palette-block-vertical">
@@ -134,15 +135,18 @@
                             <option value="LM7812">⚡ LM7812 (DIP-8) +12V 레귤레이터</option>
                             <option value="LM317">⚡ LM317 (DIP-8) 가변 레귤레이터</option>
                         </optgroup>
-                        <optgroup label="🔢 74HC 시리즈 논리 게이트 (DIP-14)">
+                        <optgroup label="🔢 74HC/74LS 시리즈 논리 게이트 (DIP-14)">
                             <option value="74HC00">🔢 74HC00 Quad NAND Gate</option>
                             <option value="74HC02">🔢 74HC02 Quad NOR Gate</option>
                             <option value="74HC04">🔢 74HC04 Hex Inverter (NOT)</option>
                             <option value="74HC08">🔢 74HC08 Quad AND Gate</option>
                             <option value="74HC32">🔢 74HC32 Quad OR Gate</option>
                             <option value="74HC86">🔢 74HC86 Quad XOR Gate</option>
+                            <option value="7410">🔢 7410 (74LS10) Triple 3-Input NAND Gate</option>
                         </optgroup>
                         <optgroup label="📊 핵심 TTL/CMOS IC (DIP-14/16)">
+                            <option value="7448">📊 7448 (74LS48) BCD to 7-Seg Decoder (CC)</option>
+                            <option value="7447">📊 7447 (74LS47) BCD to 7-Seg Decoder (CA)</option>
                             <option value="74LS393">📊 74LS393 Dual 4-Bit Binary Counter</option>
                             <option value="74LS151">📊 74LS151 8-to-1 Line Multiplexer</option>
                             <option value="74LS93">📊 74LS93 4-Bit Binary Counter</option>
@@ -196,6 +200,7 @@
                     <button id="toolSwitch" class="btn">🔘 스위치 소자</button>
                 </div>
                 <button id="toolLed" class="btn" style="width: 100%; margin-top: 2px;">💡 LED 점등 소자</button>
+                <button id="toolFnd" class="btn btn-primary" style="width: 100%; margin-top: 4px;">🔢 FND 7세그먼트 디스플레이</button>
             </div>
 
             <!-- Instrument Popup Triggers -->
@@ -216,7 +221,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=21000</span>
+                <span class="logo-badge">v=22000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -790,6 +795,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=21000"></script>
+    <script src="./bundle.js?v=22000"></script>
 </body>
 </html>

@@ -4,17 +4,17 @@
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
 
-import { BreadboardGrid } from './src/engine/CircuitNode.js?v=21000';
-import { MNASolver } from './src/engine/MNASolver.js?v=21000';
-import { FFT } from './src/engine/FFT.js?v=21000';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=21000';
-import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=21000';
-import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=21000';
-import { ContinuityTester } from './src/ui/ContinuityTester.js?v=21000';
-import { SPICEExporter } from './src/components/SPICEExporter.js?v=21000';
-import { AICopilot } from './src/components/AICopilot.js?v=21000';
-import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=21000';
-import { USER_PRESETS } from './src/engine/UserPresets.js?v=21000';
+import { BreadboardGrid } from './src/engine/CircuitNode.js?v=22000';
+import { MNASolver } from './src/engine/MNASolver.js?v=22000';
+import { FFT } from './src/engine/FFT.js?v=22000';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, FNDComponent, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=22000';
+import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=22000';
+import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=22000';
+import { ContinuityTester } from './src/ui/ContinuityTester.js?v=22000';
+import { SPICEExporter } from './src/components/SPICEExporter.js?v=22000';
+import { AICopilot } from './src/components/AICopilot.js?v=22000';
+import { CircuitSerializer } from './src/components/CircuitSerializer.js?v=22000';
+import { USER_PRESETS } from './src/engine/UserPresets.js?v=22000';
 
 class AppController {
     constructor() {
@@ -236,6 +236,16 @@ class AppController {
             } else if (toolType === 'LED') {
                 newComp = new LEDComponent(id, pinA, pinB, 2.0);
                 labelMsg = 'LED';
+            } else if (toolType === 'FND' || toolType === 'toolFnd') {
+                let pB = pinB;
+                if (pinA && pinA.includes('_')) {
+                    const parts = pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    pB = `${blk}_F${Math.min(60, startRow + 4)}`;
+                }
+                newComp = new FNDComponent(id, pinA, pB, 'CA');
+                labelMsg = '🔢 FND 7세그먼트 디스플레이 (Common Anode)';
             }
 
             if (newComp) {
@@ -1724,6 +1734,7 @@ class AppController {
             { id: 'toolDcSource', tool: 'VDC' },
             { id: 'toolSwitch', tool: 'SWITCH' },
             { id: 'toolLed', tool: 'LED' },
+            { id: 'toolFnd', tool: 'FND' },
             { id: 'toolContinuityRed', tool: 'PROBE_CONTINUITY_RED' },
             { id: 'toolContinuityBlack', tool: 'PROBE_CONTINUITY_BLACK' },
             { id: 'toolProbeA', tool: 'PROBE_A' },

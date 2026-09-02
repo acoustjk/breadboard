@@ -4,7 +4,7 @@
  * Auto-normalizes DIP IC height & auto-sanitizes shorted wires v=1056.
  */
 
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, IC_CATALOG } from './ComponentModels.js?v=1160';
+import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, FNDComponent, IC_CATALOG } from './ComponentModels.js?v=22000';
 
 export class CircuitSerializer {
     static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
@@ -48,6 +48,8 @@ export class CircuitSerializer {
                 base.polarity = comp.polarity || 'NPN';
             } else if (comp.type === 'IC') {
                 base.icType = comp.icType;
+            } else if (comp.type === 'FND') {
+                base.mode = comp.mode || 'CA';
             }
 
             return base;
@@ -138,6 +140,15 @@ export class CircuitSerializer {
                     pB = `${blk}_F${startRow + pinsPerSide - 1}`;
                 }
                 comp = new DIPChip(id, item.icType || 'LF356', item.pinA, pB);
+            } else if (item.type === 'FND') {
+                let pB = item.pinB;
+                if (item.pinA && item.pinA.includes('_')) {
+                    const parts = item.pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    pB = `${blk}_F${startRow + 4}`;
+                }
+                comp = new FNDComponent(id, item.pinA, pB, item.mode || 'CA');
             }
 
             if (comp) {

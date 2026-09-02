@@ -53,6 +53,8 @@ export const TRANSISTOR_CATALOG = {
     '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, pinout: 'EBC', desc: '고전류 NPN 스위칭 트랜지스터 (EBC TO-92)' },
     'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, pinout: 'ECB', desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
     'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' },
+    '2S735':  { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
+    '2SC735': { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SK30A': { name: '2SK30A / K30 (N-JFET)', polarity: 'N-JFET', beta: 200, pinout: 'SDG', desc: 'KCA PNM 통신실기 표준 N채널 JFET 아날로그 스위치 (SDG TO-92)' }
 };
 
@@ -86,8 +88,28 @@ export const IC_CATALOG = {
     '74LS393': { name: '74LS393 Dual 4-Bit Binary Counter', pins: 14, desc: '듀얼 4비트 이진 리플 카운터 (DIP-14)' },
     '74LS151': { name: '74LS151 8-to-1 Line Multiplexer', pins: 16, desc: '8-to-1 데이터 셀렉터 / 멀티플렉서 (DIP-16)' },
     '74LS93':  { name: '74LS93 4-Bit Binary Counter', pins: 14, desc: '4비트 이진 리플 카운터 (DIP-14)' },
-    '74LS86':  { name: '74LS86 Quad 2-Input XOR Gate', pins: 14, desc: '4채널 2입력 Exclusive-OR 게이트 (DIP-14)' }
+    '74LS86':  { name: '74LS86 Quad 2-Input XOR Gate', pins: 14, desc: '4채널 2입력 Exclusive-OR 게이트 (DIP-14)' },
+    '7448':    { name: '7448 BCD to 7-Seg Decoder (CC)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Cathode FND용 active-high)' },
+    '74LS48':  { name: '74LS48 BCD to 7-Seg Decoder (CC)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Cathode FND용 active-high)' },
+    '7447':    { name: '7447 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
+    '74LS47':  { name: '74LS47 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
+    '7410':    { name: '7410 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
+    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' }
 };
+
+export class FNDComponent {
+    constructor(id, pinA = 'B3_E45', pinB = 'B3_F49', mode = 'CA') {
+        this.id = id;
+        this.type = 'FND';
+        this.pins = 10;
+        this.mode = mode; // 'CA' (Common Anode) or 'CC' (Common Cathode)
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.isConfigured = true;
+        this.segments = { a: false, b: false, c: false, d: false, e: false, f: false, g: false, dp: false };
+        this.digitChar = ' ';
+    }
+}
 
 export class BJTTransistor {
     constructor(id, transType = '2N3904', pinEmitter = 'B1_E20', pinBase = 'B1_F20', pinCollector = 'B1_G20') {
