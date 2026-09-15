@@ -94,7 +94,10 @@ export const IC_CATALOG = {
     '7447':    { name: '7447 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
     '74LS47':  { name: '74LS47 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
     '7410':    { name: '7410 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
-    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' }
+    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
+    'CD4028':  { name: 'CD4028 BCD-to-Decimal Decoder', pins: 16, desc: 'BCD-to-10진 / Binary-to-8진 디코더 (DIP-16)' },
+    'CD4013':  { name: 'CD4013 Dual D-Type Flip-Flop', pins: 14, desc: '듀얼 D-플립플롭 (Set/Reset 포함 DIP-14)' },
+    'CD4081':  { name: 'CD4081 Quad 2-Input AND Gate', pins: 14, desc: '4채널 2입력 AND 논리 게이트 (DIP-14)' }
 };
 
 export class FNDComponent {

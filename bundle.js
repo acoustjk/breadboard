@@ -838,6 +838,105 @@ class MNASolver {
                         const isHigh = is7447 ? !segActive : segActive;
                         driveDigitalPin(segPinMap[sKey], isHigh, 200.0);
                     });
+
+                } else if (icType === 'CD4028') {
+                    // BCD-to-Decimal (1-of-10) Decoder (DIP-16)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const vA = getV(pins.pin10) > 2.5 ? 1 : 0;
+                    const vB = getV(pins.pin11) > 2.5 ? 2 : 0;
+                    const vC = getV(pins.pin12) > 2.5 ? 4 : 0;
+                    const vD = getV(pins.pin13) > 2.5 ? 8 : 0;
+                    const bcdVal = vA + vB + vC + vD;
+
+                    const outPins = [
+                        pins.pin3,  // Q0
+                        pins.pin14, // Q1
+                        pins.pin2,  // Q2
+                        pins.pin15, // Q3
+                        pins.pin1,  // Q4
+                        pins.pin6,  // Q5
+                        pins.pin7,  // Q6
+                        pins.pin4,  // Q7
+                        pins.pin9,  // Q8
+                        pins.pin5   // Q9
+                    ];
+
+                    outPins.forEach((qPin, idx) => {
+                        const isMatch = (bcdVal === idx);
+                        driveDigitalPin(qPin, isMatch, 100.0);
+                    });
+
+                } else if (icType === 'CD4013') {
+                    // Dual D-Type Flip-Flop (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+
+                    if (comp.stateQ1 === undefined) comp.stateQ1 = false;
+                    if (comp.stateQ2 === undefined) comp.stateQ2 = false;
+                    if (comp.lastClk1 === undefined) comp.lastClk1 = 0;
+                    if (comp.lastClk2 === undefined) comp.lastClk2 = 0;
+
+                    // Flip-Flop 1
+                    const vClk1 = getV(pins.pin3);
+                    const vRst1 = getV(pins.pin4);
+                    const vData1 = getV(pins.pin5);
+                    const vSet1 = getV(pins.pin6);
+
+                    if (vClk1 > 2.5 && comp.lastClk1 <= 2.5) {
+                        comp.stateQ1 = (vData1 > 2.5);
+                    }
+                    comp.lastClk1 = vClk1;
+
+                    let q1 = comp.stateQ1;
+                    let q1Bar = !q1;
+                    if (vSet1 > 2.5 && vRst1 > 2.5) {
+                        q1 = true; q1Bar = true;
+                    } else if (vSet1 > 2.5) {
+                        q1 = true; q1Bar = false; comp.stateQ1 = true;
+                    } else if (vRst1 > 2.5) {
+                        q1 = false; q1Bar = true; comp.stateQ1 = false;
+                    }
+
+                    driveDigitalPin(pins.pin1, q1, 100.0);
+                    driveDigitalPin(pins.pin2, q1Bar, 100.0);
+
+                    // Flip-Flop 2
+                    const vSet2 = getV(pins.pin8);
+                    const vData2 = getV(pins.pin9);
+                    const vRst2 = getV(pins.pin10);
+                    const vClk2 = getV(pins.pin11);
+
+                    if (vClk2 > 2.5 && comp.lastClk2 <= 2.5) {
+                        comp.stateQ2 = (vData2 > 2.5);
+                    }
+                    comp.lastClk2 = vClk2;
+
+                    let q2 = comp.stateQ2;
+                    let q2Bar = !q2;
+                    if (vSet2 > 2.5 && vRst2 > 2.5) {
+                        q2 = true; q2Bar = true;
+                    } else if (vSet2 > 2.5) {
+                        q2 = true; q2Bar = false; comp.stateQ2 = true;
+                    } else if (vRst2 > 2.5) {
+                        q2 = false; q2Bar = true; comp.stateQ2 = false;
+                    }
+
+                    driveDigitalPin(pins.pin13, q2, 100.0);
+                    driveDigitalPin(pins.pin12, q2Bar, 100.0);
+
+                } else if (icType === 'CD4081') {
+                    // Quad 2-Input AND Gate (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const gates = [
+                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
+                        { inA: pins.pin5, inB: pins.pin6, out: pins.pin4 },
+                        { inA: pins.pin8, inB: pins.pin9, out: pins.pin10 },
+                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
+                    ];
+                    gates.forEach(g => {
+                        const hA = getV(g.inA) > 2.5;
+                        const hB = getV(g.inB) > 2.5;
+                        driveDigitalPin(g.out, hA && hB, 100.0);
+                    });
                 }
             }
         });
@@ -1308,7 +1407,10 @@ const IC_CATALOG = {
     '7447':    { name: '7447 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
     '74LS47':  { name: '74LS47 BCD to 7-Seg Decoder (CA)', pins: 16, desc: 'BCD-to-7세그먼트 디코더/드라이버 (Common Anode FND용 active-low)' },
     '7410':    { name: '7410 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
-    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' }
+    '74LS10':  { name: '74LS10 Triple 3-Input NAND Gate', pins: 14, desc: '3채널 3입력 NAND 논리 게이트 (DIP-14)' },
+    'CD4028':  { name: 'CD4028 BCD-to-Decimal Decoder', pins: 16, desc: 'BCD-to-10진 / Binary-to-8진 디코더 (DIP-16)' },
+    'CD4013':  { name: 'CD4013 Dual D-Type Flip-Flop', pins: 14, desc: '듀얼 D-플립플롭 (Set/Reset 포함 DIP-14)' },
+    'CD4081':  { name: 'CD4081 Quad 2-Input AND Gate', pins: 14, desc: '4채널 2입력 AND 논리 게이트 (DIP-14)' }
 };
 
 class FNDComponent {
