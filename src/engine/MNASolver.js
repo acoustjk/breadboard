@@ -685,6 +685,21 @@ export class MNASolver {
                         driveDigitalPin(g.out, hA !== hB, 100.0);
                     });
 
+                } else if (icType === '74HC00' || icType === '7400' || icType === '74LS00') {
+                    // Quad 2-Input NAND Gate (DIP-14)
+                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
+                    const gates = [
+                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
+                        { inA: pins.pin4, inB: pins.pin5, out: pins.pin6 },
+                        { inA: pins.pin9, inB: pins.pin10, out: pins.pin8 },
+                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
+                    ];
+                    gates.forEach(g => {
+                        const hA = getV(g.inA) > 2.5;
+                        const hB = getV(g.inB) > 2.5;
+                        driveDigitalPin(g.out, !(hA && hB), 100.0);
+                    });
+
                 } else if (icType === '74LS10' || icType === '7410') {
                     // Triple 3-Input NAND Gate (DIP-14)
                     const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
