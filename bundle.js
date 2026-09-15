@@ -4166,7 +4166,7 @@ class OscilloscopeCanvas {
         this.ctx.shadowColor = color;
         this.ctx.shadowBlur = 4;
 
-        const totalTimeScreen = 5 * (this.timePerDiv || 0.005);
+        const totalTimeScreen = 10 * (this.timePerDiv || 0.005);
         const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
         const width = this.canvas.width;
         const vDivScale = scaleY / (voltPerDiv || 1.0);
@@ -6876,10 +6876,18 @@ class AppController {
             this.oscilloscopeCanvas.timePerDiv || 0.0002
         );
         let stepsPerFrame = 10;
-        if (maxTimeDiv >= 0.010) {
-            stepsPerFrame = 25;
+        if (maxTimeDiv >= 0.500) {
+            stepsPerFrame = 500;
+        } else if (maxTimeDiv >= 0.200) {
+            stepsPerFrame = 300;
+        } else if (maxTimeDiv >= 0.100) {
+            stepsPerFrame = 180;
+        } else if (maxTimeDiv >= 0.050) {
+            stepsPerFrame = 100;
+        } else if (maxTimeDiv >= 0.010) {
+            stepsPerFrame = 40;
         } else if (maxTimeDiv >= 0.002) {
-            stepsPerFrame = 15;
+            stepsPerFrame = 20;
         }
         let vA = 0;
         let vB = 0;

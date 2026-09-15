@@ -486,7 +486,7 @@ export class OscilloscopeCanvas {
         this.ctx.shadowColor = color;
         this.ctx.shadowBlur = 4;
 
-        const totalTimeScreen = 5 * (this.timePerDiv || 0.005);
+        const totalTimeScreen = 10 * (this.timePerDiv || 0.005);
         const samplesOnScreen = Math.max(2, Math.round(totalTimeScreen / this.dt));
         const width = this.canvas.width;
         const vDivScale = scaleY / (voltPerDiv || 1.0);
