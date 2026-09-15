@@ -3965,6 +3965,7 @@ class OscilloscopeCanvas {
 
             ctx.beginPath();
             let isFirst = true;
+            let prevY = 0;
             for (let px = 0; px < width; px++) {
                 // px=0 is left (oldest sample on screen), px=width-1 is right (newest sample)
                 const sampleOffset = Math.round((width - 1 - px) / (width - 1) * (samplesOnScreen - 1));
@@ -3975,8 +3976,11 @@ class OscilloscopeCanvas {
                 if (isFirst) {
                     ctx.moveTo(px, y);
                     isFirst = false;
+                    prevY = y;
                 } else {
+                    ctx.lineTo(px, prevY);
                     ctx.lineTo(px, y);
+                    prevY = y;
                 }
             }
             ctx.stroke();
@@ -4184,6 +4188,7 @@ class OscilloscopeCanvas {
             // Clean Crisp Sample Point Rendering (Eliminates average notch spikes & staircase distortion)
             const samplesPerPixel = numSamples / width;
             let isFirst = true;
+            let prevY = 0;
 
             for (let px = 0; px < width; px++) {
                 const sIdx = Math.floor(startIdx + px * samplesPerPixel);
@@ -4195,14 +4200,18 @@ class OscilloscopeCanvas {
                 if (isFirst) {
                     this.ctx.moveTo(px, y);
                     isFirst = false;
+                    prevY = y;
                 } else {
+                    this.ctx.lineTo(px, prevY);
                     this.ctx.lineTo(px, y);
+                    prevY = y;
                 }
             }
         } else {
             // High-Resolution Direct Sample Point-to-Point Interpolation
             const stepX = width / (samplesOnScreen - 1);
             let isFirstPoint = true;
+            let prevY = 0;
 
             for (let i = startIdx; i < endIdx; i++) {
                 const screenIdx = i - startIdx;
@@ -4215,8 +4224,11 @@ class OscilloscopeCanvas {
                 if (isFirstPoint) {
                     this.ctx.moveTo(x, y);
                     isFirstPoint = false;
+                    prevY = y;
                 } else {
+                    this.ctx.lineTo(x, prevY);
                     this.ctx.lineTo(x, y);
+                    prevY = y;
                 }
             }
         }
