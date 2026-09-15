@@ -1488,9 +1488,9 @@ class AppController {
         };
 
         const bindTimeDivSync = (selectId, sliderId, numId, propName) => {
-            const selectEl = document.getElementById(selectId);
-            const sliderEl = document.getElementById(sliderId);
-            const numEl = document.getElementById(numId);
+            const selectEls = document.querySelectorAll(`#${selectId}`);
+            const sliderEls = document.querySelectorAll(`#${sliderId}`);
+            const numEls = document.querySelectorAll(`#${numId}`);
 
             const updateVal = (secVal) => {
                 this.oscilloscopeCanvas[propName] = secVal;
@@ -1508,37 +1508,43 @@ class AppController {
                 });
 
                 const msVal = secVal * 1000.0;
-                if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
-                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(1000.0, msVal));
-                if (selectEl) {
-                    const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
-                    if (matchedOption) selectEl.value = matchedOption.value;
-                }
+                numEls.forEach(numEl => {
+                    if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
+                });
+                sliderEls.forEach(sliderEl => {
+                    if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(1000.0, msVal));
+                });
+                selectEls.forEach(selectEl => {
+                    if (selectEl) {
+                        const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
+                        if (matchedOption) selectEl.value = matchedOption.value;
+                    }
+                });
                 this.oscilloscopeCanvas.render();
             };
 
-            if (selectEl) {
+            selectEls.forEach(selectEl => {
                 selectEl.addEventListener('change', (e) => {
                     const secVal = parseFloat(e.target.value);
                     updateVal(secVal);
                 });
-            }
-            if (sliderEl) {
+            });
+            sliderEls.forEach(sliderEl => {
                 sliderEl.addEventListener('input', (e) => {
                     const msVal = parseFloat(e.target.value);
                     if (!isNaN(msVal) && msVal > 0) {
                         updateVal(msVal / 1000.0);
                     }
                 });
-            }
-            if (numEl) {
+            });
+            numEls.forEach(numEl => {
                 numEl.addEventListener('input', (e) => {
                     const msVal = parseFloat(e.target.value);
                     if (!isNaN(msVal) && msVal > 0) {
                         updateVal(msVal / 1000.0);
                     }
                 });
-            }
+            });
         };
 
         const bindChannelTimeDiv = (selectId, propName) => {
