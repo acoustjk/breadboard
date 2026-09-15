@@ -1,5 +1,5 @@
 export class RingBuffer {
-    constructor(capacity = 200000) {
+    constructor(capacity = 2000000) {
         this.capacity = capacity;
         this.data = new Float64Array(capacity);
         this.head = 0;
@@ -50,7 +50,7 @@ export class OscilloscopeCanvas {
         }
         this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
 
-        this.bufferSize = 200000; // 200,000 Float64Array RingBuffer (1.0 second full history window for wide Time/Div zoom)
+        this.bufferSize = 2000000; // 2,000,000 Float64Array RingBuffer (10.0 seconds full history window for wide Time/Div zoom)
         this.dt = 0.000005; // 5us high-resolution simulation time step
         this.resetBuffer();
 
@@ -165,7 +165,7 @@ export class OscilloscopeCanvas {
             return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
         }
 
-        const inspectLen = Math.min(ringBuffer.count, 2000);
+        const inspectLen = Math.min(ringBuffer.count, 200000);
         let vMin = Infinity;
         let vMax = -Infinity;
         let sumSq = 0;

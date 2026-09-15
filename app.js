@@ -1509,7 +1509,7 @@ class AppController {
 
                 const msVal = secVal * 1000.0;
                 if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
-                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(50.0, msVal));
+                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(1000.0, msVal));
                 if (selectEl) {
                     const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
                     if (matchedOption) selectEl.value = matchedOption.value;

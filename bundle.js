@@ -3679,7 +3679,7 @@ class BreadboardCanvas {
 
 /* --- src/ui/OscilloscopeCanvas.js --- */
 class RingBuffer {
-    constructor(capacity = 200000) {
+    constructor(capacity = 2000000) {
         this.capacity = capacity;
         this.data = new Float64Array(capacity);
         this.head = 0;
@@ -3730,7 +3730,7 @@ class OscilloscopeCanvas {
         }
         this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
 
-        this.bufferSize = 200000; // 200,000 Float64Array RingBuffer (1.0 second full history window for wide Time/Div zoom)
+        this.bufferSize = 2000000; // 2,000,000 Float64Array RingBuffer (10.0 seconds full history window for wide Time/Div zoom)
         this.dt = 0.000005; // 5us high-resolution simulation time step
         this.resetBuffer();
 
@@ -3845,7 +3845,7 @@ class OscilloscopeCanvas {
             return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
         }
 
-        const inspectLen = Math.min(ringBuffer.count, 2000);
+        const inspectLen = Math.min(ringBuffer.count, 200000);
         let vMin = Infinity;
         let vMax = -Infinity;
         let sumSq = 0;
@@ -6277,7 +6277,7 @@ class AppController {
 
                 const msVal = secVal * 1000.0;
                 if (numEl) numEl.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2);
-                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(50.0, msVal));
+                if (sliderEl) sliderEl.value = Math.max(0.01, Math.min(1000.0, msVal));
                 if (selectEl) {
                     const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
                     if (matchedOption) selectEl.value = matchedOption.value;
