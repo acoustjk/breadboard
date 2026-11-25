@@ -2360,6 +2360,16 @@ class BreadboardCanvas {
             let foundComp = null;
             if (this.componentsRef) {
                 for (const comp of this.componentsRef) {
+                    if (comp.type === 'IC') {
+                        const { leftX, rightX, topY, chipHeight } = this.getICBounds(comp);
+                        const padX = 4;
+                        if (worldX >= leftX - padX && worldX <= rightX + padX &&
+                            worldY >= topY && worldY <= topY + chipHeight) {
+                            foundComp = comp;
+                            break;
+                        }
+                        continue;
+                    }
                     const pA = this.getPinPos(comp.pinA || comp.pinEmitter);
                     const pB = this.getPinPos(comp.pinB || comp.pinCollector);
                     const distA = Math.hypot(pA.x - worldX, pA.y - worldY);
@@ -2957,6 +2967,39 @@ class BreadboardCanvas {
         this.ctx.restore();
     }
 
+    getICBounds(comp) {
+        const numPinsTotal = comp.pins || 8;
+        const pinsPerSide = numPinsTotal / 2;
+        const pitchY = 11.2;
+
+        // Always anchor DIP ICs across Center Trough on columns E and F (2 columns wide)
+        let pLeft = this.getPinPos(comp.pinA);
+        let pRight = this.getPinPos(comp.pinB);
+        if (comp.pinA && comp.pinA.includes('_')) {
+            const parts = comp.pinA.split('_');
+            const blk = parts[0];
+            const startRow = parseInt(parts[1].slice(1), 10);
+            if (!isNaN(startRow)) {
+                const ePos = this.getPinPos(`${blk}_E${startRow}`);
+                const fPos = this.getPinPos(`${blk}_F${startRow}`);
+                if (ePos.x > 0 && fPos.x > 0) {
+                    pLeft = ePos;
+                    pRight = fPos;
+                }
+            }
+        }
+
+        const leftX = Math.min(pLeft.x, pRight.x);
+        const rightX = Math.max(pLeft.x, pRight.x);
+        const midX = (leftX + rightX) / 2;
+        const pinSpan = Math.max(18, rightX - leftX); // 20px between Col E and Col F
+        const chipWidth = pinSpan + 2; // 22px body covering strictly E and F, leaving D and G open
+        const chipHeight = (pinsPerSide - 1) * pitchY + 14;
+        const topY = pLeft.y - 7;
+
+        return { pLeft, pRight, leftX, rightX, midX, chipWidth, chipHeight, topY, numPinsTotal, pinsPerSide, pitchY };
+    }
+
     renderComponent(comp, isSelected) {
         const pA = this.getPinPos(comp.pinA || comp.pinEmitter);
         const pB = this.getPinPos(comp.pinB || comp.pinCollector);
@@ -3291,33 +3334,29 @@ class BreadboardCanvas {
             }
 
         } else if (comp.type === 'IC') {
-            const midX = (pA.x + pB.x) / 2;
-            const numPinsTotal = comp.pins || 8;
-            const pinsPerSide = numPinsTotal / 2;
-            const pitchY = 11.2;
-            const chipWidth = Math.abs(pB.x - pA.x) + 26;
-            const chipHeight = (pinsPerSide - 1) * pitchY + 28;
-            const topY = pA.y - 14;
+            const { pLeft, leftX, rightX, midX, chipWidth, chipHeight, topY, numPinsTotal, pinsPerSide, pitchY } = this.getICBounds(comp);
+            const bodyLeft = midX - chipWidth / 2;
+            const bodyRight = midX + chipWidth / 2;
 
-            // 1. Dual-In-Line Metallic Leads extending to Breadboard Holes
+            // 1. Dual-In-Line Metallic Leads anchored strictly to Columns E and F (2-column DIP footprint)
             for (let i = 0; i < pinsPerSide; i++) {
-                const py = pA.y + i * pitchY;
+                const py = pLeft.y + i * pitchY;
 
-                // Left Pin Lead
+                // Left Pin Lead (Col E)
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+                this.ctx.fillRect(leftX - 2.5, py - 2.0, 3.5, 4.0);
                 this.ctx.strokeStyle = '#475569';
-                this.ctx.lineWidth = 0.8;
-                this.ctx.strokeRect(pA.x, py - 2.5, (midX - chipWidth / 2) - pA.x, 5);
+                this.ctx.lineWidth = 0.7;
+                this.ctx.strokeRect(leftX - 2.5, py - 2.0, 3.5, 4.0);
 
-                // Right Pin Lead
+                // Right Pin Lead (Col F)
                 this.ctx.fillStyle = '#cbd5e1';
-                this.ctx.fillRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
-                this.ctx.strokeRect(midX + chipWidth / 2, py - 2.5, pB.x - (midX + chipWidth / 2), 5);
+                this.ctx.fillRect(rightX - 1.0, py - 2.0, 3.5, 4.0);
+                this.ctx.strokeRect(rightX - 1.0, py - 2.0, 3.5, 4.0);
             }
 
-            // 2. DIP Chip Photorealistic Matte Black Molded Body
-            const chipGrad = this.ctx.createLinearGradient(midX - chipWidth / 2, topY, midX + chipWidth / 2, topY + chipHeight);
+            // 2. DIP Chip Photorealistic Matte Black Molded Body (Fits cleanly across E & F only)
+            const chipGrad = this.ctx.createLinearGradient(bodyLeft, topY, bodyRight, topY + chipHeight);
             chipGrad.addColorStop(0, '#334155');
             chipGrad.addColorStop(0.3, '#1e293b');
             chipGrad.addColorStop(0.8, '#0f172a');
@@ -3325,67 +3364,60 @@ class BreadboardCanvas {
 
             this.ctx.fillStyle = chipGrad;
             this.ctx.beginPath();
-            this.ctx.roundRect(midX - chipWidth / 2, topY, chipWidth, chipHeight, 4);
+            this.ctx.roundRect(bodyLeft, topY, chipWidth, chipHeight, 3);
             this.ctx.fill();
 
             // Inner Bevel Contour Highlight
             this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#475569';
-            this.ctx.lineWidth = isSelected ? 2.5 : 1.2;
+            this.ctx.lineWidth = isSelected ? 2.0 : 1.0;
             this.ctx.stroke();
 
             // 3. Top Semicircular Notch
             this.ctx.fillStyle = '#080c14';
             this.ctx.beginPath();
-            this.ctx.arc(midX, topY, 5, 0, Math.PI);
+            this.ctx.arc(midX, topY, 3.0, 0, Math.PI);
             this.ctx.fill();
             this.ctx.strokeStyle = '#334155';
-            this.ctx.lineWidth = 1;
+            this.ctx.lineWidth = 0.8;
             this.ctx.stroke();
 
-            // 4. Pin 1 Silver Notch Dot
-            this.ctx.fillStyle = '#cbd5e1';
+            // 4. Pin 1 Cyan Notch Dot
+            this.ctx.fillStyle = '#38bdf8';
             this.ctx.beginPath();
-            this.ctx.arc(midX - chipWidth / 2 + 6, topY + 8, 2.5, 0, Math.PI * 2);
+            this.ctx.arc(bodyLeft + 3.5, topY + 2.5, 1.2, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // 5. White Laser-Etched Chip Markings
+            // 5. White Laser-Etched Chip Markings (Rotated vertically along the DIP package)
+            const icName = (comp.icType || 'IC').toUpperCase();
+            const labelShiftX = numPinsTotal >= 14 ? -1.0 : 0;
+            this.ctx.save();
+            this.ctx.translate(midX + labelShiftX, topY + chipHeight / 2 + 1);
+            this.ctx.rotate(-Math.PI / 2);
             this.ctx.fillStyle = '#f8fafc';
-            this.ctx.font = 'bold 11px monospace';
+            this.ctx.font = 'bold 7.5px monospace';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(icName, 0, 0);
+            this.ctx.restore();
 
-            const icName = (comp.icType || 'IC').toUpperCase();
-            this.ctx.fillText(icName, midX, topY + chipHeight / 2 - 2);
-
-            // Subtitle Description
-            this.ctx.fillStyle = '#94a3b8';
-            this.ctx.font = 'bold 8px sans-serif';
-            const meta = IC_CATALOG[comp.icType] || { desc: 'DIP CHIP' };
-            const descShort = meta.desc ? meta.desc.split(' ')[0] : 'DIP';
-            this.ctx.fillText(descShort, midX, topY + chipHeight / 2 + 10);
-            // 6. Clean Metallic Silver Pins & Subtle Yellow Pin Numbers
-            this.ctx.font = 'bold 9px monospace';
+            // 6. Subtle Compact Pin Numbers along Left & Right Edges
+            this.ctx.font = 'bold 6px monospace';
             this.ctx.textBaseline = 'middle';
 
             for (let i = 0; i < pinsPerSide; i++) {
-                const legY = pA.y + i * pitchY;
+                const legY = pLeft.y + i * pitchY;
 
                 // Left Pin Leg (Pin 1..N/2)
                 const leftPinNum = i + 1;
-                const leftLegX = midX - chipWidth / 2;
-
-                // Subtle Pin Number Inside Body
                 this.ctx.fillStyle = (leftPinNum === 1) ? '#38bdf8' : '#f59e0b';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${leftPinNum}`, leftLegX + 8, legY);
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`${leftPinNum}`, bodyLeft + 1.5, legY);
 
                 // Right Pin Leg (Pin N..N/2+1)
                 const rightPinNum = numPinsTotal - i;
-                const rightLegX = midX + chipWidth / 2;
-
                 this.ctx.fillStyle = '#f59e0b';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${rightPinNum}`, rightLegX - 8, legY);
+                this.ctx.textAlign = 'right';
+                this.ctx.fillText(`${rightPinNum}`, bodyRight - 1.5, legY);
             }
         } else if (comp.type === 'DIODE' || comp.type === 'ZENER') {
             this.ctx.strokeStyle = '#636e72';
@@ -4927,7 +4959,19 @@ class AppController {
             } else if (toolType === 'IC_CATALOG') {
                 const icKey = this.selectedIcKey || 'LF356';
                 const meta = IC_CATALOG[icKey] || IC_CATALOG['LF356'];
-                newComp = new DIPChip(id, icKey, pinA, pinB);
+                let icPinA = pinA;
+                let icPinB = pinB;
+                if (pinA && pinA.includes('_')) {
+                    const parts = pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    if (!isNaN(startRow)) {
+                        const pinsPerSide = (meta.pins || 8) / 2;
+                        icPinA = `${blk}_E${startRow}`;
+                        icPinB = `${blk}_F${Math.min(60, startRow + pinsPerSide - 1)}`;
+                    }
+                }
+                newComp = new DIPChip(id, icKey, icPinA, icPinB);
                 labelMsg = `🔲 ${meta.name} (DIP-${meta.pins})`;
             } else if (toolType === 'TRANSISTOR_CATALOG') {
                 const transKey = this.selectedTransistorType || '2N3904';
@@ -6893,19 +6937,19 @@ class AppController {
             this.oscilloscopeCanvas.timePerDivChD || 0.0002,
             this.oscilloscopeCanvas.timePerDiv || 0.0002
         );
-        let stepsPerFrame = 10;
+        let stepsPerFrame = 5;
         if (maxTimeDiv >= 0.500) {
-            stepsPerFrame = 500;
+            stepsPerFrame = 250;
         } else if (maxTimeDiv >= 0.200) {
-            stepsPerFrame = 300;
+            stepsPerFrame = 150;
         } else if (maxTimeDiv >= 0.100) {
-            stepsPerFrame = 180;
+            stepsPerFrame = 90;
         } else if (maxTimeDiv >= 0.050) {
-            stepsPerFrame = 100;
+            stepsPerFrame = 50;
         } else if (maxTimeDiv >= 0.010) {
-            stepsPerFrame = 40;
-        } else if (maxTimeDiv >= 0.002) {
             stepsPerFrame = 20;
+        } else if (maxTimeDiv >= 0.002) {
+            stepsPerFrame = 10;
         }
         let vA = 0;
         let vB = 0;

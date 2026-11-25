@@ -147,7 +147,19 @@ class AppController {
             } else if (toolType === 'IC_CATALOG') {
                 const icKey = this.selectedIcKey || 'LF356';
                 const meta = IC_CATALOG[icKey] || IC_CATALOG['LF356'];
-                newComp = new DIPChip(id, icKey, pinA, pinB);
+                let icPinA = pinA;
+                let icPinB = pinB;
+                if (pinA && pinA.includes('_')) {
+                    const parts = pinA.split('_');
+                    const blk = parts[0];
+                    const startRow = parseInt(parts[1].slice(1), 10);
+                    if (!isNaN(startRow)) {
+                        const pinsPerSide = (meta.pins || 8) / 2;
+                        icPinA = `${blk}_E${startRow}`;
+                        icPinB = `${blk}_F${Math.min(60, startRow + pinsPerSide - 1)}`;
+                    }
+                }
+                newComp = new DIPChip(id, icKey, icPinA, icPinB);
                 labelMsg = `🔲 ${meta.name} (DIP-${meta.pins})`;
             } else if (toolType === 'TRANSISTOR_CATALOG') {
                 const transKey = this.selectedTransistorType || '2N3904';
@@ -2113,19 +2125,19 @@ class AppController {
             this.oscilloscopeCanvas.timePerDivChD || 0.0002,
             this.oscilloscopeCanvas.timePerDiv || 0.0002
         );
-        let stepsPerFrame = 10;
+        let stepsPerFrame = 5;
         if (maxTimeDiv >= 0.500) {
-            stepsPerFrame = 500;
+            stepsPerFrame = 250;
         } else if (maxTimeDiv >= 0.200) {
-            stepsPerFrame = 300;
+            stepsPerFrame = 150;
         } else if (maxTimeDiv >= 0.100) {
-            stepsPerFrame = 180;
+            stepsPerFrame = 90;
         } else if (maxTimeDiv >= 0.050) {
-            stepsPerFrame = 100;
+            stepsPerFrame = 50;
         } else if (maxTimeDiv >= 0.010) {
-            stepsPerFrame = 40;
-        } else if (maxTimeDiv >= 0.002) {
             stepsPerFrame = 20;
+        } else if (maxTimeDiv >= 0.002) {
+            stepsPerFrame = 10;
         }
         let vA = 0;
         let vB = 0;

@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const projectDir = 'C:/Users/에스에스브이/.gemini/antigravity/scratch/hybrid-circuit-simulator';
+const projectDir = path.dirname(fileURLToPath(import.meta.url));
 
 const files = [
   'src/engine/CircuitNode.js',
