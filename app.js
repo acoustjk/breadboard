@@ -2125,19 +2125,19 @@ class AppController {
             this.oscilloscopeCanvas.timePerDivChD || 0.0002,
             this.oscilloscopeCanvas.timePerDiv || 0.0002
         );
-        let stepsPerFrame = 5;
+        let stepsPerFrame = 2;
         if (maxTimeDiv >= 0.500) {
-            stepsPerFrame = 250;
+            stepsPerFrame = 125;
         } else if (maxTimeDiv >= 0.200) {
-            stepsPerFrame = 150;
+            stepsPerFrame = 75;
         } else if (maxTimeDiv >= 0.100) {
-            stepsPerFrame = 90;
+            stepsPerFrame = 45;
         } else if (maxTimeDiv >= 0.050) {
-            stepsPerFrame = 50;
+            stepsPerFrame = 25;
         } else if (maxTimeDiv >= 0.010) {
-            stepsPerFrame = 20;
-        } else if (maxTimeDiv >= 0.002) {
             stepsPerFrame = 10;
+        } else if (maxTimeDiv >= 0.002) {
+            stepsPerFrame = 5;
         }
         let vA = 0;
         let vB = 0;
