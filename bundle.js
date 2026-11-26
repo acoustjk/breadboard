@@ -1,11 +1,8 @@
 /**
- * bundle.js - Complete Standalone Bundle for 빵판시뮬레이터 (Company-JK Workbench)
- * Works on both http://, https://, and local file:/// double-click without CORS blocking!
+ * bundle.js - Complete Standalone Bundle for 빵판시뮬레이터
  */
-(function() {
-'use strict';
 
-/* --- src/engine/CircuitNode.js --- */
+// ==================== src/engine/CircuitNode.js ====================
 /**
  * CircuitNode.js
  * Breadboard Tie-Point Pin to Electrical MNA Node Mapping Engine.
@@ -88,7 +85,7 @@ class BreadboardGrid {
 }
 
 
-/* --- src/engine/MNASolver.js --- */
+// ==================== src/engine/MNASolver.js ====================
 /**
  * MNASolver.js
  * Modified Nodal Analysis (MNA) Linear Circuit Engine for Hybrid Circuit Simulator.
@@ -110,6 +107,12 @@ class MNASolver {
             const nB = this.grid.getNodeId(c.pinB);
             if (nA && nA !== '0') nodeSet.add(nA);
             if (nB && nB !== '0') nodeSet.add(nB);
+            if (c.type === 'BJT') {
+                [c.pinEmitter, c.pinBase, c.pinCollector].forEach(pK => {
+                    const n = this.grid.getNodeId(pK);
+                    if (n && n !== '0') nodeSet.add(n);
+                });
+            }
             if (c.type === 'IC') {
                 const dipPins = this.getDIPPins(c);
                 if (dipPins) {
@@ -134,6 +137,7 @@ class MNASolver {
         const A = Array.from({ length: N }, () => new Float64Array(N));
         const Z = new Float64Array(N);
         const physicalOpAmps = [];
+        const nonlinearDevices = [];
 
         // Add default 1e-6 S (1MΩ) pull-down leakage to GND for all non-power-rail active nodes
         // This ensures floating switch output nodes & digital IC logic inputs properly collapse to 0V (LOW) when opened/disconnected
@@ -195,31 +199,28 @@ class MNASolver {
                 addConductance(nA, nB, gSrc);
                 addCurrentSource(nA, nB, vVal * gSrc);
             } else if (comp.type === 'DIODE') {
-                const vA = (nA && this.lastVoltages) ? (this.lastVoltages.get(nA) || 0) : 0;
-                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
-                const vDiff = vA - vB;
-                const vF = comp.vForward || 0.7;
-                if (vDiff > vF) {
-                    addConductance(nA, nB, 10.0);
-                    addCurrentSource(nA, nB, vF * 10.0);
-                } else {
-                    addConductance(nA, nB, 1e-6); // Off State (1M High Impedance)
-                }
+                if (comp._nlState === undefined) comp._nlState = 0;
+                const iA = nA ? nodeIndexMap.get(nA) : -1;
+                const iB = nB ? nodeIndexMap.get(nB) : -1;
+                nonlinearDevices.push({
+                    kind: 'DIODE',
+                    comp,
+                    iA: iA !== undefined ? iA : -1,
+                    iB: iB !== undefined ? iB : -1,
+                    vF: comp.vForward || 0.7
+                });
             } else if (comp.type === 'ZENER') {
-                const vA = (nA && this.lastVoltages) ? (this.lastVoltages.get(nA) || 0) : 0;
-                const vB = (nB && this.lastVoltages) ? (this.lastVoltages.get(nB) || 0) : 0;
-                const vDiff = vA - vB;
-                const vZener = comp.vZener || 9.1;
-                const vF = comp.vForward || 0.7;
-                if (vDiff > vZener) {
-                    addConductance(nA, nB, 10.0);
-                    addCurrentSource(nA, nB, vZener * 10.0);
-                } else if (vDiff < -vF) {
-                    addConductance(nA, nB, 10.0);
-                    addCurrentSource(nA, nB, -vF * 10.0);
-                } else {
-                    addConductance(nA, nB, 1e-6); // Off State (1M High Impedance)
-                }
+                if (comp._nlState === undefined) comp._nlState = 0;
+                const iA = nA ? nodeIndexMap.get(nA) : -1;
+                const iB = nB ? nodeIndexMap.get(nB) : -1;
+                nonlinearDevices.push({
+                    kind: 'ZENER',
+                    comp,
+                    iA: iA !== undefined ? iA : -1,
+                    iB: iB !== undefined ? iB : -1,
+                    vZ: comp.vZener || 9.1,
+                    vF: comp.vForward || 0.7
+                });
             } else if (comp.type === 'SWITCH') {
                 addConductance(nA, nB, comp.isOpen ? 1e-9 : 1000.0);
             } else if (comp.type === 'LED') {
@@ -285,54 +286,27 @@ class MNASolver {
                         }
                     }
                 } else {
-                    // Single BJT Linear/Switching Model
+                    // Single BJT Implicit Active-Set Switching/Sampling Model (zero-spike, zero-chatter for PAM & PNM)
                     const nE = getNode(comp.pinEmitter || comp.pinA);
                     const nBase = getNode(comp.pinBase);
                     const nC = getNode(comp.pinCollector || comp.pinB);
 
-                    const vE = (nE && this.lastVoltages) ? (this.lastVoltages.get(nE) || 0) : 0;
-                    const vBase = (nBase && this.lastVoltages) ? (this.lastVoltages.get(nBase) || 0) : 0;
-                    const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
+                    if (comp._beOn === undefined) comp._beOn = false;
+                    if (comp._bcOn === undefined) comp._bcOn = false;
 
-                    const polarity = comp.polarity || 'NPN';
-                    const vbeThresh = 0.55;
+                    const iE = nE ? nodeIndexMap.get(nE) : -1;
+                    const iB = nBase ? nodeIndexMap.get(nBase) : -1;
+                    const iC = nC ? nodeIndexMap.get(nC) : -1;
 
-                    if (polarity === 'NPN') {
-                        // Bidirectional physical NPN switching/sampling model (chatter-free & spike-free for PAM/chopper & amplifier circuits)
-                        const vRef = Math.min(vE, vC);
-                        const vB_eff = vBase - vRef;
-                        const wasOn = !!comp._bjtOn;
-                        const isOn = (!wasOn && vB_eff > vbeThresh) || (wasOn && vB_eff > (vbeThresh - 0.002));
-                        comp._bjtOn = isOn;
-
-                        if (isOn) {
-                            const nRef = (vE <= vC) ? nE : nC;
-                            const gBE = 0.01; // 100Ω forward BE/BC junction (eliminates -1.3V falling-edge spikes)
-                            addConductance(nBase, nRef, gBE);
-                            addCurrentSource(nBase, nRef, vbeThresh * gBE);
-                            addConductance(nC, nE, 0.1); // 10Ω clean bidirectional saturated CE switch
-                        } else {
-                            addConductance(nBase, nE, 1e-6);
-                            addConductance(nC, nE, 1e-6);
-                        }
-                    } else { // PNP
-                        const vRef = Math.max(vE, vC);
-                        const vB_eff = vRef - vBase;
-                        const wasOn = !!comp._bjtOn;
-                        const isOn = (!wasOn && vB_eff > vbeThresh) || (wasOn && vB_eff > (vbeThresh - 0.002));
-                        comp._bjtOn = isOn;
-
-                        if (isOn) {
-                            const nRef = (vE >= vC) ? nE : nC;
-                            const gEB = 0.01;
-                            addConductance(nRef, nBase, gEB);
-                            addCurrentSource(nRef, nBase, vbeThresh * gEB);
-                            addConductance(nE, nC, 0.1);
-                        } else {
-                            addConductance(nE, nBase, 1e-6);
-                            addConductance(nE, nC, 1e-6);
-                        }
-                    }
+                    nonlinearDevices.push({
+                        kind: 'BJT',
+                        comp,
+                        polarity: comp.polarity || 'NPN',
+                        iE: iE !== undefined ? iE : -1,
+                        iB: iB !== undefined ? iB : -1,
+                        iC: iC !== undefined ? iC : -1,
+                        vbeThresh: 0.55
+                    });
                 }
 
             // ==========================================
@@ -1046,18 +1020,82 @@ class MNASolver {
             });
         }
 
-        // 3. Solve Linear System A * V = Z (with Active-Set Piecewise-Linear Iteration for Physical Op-Amps)
+        // 3. Solve Linear System A * V = Z (Priority Implicit Active-Set Iteration for Diodes, Zeners, BJTs & Physical Op-Amps)
         let V;
-        if (physicalOpAmps.length === 0) {
-            V = this.gaussianSolve(A, Z, N, null);
+        if (physicalOpAmps.length === 0 && nonlinearDevices.length === 0) {
+            V = this.gaussianSolve(A, Z, N, null, null);
         } else {
             const triedLinear = new Array(physicalOpAmps.length).fill(false);
             const leftFromSat = new Array(physicalOpAmps.length).fill(0);
 
-            for (let iter = 0; iter < 8; iter++) {
-                V = this.gaussianSolve(A, Z, N, physicalOpAmps);
+            for (let iter = 0; iter < 10; iter++) {
+                V = this.gaussianSolve(A, Z, N, physicalOpAmps, nonlinearDevices);
 
-                let changed = false;
+                // Phase A: Settle nonlinear diodes / zeners / BJTs first (eliminates 1-step-delay clamp spikes!)
+                let nlChanged = false;
+                for (let k = 0; k < nonlinearDevices.length; k++) {
+                    const d = nonlinearDevices[k];
+                    if (d.kind === 'DIODE') {
+                        const vA = d.iA >= 0 ? V[d.iA] : 0.0;
+                        const vB = d.iB >= 0 ? V[d.iB] : 0.0;
+                        const vd = vA - vB;
+                        const st = d.comp._nlState || 0;
+                        if (st === 0 && vd > d.vF + 1e-3) {
+                            d.comp._nlState = 1;
+                            nlChanged = true;
+                        } else if (st === 1 && vd < d.vF - 1e-3) {
+                            d.comp._nlState = 0;
+                            nlChanged = true;
+                        }
+                    } else if (d.kind === 'ZENER') {
+                        const vA = d.iA >= 0 ? V[d.iA] : 0.0;
+                        const vB = d.iB >= 0 ? V[d.iB] : 0.0;
+                        const vd = vA - vB;
+                        const st = d.comp._nlState || 0;
+                        if (st === 0) {
+                            if (vd > d.vZ + 1e-3) {
+                                d.comp._nlState = 1;
+                                nlChanged = true;
+                            } else if (vd < -d.vF - 1e-3) {
+                                d.comp._nlState = -1;
+                                nlChanged = true;
+                            }
+                        } else if (st === 1 && vd < d.vZ - 1e-3) {
+                            d.comp._nlState = 0;
+                            nlChanged = true;
+                        } else if (st === -1 && vd > -d.vF + 1e-3) {
+                            d.comp._nlState = 0;
+                            nlChanged = true;
+                        }
+                    } else if (d.kind === 'BJT') {
+                        const vE = d.iE >= 0 ? V[d.iE] : 0.0;
+                        const vB = d.iB >= 0 ? V[d.iB] : 0.0;
+                        const vC = d.iC >= 0 ? V[d.iC] : 0.0;
+                        const vbe = d.polarity === 'NPN' ? (vB - vE) : (vE - vB);
+                        const vbc = d.polarity === 'NPN' ? (vB - vC) : (vC - vB);
+                        const oldBe = !!d.comp._beOn;
+                        const oldBc = !!d.comp._bcOn;
+                        const newBe = oldBe ? (vbe > d.vbeThresh - 1e-3) : (vbe > d.vbeThresh + 1e-3);
+                        const newBc = oldBc ? (vbc > d.vbeThresh - 1e-3) : (vbc > d.vbeThresh + 1e-3);
+                        if (newBe !== oldBe || newBc !== oldBc) {
+                            d.comp._beOn = newBe;
+                            d.comp._bcOn = newBc;
+                            nlChanged = true;
+                        }
+                    }
+                }
+
+                if (nlChanged) {
+                    // Reset Op-Amp Schmitt guards so Op-Amps re-evaluate cleanly against settled clamps
+                    for (let k = 0; k < physicalOpAmps.length; k++) {
+                        triedLinear[k] = false;
+                        leftFromSat[k] = 0;
+                    }
+                    continue;
+                }
+
+                // Phase B: All nonlinear clamps are consistent; now update physical Op-Amp saturation states
+                let oaChanged = false;
                 for (let k = 0; k < physicalOpAmps.length; k++) {
                     const op = physicalOpAmps[k];
                     const vOut = V[op.iOut];
@@ -1067,14 +1105,12 @@ class MNASolver {
                     const region = op.comp._opRegion || 0;
 
                     if (region === 0) {
-                        if (vOut > op.vMax + 1e-4) {
-                            // If leaving +1 via linear bounced back above vMax (positive feedback Schmitt trigger), flip to -1!
-                            op.comp._opRegion = (leftFromSat[k] === 1 && triedLinear[k]) ? -1 : 1;
-                            changed = true;
-                        } else if (vOut < op.vMin - 1e-4) {
-                            // If leaving -1 via linear bounced back below vMin (positive feedback Schmitt trigger), flip to +1!
-                            op.comp._opRegion = (leftFromSat[k] === -1 && triedLinear[k]) ? 1 : -1;
-                            changed = true;
+                        if (vOut > op.vMax + 1e-4 || vIdeal > op.vMax + 1e-3) {
+                            op.comp._opRegion = (leftFromSat[k] === 1 && triedLinear[k] && vOut > op.vMax + 1e-4) ? -1 : 1;
+                            oaChanged = true;
+                        } else if (vOut < op.vMin - 1e-4 || vIdeal < op.vMin - 1e-3) {
+                            op.comp._opRegion = (leftFromSat[k] === -1 && triedLinear[k] && vOut < op.vMin - 1e-4) ? 1 : -1;
+                            oaChanged = true;
                         }
                     } else if (region > 0) {
                         if (vIdeal < op.vMax - 1e-3) {
@@ -1085,7 +1121,7 @@ class MNASolver {
                             } else {
                                 op.comp._opRegion = -1;
                             }
-                            changed = true;
+                            oaChanged = true;
                         }
                     } else {
                         if (vIdeal > op.vMin + 1e-3) {
@@ -1096,12 +1132,12 @@ class MNASolver {
                             } else {
                                 op.comp._opRegion = 1;
                             }
-                            changed = true;
+                            oaChanged = true;
                         }
                     }
                 }
 
-                if (!changed) break;
+                if (!oaChanged) break;
             }
         }
 
@@ -1202,7 +1238,7 @@ class MNASolver {
         return newVoltages;
     }
 
-    gaussianSolve(A, Z, N, physicalOpAmps = null) {
+    gaussianSolve(A, Z, N, physicalOpAmps = null, nonlinearDevices = null) {
         if (!this._mBuf || this._mBufN !== N) {
             this._mBuf = Array.from({ length: N }, () => new Float64Array(N + 1));
             this._xBuf = new Float64Array(N);
@@ -1231,6 +1267,77 @@ class MNASolver {
                     row[N] += op.G_out * op.vMax;
                 } else {
                     row[N] += op.G_out * op.vMin;
+                }
+            }
+        }
+
+        // Stamp implicit nonlinear devices (DIODE, ZENER, single BJT) directly into M
+        if (nonlinearDevices && nonlinearDevices.length > 0) {
+            const stampG = (i1, i2, g) => {
+                if (i1 >= 0) M[i1][i1] += g;
+                if (i2 >= 0) M[i2][i2] += g;
+                if (i1 >= 0 && i2 >= 0) {
+                    M[i1][i2] -= g;
+                    M[i2][i1] -= g;
+                }
+            };
+            const stampI = (i1, i2, cur) => {
+                if (i1 >= 0) M[i1][N] += cur;
+                if (i2 >= 0) M[i2][N] -= cur;
+            };
+
+            for (let k = 0; k < nonlinearDevices.length; k++) {
+                const d = nonlinearDevices[k];
+                if (d.kind === 'DIODE') {
+                    if (d.comp._nlState === 1) {
+                        stampG(d.iA, d.iB, 10.0);
+                        stampI(d.iA, d.iB, d.vF * 10.0);
+                    } else {
+                        stampG(d.iA, d.iB, 1e-6);
+                    }
+                } else if (d.kind === 'ZENER') {
+                    const st = d.comp._nlState || 0;
+                    if (st === 1) {
+                        stampG(d.iA, d.iB, 10.0);
+                        stampI(d.iA, d.iB, d.vZ * 10.0);
+                    } else if (st === -1) {
+                        stampG(d.iA, d.iB, 10.0);
+                        stampI(d.iA, d.iB, -d.vF * 10.0);
+                    } else {
+                        stampG(d.iA, d.iB, 1e-6);
+                    }
+                } else if (d.kind === 'BJT') {
+                    const beOn = !!d.comp._beOn;
+                    const bcOn = !!d.comp._bcOn;
+                    if (d.polarity === 'NPN') {
+                        if (beOn) {
+                            stampG(d.iB, d.iE, 0.02);
+                            stampI(d.iB, d.iE, d.vbeThresh * 0.02);
+                        } else {
+                            stampG(d.iB, d.iE, 1e-6);
+                        }
+                        if (bcOn) {
+                            stampG(d.iB, d.iC, 0.002);
+                            stampI(d.iB, d.iC, d.vbeThresh * 0.002);
+                        } else {
+                            stampG(d.iB, d.iC, 1e-6);
+                        }
+                        stampG(d.iC, d.iE, beOn ? 0.2 : 1e-6);
+                    } else {
+                        if (beOn) {
+                            stampG(d.iE, d.iB, 0.02);
+                            stampI(d.iE, d.iB, d.vbeThresh * 0.02);
+                        } else {
+                            stampG(d.iE, d.iB, 1e-6);
+                        }
+                        if (bcOn) {
+                            stampG(d.iC, d.iB, 0.002);
+                            stampI(d.iC, d.iB, d.vbeThresh * 0.002);
+                        } else {
+                            stampG(d.iC, d.iB, 1e-6);
+                        }
+                        stampG(d.iE, d.iC, beOn ? 0.2 : 1e-6);
+                    }
                 }
             }
         }
@@ -1322,7 +1429,7 @@ class MNASolver {
 }
 
 
-/* --- src/engine/FFT.js --- */
+// ==================== src/engine/FFT.js ====================
 /**
  * FFT.js
  * Cooley-Tukey Fast Fourier Transform (Radix-2) and Spectral Analysis Module.
@@ -1460,7 +1567,7 @@ class FFT {
 }
 
 
-/* --- src/components/ComponentModels.js --- */
+// ==================== src/components/ComponentModels.js ====================
 /**
  * ComponentModels.js
  * Extended Circuit Component Models with Transistors (NPN & PNP BJT) v=1070.
@@ -1769,7 +1876,7 @@ class Wire {
 }
 
 
-/* --- src/engine/UserPresets.js --- */
+// ==================== src/engine/UserPresets.js ====================
 // 5 User-Specified Official Circuits
 const USER_PRESETS = {
   "pnm_circuit": {
@@ -2265,13 +2372,12 @@ const USER_PRESETS = {
 };
 
 
-/* --- src/ui/BreadboardCanvas.js --- */
+// ==================== src/ui/BreadboardCanvas.js ====================
 /**
  * BreadboardCanvas.js
  * Interactive HTML5 Canvas Workbench Renderer for Wanjie BB-4T7D Breadboard.
  * TO-92 BJT Transistor 3-Pin Renderer & Placement Engine v=1070.
  */
-
 
 
 class BreadboardCanvas {
@@ -3845,7 +3951,7 @@ class BreadboardCanvas {
 }
 
 
-/* --- src/ui/OscilloscopeCanvas.js --- */
+// ==================== src/ui/OscilloscopeCanvas.js ====================
 class RingBuffer {
     constructor(capacity = 2000000) {
         this.capacity = capacity;
@@ -4471,7 +4577,7 @@ class OscilloscopeCanvas {
 }
 
 
-/* --- src/ui/ContinuityTester.js --- */
+// ==================== src/ui/ContinuityTester.js ====================
 /**
  * ContinuityTester.js
  * Breadboard Node Continuity & BEEP Sound Tester v=1170.
@@ -4631,7 +4737,7 @@ class ContinuityTester {
 }
 
 
-/* --- src/components/SPICEExporter.js --- */
+// ==================== src/components/SPICEExporter.js ====================
 /**
  * SPICEExporter.js
  * Exports circuit state to standard SPICE Netlist format and JSON payload for AI telemetry.
@@ -4701,7 +4807,7 @@ class SPICEExporter {
 }
 
 
-/* --- src/components/AICopilot.js --- */
+// ==================== src/components/AICopilot.js ====================
 /**
  * AICopilot.js
  * LLM AI Copilot Interface Module for Circuit Diagnostics & Signal Analysis.
@@ -4803,13 +4909,12 @@ class AICopilot {
 }
 
 
-/* --- src/components/CircuitSerializer.js --- */
+// ==================== src/components/CircuitSerializer.js ====================
 /**
  * CircuitSerializer.js
  * Serializes and deserializes the breadboard circuit state to/from JSON.
  * Auto-normalizes DIP IC height & auto-sanitizes shorted wires v=1056.
  */
-
 
 
 class CircuitSerializer {
@@ -5009,23 +5114,12 @@ class CircuitSerializer {
 }
 
 
-/* --- app.js --- */
+// ==================== app.js ====================
 /**
  * app.js
  * Main Controller for Wanjie BB-4T7D 3220-Pin Hybrid Electronic Circuit Simulator.
  * EIC-108 & LM741 Square Wave Oscillator Auto-Start Live Engine v=1055.
  */
-
-
-
-
-
-
-
-
-
-
-
 
 
 class AppController {
@@ -7271,4 +7365,3 @@ if (document.readyState === 'loading') {
 }
 
 
-})();
