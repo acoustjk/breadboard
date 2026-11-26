@@ -264,7 +264,7 @@ class AppController {
                 this.components.push(newComp);
                 this.resetToolState();
                 this.oscilloscopeCanvas.resetBuffer();
-                this.warmupSimulationBuffer(5000);
+                this.warmupSimulationBuffer(1200);
                 this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
                 this.renderAll();
             }
@@ -348,7 +348,7 @@ class AppController {
 
         this.breadboardCanvas.onPotentiometerChanged = (comp) => {
             this.oscilloscopeCanvas.resetBuffer();
-            this.warmupSimulationBuffer(4000);
+            this.warmupSimulationBuffer(1500);
             this.updateScopePotSlider(comp);
             this.renderAll();
         };
@@ -384,7 +384,7 @@ class AppController {
                 comp.isConfigured = true;
                 const formatted = parsed >= 1000 ? (parsed / 1000) + 'k' : parsed;
                 this.oscilloscopeCanvas.resetBuffer();
-                this.warmupSimulationBuffer(5000);
+                this.warmupSimulationBuffer(3000);
                 this.breadboardCanvas.toastMsg = `⚡ 저항 4색 띠 및 [${formatted}Ω] 뱃지가 설정되었습니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -406,7 +406,7 @@ class AppController {
                 comp.isConfigured = true;
                 const capMicro = comp.capacitance * 1e6;
                 this.oscilloscopeCanvas.resetBuffer();
-                this.warmupSimulationBuffer(5000);
+                this.warmupSimulationBuffer(3000);
                 this.breadboardCanvas.toastMsg = `🔋 ${comp.capType || ''} 커패시터 용량이 [${capMicro.toFixed(1)}µF] 뱃지로 표시됩니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -1329,7 +1329,7 @@ class AppController {
         }
 
         this.syncScopeChannelVisibility();
-        this.warmupSimulationBuffer(5000); // 5,000 steps = 25ms instant warmup without UI freeze!
+        this.warmupSimulationBuffer(3000); // 3,000 steps = 15ms fast warmup!
         this.startSimulation();
         this.renderAll();
     }
@@ -1635,7 +1635,7 @@ class AppController {
                     if (potText) potText.textContent = `${formattedEff}Ω (${val}%)`;
 
                     this.oscilloscopeCanvas.resetBuffer();
-                    this.warmupSimulationBuffer(4000);
+                    this.warmupSimulationBuffer(1500);
                     this.renderAll();
                 }
             });

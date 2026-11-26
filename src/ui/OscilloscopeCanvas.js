@@ -165,7 +165,7 @@ export class OscilloscopeCanvas {
             return { vMin: 0, vMax: 0, vpp: 0, vrms: 0, freq: 0, period: 0 };
         }
 
-        const inspectLen = Math.min(ringBuffer.count, 200000);
+        const inspectLen = Math.min(ringBuffer.count, 20000); // 100ms window (down to 10Hz, 10x faster!)
         let vMin = Infinity;
         let vMax = -Infinity;
         let sumSq = 0;
@@ -202,7 +202,11 @@ export class OscilloscopeCanvas {
     }
 
     render() {
-        this.calculateStats();
+        this._statsFrameCounter = (this._statsFrameCounter || 0) + 1;
+        if (this._statsFrameCounter >= 6 || this.isFrozen || this.ringA.count < 1000) {
+            this._statsFrameCounter = 0;
+            this.calculateStats();
+        }
 
         // 1. Render on 4 Independent Screen Canvases (TP1~TP4) with 10 DIV x 8 DIV KCA Exam Sheet Grid
         if (this.canvasA) this.renderSingleScreen(this.canvasA, this.ringA, '#facc15', this.voltPerDivChA, this.posOffsetYChA, 'TP 1 / CH A', this.statsA, this.timePerDivChA);
