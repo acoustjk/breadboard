@@ -348,7 +348,7 @@ class AppController {
 
         this.breadboardCanvas.onPotentiometerChanged = (comp) => {
             this.oscilloscopeCanvas.resetBuffer();
-            this.warmupSimulationBuffer(600);
+            this.warmupSimulationBuffer(4000);
             this.updateScopePotSlider(comp);
             this.renderAll();
         };
@@ -1635,7 +1635,7 @@ class AppController {
                     if (potText) potText.textContent = `${formattedEff}Ω (${val}%)`;
 
                     this.oscilloscopeCanvas.resetBuffer();
-                    this.warmupSimulationBuffer(600);
+                    this.warmupSimulationBuffer(4000);
                     this.renderAll();
                 }
             });

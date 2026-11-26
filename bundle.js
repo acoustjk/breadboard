@@ -486,7 +486,7 @@ class MNASolver {
                                     const vMin = Math.max(-20.0, vNeg + 1.2);
                                     if (comp._opRegion === undefined) comp._opRegion = 0;
                                     if (comp._kickSteps === undefined) comp._kickSteps = 0;
-                                    const isPowerOnKick = comp._kickSteps < 3;
+                                    const isPowerOnKick = comp._kickSteps < 20;
                                     comp._kickSteps++;
                                     physicalOpAmps.push({
                                         comp,
@@ -497,7 +497,7 @@ class MNASolver {
                                         vMin,
                                         G_out: 0.02,      // 50Ω realistic output impedance
                                         A_ol: 10000.0,    // 80dB open-loop gain (well-conditioned G_out*A_ol = 200)
-                                        vOffset: isPowerOnKick ? 0.5 : 0.001 // Brief power-on transient kick + 1mV DC offset
+                                        vOffset: isPowerOnKick ? 1.0 : 0.001 // 100µs power-on transient kick + 1mV DC offset
                                     });
                                 } else {
                                     // Unpowered Op-Amp: weak pull to midpoint of rail pins
@@ -5281,7 +5281,7 @@ class AppController {
 
         this.breadboardCanvas.onPotentiometerChanged = (comp) => {
             this.oscilloscopeCanvas.resetBuffer();
-            this.warmupSimulationBuffer(600);
+            this.warmupSimulationBuffer(4000);
             this.updateScopePotSlider(comp);
             this.renderAll();
         };
@@ -6568,7 +6568,7 @@ class AppController {
                     if (potText) potText.textContent = `${formattedEff}Ω (${val}%)`;
 
                     this.oscilloscopeCanvas.resetBuffer();
-                    this.warmupSimulationBuffer(600);
+                    this.warmupSimulationBuffer(4000);
                     this.renderAll();
                 }
             });
