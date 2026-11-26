@@ -51,11 +51,11 @@ export class MNASolver {
         const physicalOpAmps = [];
         const nonlinearDevices = [];
 
-        // Add default 1e-6 S (1MΩ) pull-down leakage to GND for all non-power-rail active nodes
-        // This ensures floating switch output nodes & digital IC logic inputs properly collapse to 0V (LOW) when opened/disconnected
+        // Add default 1e-9 S (1GΩ) SPICE GMIN pull-down leakage to GND for all non-power-rail active nodes
+        // Keeps floating nodes cleanly at 0V without loading down high-impedance (150kΩ–1MΩ) RC timing networks!
         activeNodes.forEach((nId, idx) => {
             if (!nId.includes('RAIL') && !nId.includes('BINDING')) {
-                A[idx][idx] += 1e-6;
+                A[idx][idx] += 1e-9;
             }
         });
 
@@ -133,7 +133,7 @@ export class MNASolver {
                     vF: comp.vForward || 0.7
                 });
             } else if (comp.type === 'SWITCH') {
-                addConductance(nA, nB, comp.isOpen ? 1e-9 : 1000.0);
+                addConductance(nA, nB, comp.isOpen ? 1e-11 : 1000.0);
             } else if (comp.type === 'LED') {
                 addConductance(nA, nB, 20.0);
 
@@ -299,7 +299,7 @@ export class MNASolver {
 
                             // Pin 7 (DISCH): open-collector NPN pull-down to pin 1 (GND) when output is LOW
                             if (nDis) {
-                                addConductance(nDis, nGnd || '0', !comp._outHigh ? 0.1 : 1e-6);
+                                addConductance(nDis, nGnd || '0', !comp._outHigh ? 0.1 : 1e-9);
                             }
                         } else {
                             driveDigitalPin(pins.pin3, false, 1e-6, 0.0, 0.0);
