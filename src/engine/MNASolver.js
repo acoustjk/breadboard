@@ -394,6 +394,9 @@ export class MNASolver {
                                     const vMax = Math.min(20.0, vPos - 1.2);
                                     const vMin = Math.max(-20.0, vNeg + 1.2);
                                     if (comp._opRegion === undefined) comp._opRegion = 0;
+                                    if (comp._kickSteps === undefined) comp._kickSteps = 0;
+                                    const isPowerOnKick = comp._kickSteps < 3;
+                                    comp._kickSteps++;
                                     physicalOpAmps.push({
                                         comp,
                                         iOut,
@@ -403,7 +406,7 @@ export class MNASolver {
                                         vMin,
                                         G_out: 0.02,      // 50Ω realistic output impedance
                                         A_ol: 10000.0,    // 80dB open-loop gain (well-conditioned G_out*A_ol = 200)
-                                        vOffset: 0.001    // 1mV realistic LM741 input offset (self-starts oscillators)
+                                        vOffset: isPowerOnKick ? 0.5 : 0.001 // Brief power-on transient kick + 1mV DC offset
                                     });
                                 } else {
                                     // Unpowered Op-Amp: weak pull to midpoint of rail pins

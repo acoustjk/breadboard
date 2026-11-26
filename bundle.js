@@ -485,6 +485,9 @@ class MNASolver {
                                     const vMax = Math.min(20.0, vPos - 1.2);
                                     const vMin = Math.max(-20.0, vNeg + 1.2);
                                     if (comp._opRegion === undefined) comp._opRegion = 0;
+                                    if (comp._kickSteps === undefined) comp._kickSteps = 0;
+                                    const isPowerOnKick = comp._kickSteps < 3;
+                                    comp._kickSteps++;
                                     physicalOpAmps.push({
                                         comp,
                                         iOut,
@@ -494,7 +497,7 @@ class MNASolver {
                                         vMin,
                                         G_out: 0.02,      // 50Ω realistic output impedance
                                         A_ol: 10000.0,    // 80dB open-loop gain (well-conditioned G_out*A_ol = 200)
-                                        vOffset: 0.001    // 1mV realistic LM741 input offset (self-starts oscillators)
+                                        vOffset: isPowerOnKick ? 0.5 : 0.001 // Brief power-on transient kick + 1mV DC offset
                                     });
                                 } else {
                                     // Unpowered Op-Amp: weak pull to midpoint of rail pins
@@ -5194,7 +5197,7 @@ class AppController {
                 this.components.push(newComp);
                 this.resetToolState();
                 this.oscilloscopeCanvas.resetBuffer();
-                this.warmupSimulationBuffer(1200);
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
                 this.renderAll();
             }
@@ -5313,6 +5316,8 @@ class AppController {
                 comp.resistance = parsed;
                 comp.isConfigured = true;
                 const formatted = parsed >= 1000 ? (parsed / 1000) + 'k' : parsed;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `⚡ 저항 4색 띠 및 [${formatted}Ω] 뱃지가 설정되었습니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -5333,6 +5338,8 @@ class AppController {
                 comp.capacitance = (valStr.includes('u') || valStr.includes('µ')) ? parsed : parsed * 1e-6;
                 comp.isConfigured = true;
                 const capMicro = comp.capacitance * 1e6;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `🔋 ${comp.capType || ''} 커패시터 용량이 [${capMicro.toFixed(1)}µF] 뱃지로 표시됩니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -5514,6 +5521,13 @@ class AppController {
             new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
         ];
         const activeComps = [...this.components, ...bindingSources];
+
+        this.components.forEach(c => {
+            if (c.type === 'IC') {
+                c._kickSteps = 0;
+                c._opRegion = 0;
+            }
+        });
 
         this.oscilloscopeCanvas.resetBuffer();
         for (let i = 0; i < steps; i++) {

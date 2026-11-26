@@ -264,7 +264,7 @@ class AppController {
                 this.components.push(newComp);
                 this.resetToolState();
                 this.oscilloscopeCanvas.resetBuffer();
-                this.warmupSimulationBuffer(1200);
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `📍 ${labelMsg}가 브레드보드 핀에 안착되었습니다!`;
                 this.renderAll();
             }
@@ -383,6 +383,8 @@ class AppController {
                 comp.resistance = parsed;
                 comp.isConfigured = true;
                 const formatted = parsed >= 1000 ? (parsed / 1000) + 'k' : parsed;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `⚡ 저항 4색 띠 및 [${formatted}Ω] 뱃지가 설정되었습니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -403,6 +405,8 @@ class AppController {
                 comp.capacitance = (valStr.includes('u') || valStr.includes('µ')) ? parsed : parsed * 1e-6;
                 comp.isConfigured = true;
                 const capMicro = comp.capacitance * 1e6;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(5000);
                 this.breadboardCanvas.toastMsg = `🔋 ${comp.capType || ''} 커패시터 용량이 [${capMicro.toFixed(1)}µF] 뱃지로 표시됩니다!`;
                 this.updateCutoffFreqDisplay();
                 this.renderAll();
@@ -584,6 +588,13 @@ class AppController {
             new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
         ];
         const activeComps = [...this.components, ...bindingSources];
+
+        this.components.forEach(c => {
+            if (c.type === 'IC') {
+                c._kickSteps = 0;
+                c._opRegion = 0;
+            }
+        });
 
         this.oscilloscopeCanvas.resetBuffer();
         for (let i = 0; i < steps; i++) {
