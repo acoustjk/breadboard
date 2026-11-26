@@ -167,14 +167,13 @@ class MNASolver {
 
         const getNode = (pinKey) => this.grid.getNodeId(pinKey);
 
-        const driveDigitalPin = (pinKey, isHigh, gDriver = 100.0) => {
+        const driveDigitalPin = (pinKey, isHigh, gDriver = 100.0, vHigh = 5.0, vLow = 0.0) => {
             const n = getNode(pinKey);
             if (!n) return;
-            if (isHigh) {
-                addConductance(n, '0', gDriver);
-                addCurrentSource(n, '0', 5.0 * gDriver);
-            } else {
-                addConductance(n, '0', gDriver);
+            addConductance(n, '0', gDriver);
+            const vDrive = isHigh ? vHigh : vLow;
+            if (vDrive !== 0.0) {
+                addCurrentSource(n, '0', vDrive * gDriver);
             }
         };
 
@@ -319,35 +318,80 @@ class MNASolver {
                 const icType = comp.icType || 'LF356';
 
                 if (icType === 'NE555') {
-                    // NE555 (DIP-8) Timer IC Astable / Monostable Behavioral Driver
-                    comp.state = comp.state || 'HIGH';
+                    // NE555 (DIP-8) Timer IC: Physical RC Comparator/SR-Latch Model (and legacy behavioral driver for official presets)
+                    if (this.usePresetBehavioralModels === true) {
+                        comp.state = comp.state || 'HIGH';
+                        const pot = components.find(c => c.type === 'POT') || { ratio: 0.35 };
+                        const pRatio = pot.ratio !== undefined ? pot.ratio : 0.35;
+                        const freq555 = 200.0 + pRatio * 1500.0;
 
-                    const nTrig = getNode(pins.pin2);   const vTrig = (nTrig && this.lastVoltages) ? (this.lastVoltages.get(nTrig) || 0) : 0;
-                    const nThresh = getNode(pins.pin6); const vThresh = (nThresh && this.lastVoltages) ? (this.lastVoltages.get(nThresh) || 0) : 0;
-                    const nRst = getNode(pins.pin4);    const vRst = (nRst && this.lastVoltages) ? (this.lastVoltages.get(nRst) || 9.0) : 9.0;
-                    const nVcc = getNode(pins.pin8);    const vVcc = (nVcc && this.lastVoltages) ? Math.max(4.5, (this.lastVoltages.get(nVcc) || 9.0)) : 9.0;
+                        this.ne555Time = (this.ne555Time || 0) + dt;
+                        const phase = (this.ne555Time * freq555) % 1.0;
+                        const isHigh = phase < (0.2 + pRatio * 0.6);
 
-                    const vUpper = (vVcc * 2.0) / 3.0; // 6.0V @ 9V VCC
-                    const vLower = vVcc / 3.0;         // 3.0V @ 9V VCC
+                        driveDigitalPin(pins.pin3, isHigh, 200.0);
 
-                    const pot = components.find(c => c.type === 'POT') || { ratio: 0.35 };
-                    const pRatio = pot.ratio !== undefined ? pot.ratio : 0.35;
-                    const freq555 = 200.0 + pRatio * 1500.0; // Dynamic 200Hz - 1.7kHz duty frequency
+                        const nDis = getNode(pins.pin7);
+                        if (nDis) {
+                            addConductance(nDis, '0', !isHigh ? 500.0 : 1e-6);
+                        }
+                    } else {
+                        const readV = (nId, fallback) => {
+                            if (!nId) return fallback;
+                            if (nId === '0') return 0.0;
+                            return (this.lastVoltages && this.lastVoltages.has(nId)) ? this.lastVoltages.get(nId) : fallback;
+                        };
 
-                    this.ne555Time = (this.ne555Time || 0) + dt;
-                    const phase = (this.ne555Time * freq555) % 1.0;
-                    const isHigh = phase < (0.2 + pRatio * 0.6);
+                        const nGnd = getNode(pins.pin1);
+                        const nTrig = getNode(pins.pin2);
+                        const nRst = getNode(pins.pin4);
+                        const nCtrl = getNode(pins.pin5);
+                        const nThresh = getNode(pins.pin6);
+                        const nDis = getNode(pins.pin7);
+                        const nVcc = getNode(pins.pin8);
 
-                    // Drive Pin 3 OUT: 0.0V (LOW) to VCC (HIGH) Square Wave
-                    driveDigitalPin(pins.pin3, isHigh, 200.0);
+                        const vGnd = readV(nGnd, 0.0);
+                        const vVcc = readV(nVcc, 0.0);
+                        const isPowered = (vVcc - vGnd) > 2.5;
 
-                    // Pin 7 (DISCH): Pull to GND when discharging (LOW state)
-                    const nDis = getNode(pins.pin7);
-                    if (nDis) {
-                        if (!isHigh) {
-                            addConductance(nDis, '0', 500.0);
+                        if (isPowered) {
+                            // Internal 3x5kΩ resistive voltage divider (pin8 --5kΩ-- pin5 --10kΩ-- pin1)
+                            if (nCtrl) {
+                                addConductance(nVcc, nCtrl, 2e-4);
+                                addConductance(nCtrl, nGnd || '0', 1e-4);
+                            }
+
+                            const vCtrl = readV(nCtrl, vGnd + (vVcc - vGnd) * (2.0 / 3.0));
+                            const vUpper = Math.max(vGnd + 0.5, vCtrl);
+                            const vLower = vGnd + (vUpper - vGnd) * 0.5;
+
+                            const vTrig = readV(nTrig, vVcc);
+                            const vThresh = readV(nThresh, vGnd);
+                            const vRst = readV(nRst, vVcc);
+
+                            if (comp._outHigh === undefined) comp._outHigh = true;
+
+                            // Exact NE555 SR Latch truth table (RESET active-low > TRIG < 1/3 Vcc > THRESH > 2/3 Vcc)
+                            if (vRst < vGnd + 0.7) {
+                                comp._outHigh = false;
+                            } else if (vTrig < vLower) {
+                                comp._outHigh = true;
+                            } else if (vThresh > vUpper) {
+                                comp._outHigh = false;
+                            }
+
+                            // Pin 3 (OUT): realistic NE555 swing (V_low ≈ GND+0.1V, V_high ≈ VCC-1.4V)
+                            const vOutHigh = Math.max(vGnd, vVcc - 1.4);
+                            const vOutLow = vGnd + 0.1;
+                            driveDigitalPin(pins.pin3, comp._outHigh, 0.1, vOutHigh, vOutLow);
+
+                            // Pin 7 (DISCH): open-collector NPN pull-down to pin 1 (GND) when output is LOW
+                            if (nDis) {
+                                addConductance(nDis, nGnd || '0', !comp._outHigh ? 0.1 : 1e-6);
+                            }
                         } else {
-                            addConductance(nDis, '0', 1e-6);
+                            driveDigitalPin(pins.pin3, false, 1e-6, 0.0, 0.0);
+                            if (nDis) addConductance(nDis, nGnd || '0', 1e-6);
                         }
                     }
 
@@ -568,39 +612,55 @@ class MNASolver {
                     });
 
                 } else if (icType === 'CD4518') {
-                    // CD4518 (DIP-16) Dual BCD Up Counter
+                    // CD4518 (DIP-16) Dual BCD Up Counter (Datasheet pinout: pin1=CLK1, pin2=EN1, pin7=RST1, pin8=VSS, pin9=CLK2, pin10=EN2, pin15=RST2, pin16=VDD)
                     const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
-                    
-                    // Counter 1
-                    comp.count1 = comp.count1 || 0; comp.lastClk1 = comp.lastClk1 || 0; comp.lastEnable1 = comp.lastEnable1 || 0;
-                    const vEn1 = getV(pins.pin1); const vClk1 = getV(pins.pin2); const vRst1 = getV(pins.pin7);
-                    const isRisingClk1 = (vEn1 > 2.5 && vClk1 > 2.5 && comp.lastClk1 <= 2.5);
-                    const isFallingEnable1 = (vClk1 > 2.5 && vEn1 <= 2.5 && comp.lastEnable1 > 2.5);
+                    const vVdd = getV(pins.pin16);
+                    const vVss = getV(pins.pin8);
+                    const isPowered = (vVdd - vVss) > 2.0;
+                    const vOutHigh = isPowered ? vVdd : 0.0;
+                    const vOutLow = isPowered ? vVss : 0.0;
+                    const vTh = vVss + Math.min(2.5, Math.max(1.0, (vVdd - vVss) * 0.4));
 
-                    if (vRst1 > 2.5) {
+                    // Counter 1: increments on CLK1 rising while EN1=HIGH, OR EN1 falling while CLK1=LOW
+                    comp.count1 = comp.count1 || 0;
+                    if (comp.lastClk1 === undefined) comp.lastClk1 = 0;
+                    if (comp.lastEnable1 === undefined) comp.lastEnable1 = 0;
+                    const vClk1 = getV(pins.pin1);
+                    const vEn1  = getV(pins.pin2);
+                    const vRst1 = getV(pins.pin7);
+                    const isRisingClk1 = (vEn1 > vTh) && (vClk1 > vTh) && (comp.lastClk1 <= vTh);
+                    const isFallingEnable1 = (vClk1 <= vTh) && (vEn1 <= vTh) && (comp.lastEnable1 > vTh);
+
+                    if (!isPowered || vRst1 > vTh) {
                         comp.count1 = 0;
                     } else if (isRisingClk1 || isFallingEnable1) {
                         comp.count1 = (comp.count1 + 1) % 10;
                     }
-                    comp.lastClk1 = vClk1; comp.lastEnable1 = vEn1;
+                    comp.lastClk1 = vClk1;
+                    comp.lastEnable1 = vEn1;
                     [pins.pin3, pins.pin4, pins.pin5, pins.pin6].forEach((qPin, idx) => {
-                        driveDigitalPin(qPin, (comp.count1 & (1 << idx)) !== 0, 100.0);
+                        driveDigitalPin(qPin, isPowered && ((comp.count1 & (1 << idx)) !== 0), 100.0, vOutHigh, vOutLow);
                     });
 
-                    // Counter 2
-                    comp.count2 = comp.count2 || 0; comp.lastClk2 = comp.lastClk2 || 0; comp.lastEnable2 = comp.lastEnable2 || 0;
-                    const vEn2 = getV(pins.pin9); const vClk2 = getV(pins.pin10); const vRst2 = getV(pins.pin15);
-                    const isRisingClk2 = (vEn2 > 2.5 && vClk2 > 2.5 && comp.lastClk2 <= 2.5);
-                    const isFallingEnable2 = (vClk2 > 2.5 && vEn2 <= 2.5 && comp.lastEnable2 > 2.5);
+                    // Counter 2: increments on CLK2 rising while EN2=HIGH, OR EN2 falling while CLK2=LOW
+                    comp.count2 = comp.count2 || 0;
+                    if (comp.lastClk2 === undefined) comp.lastClk2 = 0;
+                    if (comp.lastEnable2 === undefined) comp.lastEnable2 = 0;
+                    const vClk2 = getV(pins.pin9);
+                    const vEn2  = getV(pins.pin10);
+                    const vRst2 = getV(pins.pin15);
+                    const isRisingClk2 = (vEn2 > vTh) && (vClk2 > vTh) && (comp.lastClk2 <= vTh);
+                    const isFallingEnable2 = (vClk2 <= vTh) && (vEn2 <= vTh) && (comp.lastEnable2 > vTh);
 
-                    if (vRst2 > 2.5) {
+                    if (!isPowered || vRst2 > vTh) {
                         comp.count2 = 0;
                     } else if (isRisingClk2 || isFallingEnable2) {
                         comp.count2 = (comp.count2 + 1) % 10;
                     }
-                    comp.lastClk2 = vClk2; comp.lastEnable2 = vEn2;
+                    comp.lastClk2 = vClk2;
+                    comp.lastEnable2 = vEn2;
                     [pins.pin11, pins.pin12, pins.pin13, pins.pin14].forEach((qPin, idx) => {
-                        driveDigitalPin(qPin, (comp.count2 & (1 << idx)) !== 0, 100.0);
+                        driveDigitalPin(qPin, isPowered && ((comp.count2 & (1 << idx)) !== 0), 100.0, vOutHigh, vOutLow);
                     });
 
                 } else if (icType === 'XR2206' || icType === 'XR-2206') {
