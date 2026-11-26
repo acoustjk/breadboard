@@ -295,41 +295,39 @@ class MNASolver {
                     const vC = (nC && this.lastVoltages) ? (this.lastVoltages.get(nC) || 0) : 0;
 
                     const polarity = comp.polarity || 'NPN';
-                    const beta = comp.beta || 100.0;
-                    const vbeThresh = 0.65;
+                    const vbeThresh = 0.55;
 
                     if (polarity === 'NPN') {
-                        const vBE = vBase - vE;
-                        const vCE = Math.max(0.01, vC - vE);
+                        // Bidirectional physical NPN switching/sampling model (chatter-free & spike-free for PAM/chopper & amplifier circuits)
+                        const vRef = Math.min(vE, vC);
+                        const vB_eff = vBase - vRef;
+                        const wasOn = !!comp._bjtOn;
+                        const isOn = (!wasOn && vB_eff > vbeThresh) || (wasOn && vB_eff > (vbeThresh - 0.002));
+                        comp._bjtOn = isOn;
 
-                        if (vBE > 0.5) {
-                            const gBE = 0.1;
-                            addConductance(nBase, nE, gBE);
-                            addCurrentSource(nBase, nE, vbeThresh * gBE);
-
-                            const iB = Math.max(0, (vBE - vbeThresh) * gBE);
-                            const targetIC = iB * beta;
-                            const gCE = Math.min(100.0, Math.max(1e-5, targetIC / vCE));
-
-                            addConductance(nC, nE, gCE);
+                        if (isOn) {
+                            const nRef = (vE <= vC) ? nE : nC;
+                            const gBE = 0.01; // 100Ω forward BE/BC junction (eliminates -1.3V falling-edge spikes)
+                            addConductance(nBase, nRef, gBE);
+                            addCurrentSource(nBase, nRef, vbeThresh * gBE);
+                            addConductance(nC, nE, 0.1); // 10Ω clean bidirectional saturated CE switch
                         } else {
                             addConductance(nBase, nE, 1e-6);
                             addConductance(nC, nE, 1e-6);
                         }
                     } else { // PNP
-                        const vEB = vE - vBase;
-                        const vEC = Math.max(0.01, vE - vC);
+                        const vRef = Math.max(vE, vC);
+                        const vB_eff = vRef - vBase;
+                        const wasOn = !!comp._bjtOn;
+                        const isOn = (!wasOn && vB_eff > vbeThresh) || (wasOn && vB_eff > (vbeThresh - 0.002));
+                        comp._bjtOn = isOn;
 
-                        if (vEB > 0.5) {
-                            const gBE = 0.1;
-                            addConductance(nE, nBase, gBE);
-                            addCurrentSource(nBase, nE, vbeThresh * gBE);
-
-                            const iB = Math.max(0, (vEB - vbeThresh) * gBE);
-                            const targetIC = iB * beta;
-                            const gEC = Math.min(100.0, Math.max(1e-5, targetIC / vEC));
-
-                            addConductance(nE, nC, gEC);
+                        if (isOn) {
+                            const nRef = (vE >= vC) ? nE : nC;
+                            const gEB = 0.01;
+                            addConductance(nRef, nBase, gEB);
+                            addCurrentSource(nRef, nBase, vbeThresh * gEB);
+                            addConductance(nE, nC, 0.1);
                         } else {
                             addConductance(nE, nBase, 1e-6);
                             addConductance(nE, nC, 1e-6);
