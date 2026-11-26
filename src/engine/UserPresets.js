@@ -287,6 +287,7 @@ export const USER_PRESETS = {
         { "id": "WIRE_103", "type": "WIRE", "pinA": "B4_A43", "pinB": "B4_VCC_L_43", "color": "#ef4444" },
         { "id": "WIRE_104", "type": "WIRE", "pinA": "VCC_TOP1_1", "pinB": "BINDING_Va", "color": "#ef4444" },
         { "id": "WIRE_105", "type": "WIRE", "pinA": "BINDING_Vc", "pinB": "VCC_TOP2_17", "color": "#ef4444" },
+        { "id": "WIRE_106", "type": "WIRE", "pinA": "BINDING_GND", "pinB": "GND_TOP1_35", "color": "#0984e3" },
         { "id": "WIRE_107", "type": "WIRE", "pinA": "B1_VCC_L_1", "pinB": "VCC_TOP1_2", "color": "#ef4444" },
         { "id": "WIRE_108", "type": "WIRE", "pinA": "B1_GND_L_1", "pinB": "GND_TOP1_3", "color": "#0984e3" },
         { "id": "WIRE_109", "type": "WIRE", "pinA": "VCC_TOP1_11", "pinB": "B1_VCC_R_1", "color": "#ef4444" },

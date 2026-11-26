@@ -19,14 +19,20 @@ class BreadboardGrid {
     }
 
     initNodeMap() {
-        // 1. Top Power Bus Rails
+        // 1. Top Power Bus Rails (4 independent horizontal bus rails, wired to BINDING posts by user)
         for (let i = 1; i <= 60; i++) {
             this.nodeMap.set(`VCC_TOP1_${i}`, 'NODE_RAIL_VCC_TOP1');
-            this.nodeMap.set(`GND_TOP1_${i}`, '0'); // Ground
+            this.nodeMap.set(`GND_TOP1_${i}`, 'NODE_RAIL_GND_TOP1');
             this.nodeMap.set(`VCC_TOP_${i}`, 'NODE_RAIL_VCC_TOP1');
-            this.nodeMap.set(`GND_TOP_${i}`, '0');
+            this.nodeMap.set(`GND_TOP_${i}`, 'NODE_RAIL_GND_TOP1');
             this.nodeMap.set(`VCC_TOP2_${i}`, 'NODE_RAIL_VCC_TOP2');
-            this.nodeMap.set(`GND_TOP2_${i}`, '0');
+            this.nodeMap.set(`GND_TOP2_${i}`, 'NODE_RAIL_GND_TOP2');
+            for (let blk = 1; blk <= 4; blk++) {
+                this.nodeMap.set(`B${blk}_VCC_TOP1_${i}`, 'NODE_RAIL_VCC_TOP1');
+                this.nodeMap.set(`B${blk}_GND_TOP1_${i}`, 'NODE_RAIL_GND_TOP1');
+                this.nodeMap.set(`B${blk}_VCC_TOP2_${i}`, 'NODE_RAIL_VCC_TOP2');
+                this.nodeMap.set(`B${blk}_GND_TOP2_${i}`, 'NODE_RAIL_GND_TOP2');
+            }
         }
 
         // 2. Power Supply Binding Posts (Va, Vb, Vc, GND)
@@ -74,7 +80,7 @@ class BreadboardGrid {
         if (this.nodeMap.has(pinKey)) {
             return this.nodeMap.get(pinKey);
         }
-        if (pinKey === '0' || pinKey === 'GND' || pinKey === 'BINDING_GND' || pinKey.startsWith('GND_TOP')) {
+        if (pinKey === '0' || pinKey === 'GND' || pinKey === 'BINDING_GND') {
             return '0';
         }
         return `NODE_${pinKey}`;
@@ -1924,6 +1930,7 @@ const USER_PRESETS = {
         { "id": "WIRE_103", "type": "WIRE", "pinA": "B4_A43", "pinB": "B4_VCC_L_43", "color": "#ef4444" },
         { "id": "WIRE_104", "type": "WIRE", "pinA": "VCC_TOP1_1", "pinB": "BINDING_Va", "color": "#ef4444" },
         { "id": "WIRE_105", "type": "WIRE", "pinA": "BINDING_Vc", "pinB": "VCC_TOP2_17", "color": "#ef4444" },
+        { "id": "WIRE_106", "type": "WIRE", "pinA": "BINDING_GND", "pinB": "GND_TOP1_35", "color": "#0984e3" },
         { "id": "WIRE_107", "type": "WIRE", "pinA": "B1_VCC_L_1", "pinB": "VCC_TOP1_2", "color": "#ef4444" },
         { "id": "WIRE_108", "type": "WIRE", "pinA": "B1_GND_L_1", "pinB": "GND_TOP1_3", "color": "#0984e3" },
         { "id": "WIRE_109", "type": "WIRE", "pinA": "VCC_TOP1_11", "pinB": "B1_VCC_R_1", "color": "#ef4444" },
@@ -5486,7 +5493,7 @@ class AppController {
             new Resistor('RESISTOR_CATALOG_16', 'B1_B5', 'B1_B10', 10000, true),
 
             new Wire('WIRE_18', 'VCC_TOP1_1', 'B1_B1', '#ef4444'),
-            new Wire('WIRE_19', 'B1_D10', 'GND_TOP2_4', '#0984e3'),
+            new Wire('WIRE_19', 'B1_D10', 'GND_TOP1_4', '#0984e3'),
             new Wire('WIRE_22', 'B1_E5', 'B2_E17', '#0984e3'),
 
             new Resistor('RESISTOR_CATALOG_24', 'B2_F17', 'B2_E17', 10000, true),

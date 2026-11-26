@@ -674,7 +674,7 @@ class AppController {
             new Resistor('RESISTOR_CATALOG_16', 'B1_B5', 'B1_B10', 10000, true),
 
             new Wire('WIRE_18', 'VCC_TOP1_1', 'B1_B1', '#ef4444'),
-            new Wire('WIRE_19', 'B1_D10', 'GND_TOP2_4', '#0984e3'),
+            new Wire('WIRE_19', 'B1_D10', 'GND_TOP1_4', '#0984e3'),
             new Wire('WIRE_22', 'B1_E5', 'B2_E17', '#0984e3'),
 
             new Resistor('RESISTOR_CATALOG_24', 'B2_F17', 'B2_E17', 10000, true),

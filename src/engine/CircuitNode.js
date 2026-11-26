@@ -11,14 +11,20 @@ export class BreadboardGrid {
     }
 
     initNodeMap() {
-        // 1. Top Power Bus Rails
+        // 1. Top Power Bus Rails (4 independent horizontal bus rails, wired to BINDING posts by user)
         for (let i = 1; i <= 60; i++) {
             this.nodeMap.set(`VCC_TOP1_${i}`, 'NODE_RAIL_VCC_TOP1');
-            this.nodeMap.set(`GND_TOP1_${i}`, '0'); // Ground
+            this.nodeMap.set(`GND_TOP1_${i}`, 'NODE_RAIL_GND_TOP1');
             this.nodeMap.set(`VCC_TOP_${i}`, 'NODE_RAIL_VCC_TOP1');
-            this.nodeMap.set(`GND_TOP_${i}`, '0');
+            this.nodeMap.set(`GND_TOP_${i}`, 'NODE_RAIL_GND_TOP1');
             this.nodeMap.set(`VCC_TOP2_${i}`, 'NODE_RAIL_VCC_TOP2');
-            this.nodeMap.set(`GND_TOP2_${i}`, '0');
+            this.nodeMap.set(`GND_TOP2_${i}`, 'NODE_RAIL_GND_TOP2');
+            for (let blk = 1; blk <= 4; blk++) {
+                this.nodeMap.set(`B${blk}_VCC_TOP1_${i}`, 'NODE_RAIL_VCC_TOP1');
+                this.nodeMap.set(`B${blk}_GND_TOP1_${i}`, 'NODE_RAIL_GND_TOP1');
+                this.nodeMap.set(`B${blk}_VCC_TOP2_${i}`, 'NODE_RAIL_VCC_TOP2');
+                this.nodeMap.set(`B${blk}_GND_TOP2_${i}`, 'NODE_RAIL_GND_TOP2');
+            }
         }
 
         // 2. Power Supply Binding Posts (Va, Vb, Vc, GND)
@@ -66,7 +72,7 @@ export class BreadboardGrid {
         if (this.nodeMap.has(pinKey)) {
             return this.nodeMap.get(pinKey);
         }
-        if (pinKey === '0' || pinKey === 'GND' || pinKey === 'BINDING_GND' || pinKey.startsWith('GND_TOP')) {
+        if (pinKey === '0' || pinKey === 'GND' || pinKey === 'BINDING_GND') {
             return '0';
         }
         return `NODE_${pinKey}`;
