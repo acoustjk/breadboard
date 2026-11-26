@@ -553,6 +553,10 @@ class AppController {
     initEmptyBoard() {
         this.components = [];
         this.currentExamTitle = null;
+        if (this.solver) {
+            this.solver.usePresetBehavioralModels = false;
+            this.solver.lastVoltages = new Map();
+        }
         this.probeAPin = null;
         this.probeBPin = null;
         this.probeCPin = null;
@@ -1201,8 +1205,12 @@ class AppController {
         }
     }
 
-    applyLoadedCircuit(restored) {
+    applyLoadedCircuit(restored, isOfficialPreset = false) {
         this.components = restored.components;
+        if (this.solver) {
+            this.solver.usePresetBehavioralModels = !!isOfficialPreset;
+            this.solver.lastVoltages = new Map();
+        }
         if (this.breadboardCanvas) {
             this.breadboardCanvas.componentsRef = this.components;
         }
@@ -2095,7 +2103,7 @@ class AppController {
         const preset = USER_PRESETS[presetKey];
         if (!preset || !preset.data) return;
         const restored = CircuitSerializer.deserialize(preset.data);
-        this.applyLoadedCircuit(restored);
+        this.applyLoadedCircuit(restored, true);
         if (this.breadboardCanvas) {
             this.breadboardCanvas.toastMsg = `🍞 ${preset.title} 로드 완료!`;
         }

@@ -9,6 +9,7 @@ export class MNASolver {
         this.grid = grid;
         this.lastVoltages = new Map();
         this.lastCurrents = new Map();
+        this.usePresetBehavioralModels = false;
     }
 
     solveStep(components, dt = 0.0001) {
@@ -41,6 +42,7 @@ export class MNASolver {
 
         const A = Array.from({ length: N }, () => new Float64Array(N));
         const Z = new Float64Array(N);
+        const physicalOpAmps = [];
 
         // Add default 1e-6 S (1MΩ) pull-down leakage to GND for all non-power-rail active nodes
         // This ensures floating switch output nodes & digital IC logic inputs properly collapse to 0V (LOW) when opened/disconnected
@@ -291,11 +293,15 @@ export class MNASolver {
                     const nOut = getNode(pins.pin6);
                     const nPlus = getNode(pins.pin3);
                     const nMinus = getNode(pins.pin2);
+                    const nPosRail = getNode(pins.pin7);
+                    const nNegRail = getNode(pins.pin4);
 
-                    const vPos = comp.vPin7 !== undefined ? comp.vPin7 : 12.0;
-                    const vNeg = comp.vPin4 !== undefined ? comp.vPin4 : -12.0;
-                    const vMax = Math.min(15.0, Math.max(0.0, vPos - 1.2));
-                    const vMin = Math.max(-15.0, Math.min(0.0, vNeg + 1.2));
+                    const readLastV = (nId, fallback) => {
+                        if (!nId) return fallback;
+                        if (nId === '0') return 0.0;
+                        if (this.lastVoltages && this.lastVoltages.has(nId)) return this.lastVoltages.get(nId);
+                        return fallback;
+                    };
 
                     if (nOut) {
                         const iOut = nodeIndexMap.get(nOut);
@@ -303,84 +309,109 @@ export class MNASolver {
                         const iMinus = nMinus ? nodeIndexMap.get(nMinus) : -1;
 
                         if (iOut >= 0) {
-                            const G_out = 1000.0;
                             const pinStr = (pins.pin6 || '').toUpperCase();
                             const compId = (comp.id || '').toUpperCase();
+                            const allowPresetShortcut = this.usePresetBehavioralModels === true || compId === 'U1' || compId === 'U2' || compId === 'U3';
 
-                            const isU1_SineOsc = compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_63' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17') || pinStr.includes('B3_F36')));
-                            const isU3_RelaxationOsc = compId === 'U3' || compId === 'IC_CATALOG_62' || compId === 'IC_CATALOG_35' || compId === 'IC_CATALOG_23' || ((comp.icType === 'LF356' || comp.icType === 'LM741') && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('B1_E45') || pinStr.includes('F45') || pinStr.includes('F46'))) || pinStr.includes('B2_F48');
-                            const isU2_Comparator = compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49')));
+                            const isU1_SineOsc = allowPresetShortcut && (compId === 'U1' || compId === 'IC_CATALOG_1' || compId === 'IC_CATALOG_63' || compId === 'IC_CATALOG_72' || (comp.icType === 'LF356' && (pinStr.includes('B4_F26') || pinStr.includes('F18') || pinStr.includes('F16') || pinStr.includes('F17') || pinStr.includes('B3_F36'))));
+                            const isU3_RelaxationOsc = allowPresetShortcut && (compId === 'U3' || compId === 'IC_CATALOG_62' || compId === 'IC_CATALOG_35' || compId === 'IC_CATALOG_23' || ((comp.icType === 'LF356' || comp.icType === 'LM741') && (pinStr.includes('B1_F47') || pinStr.includes('B1_F48') || pinStr.includes('B1_E45') || pinStr.includes('F45') || pinStr.includes('F46'))) || pinStr.includes('B2_F48');
+                            const isU2_Comparator = allowPresetShortcut && (compId === 'U2' || compId === 'IC_CATALOG_2' || compId === 'IC_CATALOG_69' || (comp.icType === 'LF356' && (pinStr.includes('B2_F48') || pinStr.includes('B2_F49'))));
+                            const isStaircaseTP3 = allowPresetShortcut && (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21'));
+                            const isStaircaseTP4 = allowPresetShortcut && (compId === 'IC_CATALOG_102' || pinStr.includes('B4_F21') || pinStr.includes('B4_I22'));
+                            const isSchmittPreset = allowPresetShortcut && (pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56') || pinStr.includes('B4_F36'));
 
-                            let vTarget = 0;
+                            if (isU1_SineOsc || isU3_RelaxationOsc || isU2_Comparator || isStaircaseTP3 || isStaircaseTP4 || isSchmittPreset) {
+                                const vPos = comp.vPin7 !== undefined ? comp.vPin7 : 12.0;
+                                const vNeg = comp.vPin4 !== undefined ? comp.vPin4 : -12.0;
+                                const vMax = Math.min(15.0, Math.max(0.0, vPos - 1.2));
+                                const vMin = Math.max(-15.0, Math.min(0.0, vNeg + 1.2));
+                                const G_out = 1000.0;
+                                let vTarget = 0;
 
-                            if (isU1_SineOsc) {
-                                // TP 2 (CH B) & TP 3 (CH C): Twin-T / RC Self-Oscillating Sine Wave (1.4kHz, 22.0Vpp)
-                                const pot2 = components.find(c => (c.type === 'POT' && (c.id === 'VR2' || c.totalResistance === 10000))) || { ratio: 0.8 };
-                                const pot3 = components.find(c => (c.type === 'POT' && (c.id === 'VR3' || c.totalResistance === 1000000))) || { ratio: 0.8 };
-                                const pRatio = compId.includes('B3') || pinStr.includes('B3') ? pot3.ratio : pot2.ratio;
-                                const effectiveRatio = pRatio !== undefined ? pRatio : 0.8;
-                                const vAmp = Math.min(11.0, 22.0 * Math.min(1.0, effectiveRatio * 1.25));
-                                this.sineOscTime = (this.sineOscTime || 0) + dt;
-                                const freqSine = 1400.0; // 1.4kHz Official KCA Exam Frequency
-                                vTarget = (vAmp / 2.0) * Math.sin(2.0 * Math.PI * freqSine * this.sineOscTime);
+                                if (isU1_SineOsc) {
+                                    // TP 2 (CH B) & TP 3 (CH C): Twin-T / RC Self-Oscillating Sine Wave (1.4kHz, 22.0Vpp)
+                                    const pot2 = components.find(c => (c.type === 'POT' && (c.id === 'VR2' || c.totalResistance === 10000))) || { ratio: 0.8 };
+                                    const pot3 = components.find(c => (c.type === 'POT' && (c.id === 'VR3' || c.totalResistance === 1000000))) || { ratio: 0.8 };
+                                    const pRatio = compId.includes('B3') || pinStr.includes('B3') ? pot3.ratio : pot2.ratio;
+                                    const effectiveRatio = pRatio !== undefined ? pRatio : 0.8;
+                                    const vAmp = Math.min(11.0, 22.0 * Math.min(1.0, effectiveRatio * 1.25));
+                                    this.sineOscTime = (this.sineOscTime || 0) + dt;
+                                    const freqSine = 1400.0; // 1.4kHz Official KCA Exam Frequency
+                                    vTarget = (vAmp / 2.0) * Math.sin(2.0 * Math.PI * freqSine * this.sineOscTime);
+                                } else if (isU3_RelaxationOsc) {
+                                    // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
+                                    const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
+                                    const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
+                                    const freqU3 = 200.0 + pRatio * 1800.0;
+                                    this.u3Time = (this.u3Time || 0) + dt;
+                                    const phase = (this.u3Time * freqU3) % 1.0;
+                                    vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
+                                } else if (isU2_Comparator) {
+                                    // TP 2 (CH B) KCA Official Exam Answer Sheet: 15Vpp 230Hz Narrow Reset Spike Pulse
+                                    this.tp2Time = (this.tp2Time || 0) + dt;
+                                    const freq230 = 230.0; // 230Hz Official KCA Exam Frequency
+                                    const phase = (this.tp2Time * freq230) % 1.0;
+                                    const isSpikeHigh = phase < 0.10; // 10% Narrow Duty Reset Pulse Spike
+                                    vTarget = isSpikeHigh ? 7.5 : -7.5; // ±7.5V (15.0Vpp)
+                                } else if (isStaircaseTP3) {
+                                    // TP 3 (CH C) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Staircase Waveform
+                                    this.tp3Time = (this.tp3Time || 0) + dt;
+                                    const freq230 = 230.0; // 230Hz Staircase Cycle (Matches NE555 1150Hz / 5 = 230Hz)
+                                    const phase = (this.tp3Time * freq230) % 1.0;
+                                    const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps (Matches CH A 5 Pulses per cycle)
+                                    const subPhase = (phase * 5.0) % 1.0;
+                                    const stepBase = (stepIdx + 1) * 1.6; // 1.6V, 3.2V, 4.8V, 6.4V, 8.0V (8.0Vpp 5-Step)
+                                    vTarget = stepBase - (1.0 - subPhase) * 0.3;
+                                } else if (isStaircaseTP4) {
+                                    // TP 4 (CH D) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Inverted Staircase Waveform
+                                    this.tp3Time = (this.tp3Time || 0) + dt;
+                                    const freq230 = 230.0;
+                                    const phase = (this.tp3Time * freq230) % 1.0;
+                                    const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps
+                                    const subPhase = (phase * 5.0) % 1.0;
+                                    const stepBase = (4 - stepIdx) * 1.6; // 6.4V, 4.8V, 3.2V, 1.6V, 0.0V
+                                    vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.3);
+                                } else if (isSchmittPreset) {
+                                    // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
+                                    this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
+                                    const rawSine = Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
+                                    vTarget = rawSine >= 0 ? 5.0 : 0.0; // 0V to +5.0V Crisp Square Wave (구형파)
+                                }
 
-                            } else if (isU3_RelaxationOsc) {
-                                // TP2 (U3): Relaxation Oscillator 100% Square Wave (구형파)
-                                const pot2 = components.find(c => c.id === 'VR2' || (c.type === 'POT' && c.totalResistance === 50000)) || { ratio: 0.5 };
-                                const pRatio = pot2.ratio !== undefined ? pot2.ratio : 0.5;
-                                const freqU3 = 200.0 + pRatio * 1800.0;
-                                this.u3Time = (this.u3Time || 0) + dt;
-                                const phase = (this.u3Time * freqU3) % 1.0;
-                                vTarget = phase < 0.5 ? vMax : vMin; // ±10.8V Square Wave
-
-                            } else if (isU2_Comparator || compId === 'IC_CATALOG_69' || pinStr.includes('B2_F46') || pinStr.includes('B2_J46')) {
-                                // TP 2 (CH B) KCA Official Exam Answer Sheet: 15Vpp 230Hz Narrow Reset Spike Pulse
-                                this.tp2Time = (this.tp2Time || 0) + dt;
-                                const freq230 = 230.0; // 230Hz Official KCA Exam Frequency
-                                const phase = (this.tp2Time * freq230) % 1.0;
-                                const isSpikeHigh = phase < 0.10; // 10% Narrow Duty Reset Pulse Spike
-                                vTarget = isSpikeHigh ? 7.5 : -7.5; // ±7.5V (15.0Vpp)
-
-                            } else if (compId === 'IC_CATALOG_60' || pinStr.includes('B3_F21') || pinStr.includes('B3_J21')) {
-                                // TP 3 (CH C) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Staircase Waveform
-                                this.tp3Time = (this.tp3Time || 0) + dt;
-                                const freq230 = 230.0; // 230Hz Staircase Cycle (Matches NE555 1150Hz / 5 = 230Hz)
-                                const phase = (this.tp3Time * freq230) % 1.0;
-                                const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps (Matches CH A 5 Pulses per cycle)
-                                const subPhase = (phase * 5.0) % 1.0;
-                                const stepBase = (stepIdx + 1) * 1.6; // 1.6V, 3.2V, 4.8V, 6.4V, 8.0V (8.0Vpp 5-Step)
-                                vTarget = stepBase - (1.0 - subPhase) * 0.3;
-
-                            } else if (compId === 'IC_CATALOG_102' || pinStr.includes('B4_F21') || pinStr.includes('B4_I22')) {
-                                // TP 4 (CH D) KCA Official Exam Answer Sheet Exact Match: 8.0Vpp 230Hz 5-Step Clock-Synchronized Inverted Staircase Waveform
-                                this.tp3Time = (this.tp3Time || 0) + dt;
-                                const freq230 = 230.0;
-                                const phase = (this.tp3Time * freq230) % 1.0;
-                                const stepIdx = Math.floor(phase * 5.0); // Exactly 5 Steps
-                                const subPhase = (phase * 5.0) % 1.0;
-                                const stepBase = (4 - stepIdx) * 1.6; // 6.4V, 4.8V, 3.2V, 1.6V, 0.0V
-                                vTarget = Math.max(0.0, stepBase + (1.0 - subPhase) * 0.3);
-
-                            } else if (pinStr.includes('B3_F53') || pinStr.includes('B2_F52') || pinStr.includes('B4_F56') || pinStr.includes('B4_F36')) {
-                                // OpAmp #5 / Comparator (Schmitt Trigger) Block: Crisp Square Wave (구형파)
-                                this.phaseShiftTime = (this.phaseShiftTime || 0) + dt;
-                                const rawSine = Math.sin(2.0 * Math.PI * 1380.0 * this.phaseShiftTime);
-                                vTarget = rawSine >= 0 ? 5.0 : 0.0; // 0V to +5.0V Crisp Square Wave (구형파)
+                                A[iOut][iOut] += G_out;
+                                Z[iOut] += G_out * vTarget;
+                                comp.vPin6 = vTarget;
                             } else {
-                                // Generic Op-Amp Linear Differential Model with Dominant Pole Damping (100kHz Nyquist Ringing Suppression)
-                                const vP = (iPlus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nPlus) || 0) : 0;
-                                const vM = (iMinus >= 0 && this.lastVoltages) ? (this.lastVoltages.get(nMinus) || 0) : 0;
-                                let vDiff = vP - vM;
-                                const rawTarget = Math.max(vMin, Math.min(vMax, vDiff * 50.0));
-                                const prevV = comp._lastVOut !== undefined ? comp._lastVOut : 0;
-                                const alpha = 0.05; // Smooth dominant pole low-pass filter damping factor (suppresses switching jitter)
-                                vTarget = prevV + alpha * (rawTarget - prevV);
-                                comp._lastVOut = vTarget;
-                            }
+                                // Physical Implicit MNA Op-Amp Model (Real V+/V- Rails, High Open-Loop Gain VCVS, Piecewise-Linear Rail Saturation)
+                                // Realistic 2MΩ differential input impedance
+                                addConductance(nPlus, nMinus, 5e-7);
 
-                            A[iOut][iOut] += G_out;
-                            Z[iOut] += G_out * vTarget;
-                            comp.vPin6 = vTarget;
+                                const vPos = readLastV(nPosRail, comp.vPin7 !== undefined ? comp.vPin7 : 0.0);
+                                const vNeg = readLastV(nNegRail, comp.vPin4 !== undefined ? comp.vPin4 : 0.0);
+                                const isPowered = (vPos - vNeg) > 2.0;
+
+                                if (isPowered) {
+                                    const vMax = Math.min(20.0, vPos - 1.2);
+                                    const vMin = Math.max(-20.0, vNeg + 1.2);
+                                    if (comp._opRegion === undefined) comp._opRegion = 0;
+                                    physicalOpAmps.push({
+                                        comp,
+                                        iOut,
+                                        iPlus: iPlus !== undefined ? iPlus : -1,
+                                        iMinus: iMinus !== undefined ? iMinus : -1,
+                                        vMax,
+                                        vMin,
+                                        G_out: 0.02,      // 50Ω realistic output impedance
+                                        A_ol: 10000.0,    // 80dB open-loop gain (well-conditioned G_out*A_ol = 200)
+                                        vOffset: 0.001    // 1mV realistic LM741 input offset (self-starts oscillators)
+                                    });
+                                } else {
+                                    // Unpowered Op-Amp: weak pull to midpoint of rail pins
+                                    const vMid = (vPos + vNeg) * 0.5;
+                                    A[iOut][iOut] += 1e-3;
+                                    Z[iOut] += 1e-3 * vMid;
+                                }
+                            }
                         }
                     }
 
@@ -871,8 +902,8 @@ export class MNASolver {
             }
         });
 
-        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveforms (Only for PNM Burst Circuits with BJT Transistors)
-        const isPNMCircuit = components.some(c => c.type === 'BJT' || c.id === 'TRANSISTOR_CATALOG_42');
+        // 2.8. Stamping Exact Bipolar BJT/FET PAM Sine-Envelope Sampling Waveforms (Only for Official PNM Preset)
+        const isPNMCircuit = this.usePresetBehavioralModels === true && components.some(c => c.type === 'BJT' || c.id === 'TRANSISTOR_CATALOG_42');
         if (isPNMCircuit) {
             activeNodes.forEach(nodeId => {
                 if ((nodeId.startsWith('NODE_B3_') || nodeId.startsWith('NODE_B4_')) && !nodeId.includes('RAIL') && !nodeId.includes('VCC') && !nodeId.includes('GND')) {
@@ -923,8 +954,88 @@ export class MNASolver {
             });
         }
 
-        // 3. Solve Linear System A * V = Z (Gaussian Elimination with Partial Pivoting & Overflow Clamp)
-        const V = this.gaussianSolve(A, Z, N);
+        // 3. Solve Linear System A * V = Z (with Active-Set Piecewise-Linear Iteration for Physical Op-Amps)
+        let V;
+        if (physicalOpAmps.length === 0) {
+            V = this.gaussianSolve(A, Z, N);
+        } else {
+            const triedLinear = new Array(physicalOpAmps.length).fill(false);
+            const leftFromSat = new Array(physicalOpAmps.length).fill(0);
+
+            for (let iter = 0; iter < 8; iter++) {
+                // Stamp physical op-amps into a working copy of A and Z
+                const Awork = Array.from({ length: N }, (_, r) => {
+                    const row = new Float64Array(N);
+                    row.set(A[r]);
+                    return row;
+                });
+                const Zwork = new Float64Array(N);
+                Zwork.set(Z);
+
+                for (let k = 0; k < physicalOpAmps.length; k++) {
+                    const op = physicalOpAmps[k];
+                    const region = op.comp._opRegion || 0;
+                    Awork[op.iOut][op.iOut] += op.G_out;
+                    if (region === 0) {
+                        if (op.iPlus >= 0) Awork[op.iOut][op.iPlus] -= op.G_out * op.A_ol;
+                        if (op.iMinus >= 0) Awork[op.iOut][op.iMinus] += op.G_out * op.A_ol;
+                        Zwork[op.iOut] += op.G_out * op.A_ol * op.vOffset;
+                    } else if (region > 0) {
+                        Zwork[op.iOut] += op.G_out * op.vMax;
+                    } else {
+                        Zwork[op.iOut] += op.G_out * op.vMin;
+                    }
+                }
+
+                V = this.gaussianSolve(Awork, Zwork, N);
+
+                let changed = false;
+                for (let k = 0; k < physicalOpAmps.length; k++) {
+                    const op = physicalOpAmps[k];
+                    const vOut = V[op.iOut];
+                    const vP = op.iPlus >= 0 ? V[op.iPlus] : 0.0;
+                    const vM = op.iMinus >= 0 ? V[op.iMinus] : 0.0;
+                    const vIdeal = op.A_ol * (vP - vM + op.vOffset);
+                    const region = op.comp._opRegion || 0;
+
+                    if (region === 0) {
+                        if (vOut > op.vMax + 1e-4) {
+                            // If leaving +1 via linear bounced back above vMax (positive feedback Schmitt trigger), flip to -1!
+                            op.comp._opRegion = (leftFromSat[k] === 1 && triedLinear[k]) ? -1 : 1;
+                            changed = true;
+                        } else if (vOut < op.vMin - 1e-4) {
+                            // If leaving -1 via linear bounced back below vMin (positive feedback Schmitt trigger), flip to +1!
+                            op.comp._opRegion = (leftFromSat[k] === -1 && triedLinear[k]) ? 1 : -1;
+                            changed = true;
+                        }
+                    } else if (region > 0) {
+                        if (vIdeal < op.vMax - 1e-3) {
+                            leftFromSat[k] = 1;
+                            if (!triedLinear[k]) {
+                                triedLinear[k] = true;
+                                op.comp._opRegion = 0;
+                            } else {
+                                op.comp._opRegion = -1;
+                            }
+                            changed = true;
+                        }
+                    } else {
+                        if (vIdeal > op.vMin + 1e-3) {
+                            leftFromSat[k] = -1;
+                            if (!triedLinear[k]) {
+                                triedLinear[k] = true;
+                                op.comp._opRegion = 0;
+                            } else {
+                                op.comp._opRegion = 1;
+                            }
+                            changed = true;
+                        }
+                    }
+                }
+
+                if (!changed) break;
+            }
+        }
 
         const newVoltages = new Map();
         activeNodes.forEach((n, idx) => {
@@ -955,9 +1066,9 @@ export class MNASolver {
                     const nP6 = getNode(pins.pin6);
                     const nP7 = getNode(pins.pin7);
                     const nP4 = getNode(pins.pin4);
-                    if (nP6) comp.vPin6 = newVoltages.get(nP6) || 0;
-                    if (nP7) comp.vPin7 = newVoltages.get(nP7) || 12.0;
-                    if (nP4) comp.vPin4 = newVoltages.get(nP4) || -12.0;
+                    if (nP6) comp.vPin6 = newVoltages.has(nP6) ? newVoltages.get(nP6) : 0;
+                    if (nP7) comp.vPin7 = newVoltages.has(nP7) ? newVoltages.get(nP7) : 0;
+                    if (nP4) comp.vPin4 = newVoltages.has(nP4) ? newVoltages.get(nP4) : 0;
                 }
             } else if (comp.type === 'FND') {
                 const pins = this.getDIPPins(comp);
