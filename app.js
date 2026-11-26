@@ -483,7 +483,7 @@ class AppController {
     toggleScopeFreeze() {
         const isFrozen = this.oscilloscopeCanvas.toggleFreeze();
         const btnHeader = document.getElementById('btnToggleScopeFreezeHeader');
-        const btnToolbar = document.getElementById('btnToggleScopeFreeze');
+        const btnToolbars = document.querySelectorAll('[id="btnToggleScopeFreeze"]');
 
         const labelHeaderStr = isFrozen ? '▶️ RUN (실시간)' : '⏸️ STOP (화면 멈춤)';
         const labelToolbarStr = isFrozen ? '▶️ RUN (Space)' : '⏸️ STOP (Space)';
@@ -493,10 +493,10 @@ class AppController {
             btnHeader.innerText = labelHeaderStr;
             btnHeader.style.background = bgStr;
         }
-        if (btnToolbar) {
+        btnToolbars.forEach(btnToolbar => {
             btnToolbar.innerText = labelToolbarStr;
             btnToolbar.style.background = bgStr;
-        }
+        });
 
         this.breadboardCanvas.toastMsg = isFrozen ? '⏸️ 오실로스코프 파형이 멈췄습니다. (Space로 재개)' : '▶️ 오실로스코프 실시간 파형이 재개되었습니다.';
         this.oscilloscopeCanvas.render();
@@ -1450,78 +1450,89 @@ class AppController {
         }
 
         const bindVoltDivSync = (selectId, numId, propName) => {
-            const selectEl = document.getElementById(selectId);
-            const numEl = document.getElementById(numId);
-            if (selectEl && numEl) {
+            const selectEls = document.querySelectorAll(`[id="${selectId}"]`);
+            const numEls = document.querySelectorAll(`[id="${numId}"]`);
+
+            const applyVolt = (val) => {
+                this.oscilloscopeCanvas[propName] = val;
+                numEls.forEach(el => { el.value = val; });
+                selectEls.forEach(el => {
+                    const matched = Array.from(el.options).find(opt => Math.abs(parseFloat(opt.value) - val) < 1e-4);
+                    if (matched) el.value = matched.value;
+                });
+                this.oscilloscopeCanvas.render();
+            };
+
+            selectEls.forEach(selectEl => {
                 selectEl.addEventListener('change', (e) => {
                     const val = parseFloat(e.target.value);
-                    numEl.value = val;
-                    this.oscilloscopeCanvas[propName] = val;
-                    this.oscilloscopeCanvas.render();
+                    if (!isNaN(val) && val > 0) applyVolt(val);
                 });
+            });
+            numEls.forEach(numEl => {
                 numEl.addEventListener('input', (e) => {
                     const val = parseFloat(e.target.value);
-                    if (!isNaN(val) && val > 0) {
-                        selectEl.value = val.toString();
-                        this.oscilloscopeCanvas[propName] = val;
-                        this.oscilloscopeCanvas.render();
-                    }
+                    if (!isNaN(val) && val > 0) applyVolt(val);
                 });
-            }
+            });
         };
 
         const bindPosYSync = (sliderId, numId, txtId, propName) => {
-            const sliderEl = document.getElementById(sliderId);
-            const numEl = document.getElementById(numId);
-            const txtEl = document.getElementById(txtId);
+            const sliderEls = document.querySelectorAll(`[id="${sliderId}"]`);
+            const numEls = document.querySelectorAll(`[id="${numId}"]`);
+            const txtEls = document.querySelectorAll(`[id="${txtId}"]`);
 
             const updateVal = (val) => {
                 this.oscilloscopeCanvas[propName] = val;
-                if (txtEl) txtEl.innerText = `Y: ${val > 0 ? '+' : ''}${val}px`;
+                sliderEls.forEach(el => { el.value = val; });
+                numEls.forEach(el => { el.value = val; });
+                txtEls.forEach(el => { el.innerText = `Y: ${val > 0 ? '+' : ''}${val}px`; });
                 this.oscilloscopeCanvas.render();
             };
 
-            if (sliderEl && numEl) {
+            sliderEls.forEach(sliderEl => {
                 sliderEl.addEventListener('input', (e) => {
-                    const val = parseInt(e.target.value, 10);
-                    numEl.value = val;
+                    const val = parseInt(e.target.value, 10) || 0;
                     updateVal(val);
                 });
+            });
+            numEls.forEach(numEl => {
                 numEl.addEventListener('input', (e) => {
                     const val = parseInt(e.target.value, 10) || 0;
-                    sliderEl.value = val;
                     updateVal(val);
                 });
-            }
+            });
         };
 
         const bindPosXSync = (sliderId, numId, propName) => {
-            const sliderEl = document.getElementById(sliderId);
-            const numEl = document.getElementById(numId);
+            const sliderEls = document.querySelectorAll(`[id="${sliderId}"]`);
+            const numEls = document.querySelectorAll(`[id="${numId}"]`);
 
             const updateVal = (val) => {
                 this.oscilloscopeCanvas[propName] = val;
+                sliderEls.forEach(el => { el.value = val; });
+                numEls.forEach(el => { el.value = val; });
                 this.oscilloscopeCanvas.render();
             };
 
-            if (sliderEl && numEl) {
+            sliderEls.forEach(sliderEl => {
                 sliderEl.addEventListener('input', (e) => {
-                    const val = parseInt(e.target.value, 10);
-                    numEl.value = val;
+                    const val = parseInt(e.target.value, 10) || 0;
                     updateVal(val);
                 });
+            });
+            numEls.forEach(numEl => {
                 numEl.addEventListener('input', (e) => {
                     const val = parseInt(e.target.value, 10) || 0;
-                    sliderEl.value = val;
                     updateVal(val);
                 });
-            }
+            });
         };
 
         const bindTimeDivSync = (selectId, sliderId, numId, propName) => {
-            const selectEls = document.querySelectorAll(`#${selectId}`);
-            const sliderEls = document.querySelectorAll(`#${sliderId}`);
-            const numEls = document.querySelectorAll(`#${numId}`);
+            const selectEls = document.querySelectorAll(`[id="${selectId}"]`);
+            const sliderEls = document.querySelectorAll(`[id="${sliderId}"]`);
+            const numEls = document.querySelectorAll(`[id="${numId}"]`);
 
             const updateVal = (secVal) => {
                 this.oscilloscopeCanvas[propName] = secVal;
@@ -1531,11 +1542,10 @@ class AppController {
                 this.oscilloscopeCanvas.timePerDivChD = secVal;
 
                 ['ChA', 'ChB', 'ChC', 'ChD'].forEach(chKey => {
-                    const el = document.getElementById(`timeDiv${chKey}`);
-                    if (el) {
-                        const matched = Array.from(el.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
+                    document.querySelectorAll(`[id="timeDiv${chKey}"]`).forEach(el => {
+                        const matched = Array.from(el.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-7);
                         if (matched) el.value = matched.value;
-                    }
+                    });
                 });
 
                 const msVal = secVal * 1000.0;
@@ -1547,7 +1557,7 @@ class AppController {
                 });
                 selectEls.forEach(selectEl => {
                     if (selectEl) {
-                        const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-5);
+                        const matchedOption = Array.from(selectEl.options).find(opt => Math.abs(parseFloat(opt.value) - secVal) < 1e-7);
                         if (matchedOption) selectEl.value = matchedOption.value;
                     }
                 });
@@ -1557,7 +1567,7 @@ class AppController {
             selectEls.forEach(selectEl => {
                 selectEl.addEventListener('change', (e) => {
                     const secVal = parseFloat(e.target.value);
-                    updateVal(secVal);
+                    if (!isNaN(secVal) && secVal > 0) updateVal(secVal);
                 });
             });
             sliderEls.forEach(sliderEl => {
@@ -1622,35 +1632,39 @@ class AppController {
         bindTimeDivSync('timeDivSelect', 'rangeTimeDivMs', 'numTimeDivMs', 'timePerDiv');
         bindPosXSync('posXTime', 'numPosXTime', 'posOffsetX');
 
-        const potSlider = document.getElementById('scopePotSlider');
-        if (potSlider) {
+        const potSliders = document.querySelectorAll('[id="scopePotSlider"]');
+        potSliders.forEach(potSlider => {
             potSlider.addEventListener('input', (e) => {
                 const val = parseFloat(e.target.value);
-                const pot = this.components.find(c => c.type === 'POT') || (this.breadboardCanvas && this.breadboardCanvas.selectedComponent);
+                const pot = (this.breadboardCanvas && this.breadboardCanvas.selectedComponent && this.breadboardCanvas.selectedComponent.type === 'POT')
+                    ? this.breadboardCanvas.selectedComponent
+                    : this.components.find(c => c.type === 'POT');
                 if (pot && pot.type === 'POT') {
                     pot.ratio = Math.max(0.01, Math.min(0.99, val / 100.0));
                     const effRes = pot.getEffectiveResistance();
                     const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
-                    const potText = document.getElementById('scopePotValText');
-                    if (potText) potText.textContent = `${formattedEff}Ω (${val}%)`;
+                    potSliders.forEach(s => { s.value = val; });
+                    document.querySelectorAll('[id="scopePotValText"]').forEach(el => {
+                        el.textContent = `${formattedEff}Ω (${val}%)`;
+                    });
 
                     this.oscilloscopeCanvas.resetBuffer();
                     this.warmupSimulationBuffer(1500);
                     this.renderAll();
                 }
             });
-        }
+        });
 
-        const btnResetScope = document.getElementById('btnResetScopeControls');
-        if (btnResetScope) {
+        const btnResetScopes = document.querySelectorAll('[id="btnResetScopeControls"]');
+        btnResetScopes.forEach(btnResetScope => {
             btnResetScope.addEventListener('click', () => {
-                const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-                const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
-                const setChk = (id, chk) => { const el = document.getElementById(id); if (el) el.checked = chk; };
+                const setVal = (id, val) => { document.querySelectorAll(`[id="${id}"]`).forEach(el => { el.value = val; }); };
+                const setTxt = (id, txt) => { document.querySelectorAll(`[id="${id}"]`).forEach(el => { el.innerText = txt; }); };
+                const setChk = (id, chk) => { document.querySelectorAll(`[id="${id}"]`).forEach(el => { el.checked = chk; }); };
 
                 setVal('voltDivChA', '5.0'); setVal('numVoltDivChA', '5.0');
-                setVal('voltDivChB', '2.0'); setVal('numVoltDivChB', '2.0');
-                setVal('voltDivChC', '2.0'); setVal('numVoltDivChC', '2.0');
+                setVal('voltDivChB', '5.0'); setVal('numVoltDivChB', '5.0');
+                setVal('voltDivChC', '5.0'); setVal('numVoltDivChC', '5.0');
                 setVal('voltDivChD', '5.0'); setVal('numVoltDivChD', '5.0');
 
                 setVal('posYChA', '0'); setVal('numPosYChA', '0');
@@ -1680,48 +1694,41 @@ class AppController {
 
                 this.oscilloscopeCanvas.resetControls();
             });
-        }
+        });
 
         const btnOpenScope = document.getElementById('btnOpenScopeModal');
         if (btnOpenScope) {
             btnOpenScope.addEventListener('click', () => {
-                this.warmupSimulationBuffer(1200);
                 this.startSimulation();
-                
-                const selTime = document.getElementById('timeDivSelect');
-                const rTime = document.getElementById('rangeTimeDivMs');
-                const nTime = document.getElementById('numTimeDivMs');
-                if (selTime && selTime.value === '0.01') {
-                    selTime.value = '0.0002';
-                    if (rTime) rTime.value = '0.2';
-                    if (nTime) nTime.value = '0.20';
-                    this.oscilloscopeCanvas.timePerDiv = 0.0002;
-                }
 
-                const elYChA = document.getElementById('posYChA'); if (elYChA) elYChA.value = '0';
-                const elNYChA = document.getElementById('numPosYChA'); if (elNYChA) elNYChA.value = '0';
-                const elTYChA = document.getElementById('txtValChA'); if (elTYChA) elTYChA.innerText = 'Y: 0px';
-                this.oscilloscopeCanvas.posOffsetYChA = 0;
+                // Sync all popup modal controls to current oscilloscopeCanvas state
+                const curTime = this.oscilloscopeCanvas.timePerDiv || 0.0002;
+                const msVal = curTime * 1000.0;
+                document.querySelectorAll('[id="timeDivSelect"]').forEach(sel => {
+                    const matched = Array.from(sel.options).find(opt => Math.abs(parseFloat(opt.value) - curTime) < 1e-7);
+                    if (matched) sel.value = matched.value;
+                });
+                document.querySelectorAll('[id="rangeTimeDivMs"]').forEach(r => { r.value = Math.max(0.01, Math.min(1000.0, msVal)); });
+                document.querySelectorAll('[id="numTimeDivMs"]').forEach(n => { n.value = msVal < 0.1 ? msVal.toFixed(3) : msVal.toFixed(2); });
 
-                const elYChB = document.getElementById('posYChB'); if (elYChB) elYChB.value = '0';
-                const elNYChB = document.getElementById('numPosYChB'); if (elNYChB) elNYChB.value = '0';
-                const elTYChB = document.getElementById('txtValChB'); if (elTYChB) elTYChB.innerText = 'Y: 0px';
-                this.oscilloscopeCanvas.posOffsetYChB = 0;
-
-                const elYChC = document.getElementById('posYChC'); if (elYChC) elYChC.value = '0';
-                const elNYChC = document.getElementById('numPosYChC'); if (elNYChC) elNYChC.value = '0';
-                const elTYChC = document.getElementById('txtValChC'); if (elTYChC) elTYChC.innerText = 'Y: 0px';
-                this.oscilloscopeCanvas.posOffsetYChC = 0;
-
-                const elYChD = document.getElementById('posYChD'); if (elYChD) elYChD.value = '0';
-                const elNYChD = document.getElementById('numPosYChD'); if (elNYChD) elNYChD.value = '0';
-                const elTYChD = document.getElementById('txtValChD'); if (elTYChD) elTYChD.innerText = 'Y: 0px';
-                this.oscilloscopeCanvas.posOffsetYChD = 0;
+                ['ChA', 'ChB', 'ChC', 'ChD'].forEach(chKey => {
+                    const vVal = this.oscilloscopeCanvas[`voltPerDiv${chKey}`] || 5.0;
+                    const yVal = this.oscilloscopeCanvas[`posOffsetY${chKey}`] || 0;
+                    document.querySelectorAll(`[id="voltDiv${chKey}"]`).forEach(sel => {
+                        const matched = Array.from(sel.options).find(opt => Math.abs(parseFloat(opt.value) - vVal) < 1e-4);
+                        if (matched) sel.value = matched.value;
+                    });
+                    document.querySelectorAll(`[id="numVoltDiv${chKey}"]`).forEach(el => { el.value = vVal; });
+                    document.querySelectorAll(`[id="posY${chKey}"]`).forEach(el => { el.value = yVal; });
+                    document.querySelectorAll(`[id="numPosY${chKey}"]`).forEach(el => { el.value = yVal; });
+                    document.querySelectorAll(`[id="txtVal${chKey}"]`).forEach(el => { el.innerText = `Y: ${yVal > 0 ? '+' : ''}${yVal}px`; });
+                });
 
                 this.updateScopePotSlider();
 
                 const scopeModal = document.getElementById('scopeModal');
                 if (scopeModal) scopeModal.classList.remove('hidden');
+                this.oscilloscopeCanvas.render();
             });
         }
 
@@ -1730,10 +1737,9 @@ class AppController {
             btnHeaderFreeze.addEventListener('click', () => this.toggleScopeFreeze());
         }
 
-        const btnToolbarFreeze = document.getElementById('btnToggleScopeFreeze');
-        if (btnToolbarFreeze) {
+        document.querySelectorAll('[id="btnToggleScopeFreeze"]').forEach(btnToolbarFreeze => {
             btnToolbarFreeze.addEventListener('click', () => this.toggleScopeFreeze());
-        }
+        });
 
         const btnCloseScope = document.getElementById('btnCloseScopeModal');
         if (btnCloseScope) {

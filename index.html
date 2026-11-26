@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=37000">
+    <link rel="stylesheet" href="./styles.css?v=38000">
 
     <!-- Google AdSense Main Auto-Ads Code (애드센스 승인 및 발급받으신 ca-pub-ID 입력) -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
@@ -224,7 +224,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=37000</span>
+                <span class="logo-badge">v=38000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -755,11 +755,11 @@
                         <option value="0.00002">0.02 ms</option>
                         <option value="0.00005">0.05 ms</option>
                         <option value="0.0001">0.1 ms</option>
-                        <option value="0.0002">0.2 ms</option>
+                        <option value="0.0002" selected>0.2 ms</option>
                         <option value="0.0005">0.5 ms</option>
                         <option value="0.001">1.0 ms</option>
                         <option value="0.002">2.0 ms</option>
-                        <option value="0.005" selected>5.0 ms</option>
+                        <option value="0.005">5.0 ms</option>
                         <option value="0.010">10.0 ms</option>
                         <option value="0.020">20.0 ms</option>
                         <option value="0.050">50.0 ms</option>
@@ -769,9 +769,9 @@
                         <option value="1.000">1000.0 ms</option>
                     </select>
 
-                    <input type="range" id="rangeTimeDivMs" min="0.01" max="1000.0" step="0.1" value="5.0" style="width: 110px; vertical-align: middle;">
+                    <input type="range" id="rangeTimeDivMs" min="0.01" max="1000.0" step="0.1" value="0.2" style="width: 110px; vertical-align: middle;">
 
-                    <input type="number" id="numTimeDivMs" value="5.0" step="0.1" min="0.001" max="1000" style="width: 50px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
+                    <input type="number" id="numTimeDivMs" value="0.2" step="0.1" min="0.001" max="1000" style="width: 50px; padding: 2px; font-size: 11px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px;"> <span style="color: #94a3b8;">ms</span>
                 </div>
 
                 <div style="display: flex; gap: 4px; align-items: center; background: #0f172a; border: 1px solid #334155; padding: 2px 8px; border-radius: 4px; margin-left: 8px;">
@@ -822,6 +822,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=37000"></script>
+    <script src="./bundle.js?v=38000"></script>
 </body>
 </html>

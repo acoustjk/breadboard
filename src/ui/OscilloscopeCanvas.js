@@ -288,23 +288,55 @@ export class OscilloscopeCanvas {
             const traceZeroY = zeroY - posOffsetY;
 
             ctx.beginPath();
-            let isFirst = true;
-            let prevY = 0;
-            for (let px = 0; px < width; px++) {
-                // px=0 is left (oldest sample on screen), px=width-1 is right (newest sample)
-                const sampleOffset = Math.round((width - 1 - px) / (width - 1) * (samplesOnScreen - 1));
-                let v = ringBuffer.getRecent(sampleOffset);
-                if (isNaN(v) || !isFinite(v)) v = 0;
-                v = Math.max(-25.0, Math.min(25.0, v));
-                const y = traceZeroY - (v * vDivScale);
-                if (isFirst) {
-                    ctx.moveTo(px, y);
-                    isFirst = false;
-                    prevY = y;
-                } else {
-                    ctx.lineTo(px, prevY);
-                    ctx.lineTo(px, y);
-                    prevY = y;
+            const samplesPerPx = samplesOnScreen / width;
+            if (samplesPerPx > 2.0) {
+                // Peak-Detect min/max per pixel column (prevents aliasing on high-freq PAM/carrier pulses!)
+                const maxSubScan = 64;
+                for (let px = 0; px < width; px++) {
+                    const offEnd = Math.round((width - 1 - px) / (width - 1) * (samplesOnScreen - 1));
+                    const offStart = Math.round((width - 1 - (px + 1)) / (width - 1) * (samplesOnScreen - 1));
+                    const lo = Math.max(0, Math.min(offStart, offEnd));
+                    const hi = Math.max(lo, Math.max(offStart, offEnd));
+                    const span = hi - lo + 1;
+                    const stride = Math.max(1, Math.floor(span / maxSubScan));
+                    let vMin = Infinity, vMax = -Infinity;
+                    for (let s = lo; s <= hi; s += stride) {
+                        let v = ringBuffer.getRecent(s);
+                        if (isNaN(v) || !isFinite(v)) v = 0;
+                        if (v < vMin) vMin = v;
+                        if (v > vMax) vMax = v;
+                    }
+                    vMin = Math.max(-25.0, Math.min(25.0, vMin));
+                    vMax = Math.max(-25.0, Math.min(25.0, vMax));
+                    const yTop = traceZeroY - (vMax * vDivScale);
+                    const yBot = traceZeroY - (vMin * vDivScale);
+                    if (px === 0) {
+                        ctx.moveTo(px, yTop);
+                        ctx.lineTo(px, yBot);
+                    } else {
+                        ctx.lineTo(px, yTop);
+                        ctx.lineTo(px, yBot);
+                    }
+                }
+            } else {
+                let isFirst = true;
+                let prevY = 0;
+                for (let px = 0; px < width; px++) {
+                    // px=0 is left (oldest sample on screen), px=width-1 is right (newest sample)
+                    const sampleOffset = Math.round((width - 1 - px) / (width - 1) * (samplesOnScreen - 1));
+                    let v = ringBuffer.getRecent(sampleOffset);
+                    if (isNaN(v) || !isFinite(v)) v = 0;
+                    v = Math.max(-25.0, Math.min(25.0, v));
+                    const y = traceZeroY - (v * vDivScale);
+                    if (isFirst) {
+                        ctx.moveTo(px, y);
+                        isFirst = false;
+                        prevY = y;
+                    } else {
+                        ctx.lineTo(px, prevY);
+                        ctx.lineTo(px, y);
+                        prevY = y;
+                    }
                 }
             }
             ctx.stroke();
@@ -336,10 +368,10 @@ export class OscilloscopeCanvas {
         this.ctx.fillStyle = '#090d16';
         this.ctx.fillRect(0, 0, width, height);
 
-        // 1. Grid Lines (10 x 8 divs)
+        // 1. Grid Lines (10 x 8 divs matching 10 * timePerDiv)
         this.ctx.strokeStyle = '#1e293b';
         this.ctx.lineWidth = 1;
-        const numDivsX = 5; // 5 Horizontal Time Axis Grid Divisions
+        const numDivsX = 10; // 10 Horizontal Time Axis Grid Divisions
         const numDivsY = 8;
         const divW = width / numDivsX;
         const divH = height / numDivsY;
@@ -508,8 +540,36 @@ export class OscilloscopeCanvas {
 
         this.ctx.beginPath();
 
-        if (numSamples > width) {
-            // Clean Crisp Sample Point Rendering (Eliminates average notch spikes & staircase distortion)
+        if (numSamples > width * 2) {
+            // Peak-Detect min/max per pixel column (eliminates aliasing on PAM/high-freq waves at slow Time/Div!)
+            const samplesPerPixel = numSamples / width;
+            const maxSubScan = 64;
+            for (let px = 0; px < width; px++) {
+                const s0 = Math.floor(startIdx + px * samplesPerPixel);
+                const s1 = Math.min(endIdx - 1, Math.floor(startIdx + (px + 1) * samplesPerPixel));
+                const span = Math.max(1, s1 - s0 + 1);
+                const stride = Math.max(1, Math.floor(span / maxSubScan));
+                let vMin = Infinity, vMax = -Infinity;
+                for (let s = s0; s <= s1; s += stride) {
+                    let v = ringBuffer.get(s);
+                    if (isNaN(v) || !isFinite(v)) v = 0;
+                    if (v < vMin) vMin = v;
+                    if (v > vMax) vMax = v;
+                }
+                vMin = Math.max(-25.0, Math.min(25.0, vMin));
+                vMax = Math.max(-25.0, Math.min(25.0, vMax));
+                const yTop = traceZeroY - (vMax * vDivScale);
+                const yBot = traceZeroY - (vMin * vDivScale);
+                if (px === 0) {
+                    this.ctx.moveTo(px, yTop);
+                    this.ctx.lineTo(px, yBot);
+                } else {
+                    this.ctx.lineTo(px, yTop);
+                    this.ctx.lineTo(px, yBot);
+                }
+            }
+        } else if (numSamples > width) {
+            // Clean Crisp Sample Point Rendering
             const samplesPerPixel = numSamples / width;
             let isFirst = true;
             let prevY = 0;
