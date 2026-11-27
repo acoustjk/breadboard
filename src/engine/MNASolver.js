@@ -10,9 +10,11 @@ export class MNASolver {
         this.lastVoltages = new Map();
         this.lastCurrents = new Map();
         this.usePresetBehavioralModels = false;
+        this.simTime = 0;
     }
 
     solveStep(components, dt = 0.0001) {
+        this.simTime = (this.simTime || 0) + dt;
         const nodeSet = new Set();
         components.forEach(c => {
             const nA = this.grid.getNodeId(c.pinA);
@@ -154,6 +156,11 @@ export class MNASolver {
             } else if (comp.type === 'VDC') {
                 const gSrc = 1000.0;
                 const vVal = comp.voltage !== undefined ? comp.voltage : 5.0;
+                addConductance(nA, nB, gSrc);
+                addCurrentSource(nA, nB, vVal * gSrc);
+            } else if (comp.type === 'FG') {
+                const gSrc = 1000.0;
+                const vVal = typeof comp.getVoltageAt === 'function' ? comp.getVoltageAt(this.simTime || 0) : 0.0;
                 addConductance(nA, nB, gSrc);
                 addCurrentSource(nA, nB, vVal * gSrc);
             } else if (comp.type === 'DIODE') {

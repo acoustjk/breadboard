@@ -247,6 +247,48 @@ export class DCSource {
     }
 }
 
+export class SignalGeneratorSource {
+    constructor(id, pinA, pinB, config = {}) {
+        this.id = id;
+        this.type = 'FG';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.enabled = config.enabled !== undefined ? !!config.enabled : true;
+        this.waveform = config.waveform || 'SINE'; // 'SINE', 'SQUARE', 'TRIANGLE', 'SAWTOOTH'
+        this.frequency = config.frequency !== undefined ? Number(config.frequency) : 1000.0;
+        this.vpp = config.vpp !== undefined ? Number(config.vpp) : 5.0;
+        this.offset = config.offset !== undefined ? Number(config.offset) : 0.0;
+        this.phaseDeg = config.phaseDeg !== undefined ? Number(config.phaseDeg) : 0.0;
+        this.duty = config.duty !== undefined ? Number(config.duty) : 50.0; // percentage 5..95
+        this.isConfigured = true;
+    }
+
+    getVoltageAt(t) {
+        if (!this.enabled) return 0.0;
+        const amp = (this.vpp || 0.0) * 0.5;
+        const off = this.offset || 0.0;
+        const freq = Math.max(0.1, this.frequency || 1000.0);
+        const phaseRad = ((this.phaseDeg || 0.0) * Math.PI) / 180.0;
+        const cycRaw = t * freq + (this.phaseDeg || 0.0) / 360.0;
+        const cyc = ((cycRaw % 1.0) + 1.0) % 1.0;
+
+        if (this.waveform === 'SQUARE') {
+            const dutyFrac = Math.max(0.05, Math.min(0.95, (this.duty || 50.0) / 100.0));
+            return off + (cyc < dutyFrac ? amp : -amp);
+        } else if (this.waveform === 'TRIANGLE') {
+            let norm;
+            if (cyc < 0.25) norm = cyc * 4.0;
+            else if (cyc < 0.75) norm = 2.0 - cyc * 4.0;
+            else norm = cyc * 4.0 - 4.0;
+            return off + amp * norm;
+        } else if (this.waveform === 'SAWTOOTH') {
+            return off + amp * (2.0 * cyc - 1.0);
+        }
+        // Default: SINE
+        return off + amp * Math.sin(2.0 * Math.PI * freq * t + phaseRad);
+    }
+}
+
 export class SwitchComponent {
     constructor(id, pinA, pinB, isOpen = false) {
         this.id = id;

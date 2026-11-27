@@ -21,6 +21,8 @@ export class BreadboardCanvas {
         this.voltageVa = 12.0;
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
+        this.fg1 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 0, duty: 50 };
+        this.fg2 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 90, duty: 50 };
 
         this.selectedComponent = null;
         this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'TRANSISTOR_CATALOG', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
@@ -262,6 +264,15 @@ export class BreadboardCanvas {
                 } else {
                     this.showToast(`🔍 선택됨: [${foundComp.type}] ${foundComp.id}`);
                 }
+            } else {
+                // Single-click on FG1 / FG2 binding post in SELECT mode opens the Signal Generator modal
+                for (const fgKey of ['BINDING_FG1', 'BINDING_FG2']) {
+                    const pos = this.getPinPos(fgKey);
+                    if (Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
+                        if (this.onBindingPostDblClicked) this.onBindingPostDblClicked(fgKey);
+                        return;
+                    }
+                }
             }
             if (this.onNeedsRender) this.onNeedsRender();
         });
@@ -270,8 +281,8 @@ export class BreadboardCanvas {
         this.canvas.addEventListener('dblclick', (e) => {
             const { worldX, worldY } = this.getMouseWorldPos(e);
 
-            // Check Binding Posts (Radius 30px tolerance at y = 72)
-            const bindingPosts = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
+            // Check Binding Posts (Radius 30px tolerance at y = 48)
+            const bindingPosts = ['BINDING_FG1', 'BINDING_FG2', 'BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
             for (const bpKey of bindingPosts) {
                 const pos = this.getPinPos(bpKey);
                 if (Math.hypot(pos.x - worldX, pos.y - worldY) < 30) {
@@ -378,6 +389,8 @@ export class BreadboardCanvas {
         };
 
         // 1. Binding Posts (Centered exactly at y = 48 matching render())
+        setCoord('BINDING_FG1', 355, 48);
+        setCoord('BINDING_FG2', 435, 48);
         setCoord('BINDING_Va', 520, 48);
         setCoord('BINDING_Vb', 590, 48);
         setCoord('BINDING_Vc', 660, 48);
@@ -524,9 +537,67 @@ export class BreadboardCanvas {
         this.ctx.fillStyle = '#f8fafc';
         this.ctx.font = 'bold 16px sans-serif';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 36);
+        this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 42);
+        this.ctx.fillStyle = '#94a3b8';
+        this.ctx.font = '10px sans-serif';
+        this.ctx.fillText('FG1/FG2 클릭 → 신호발생기 설정', 30, 62);
 
-        // 3. 4 Heavy Metal Binding Posts with Dynamic Voltage Values
+        // Divider between Dual Signal Generator & DC Power Supply
+        this.ctx.strokeStyle = '#334155';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(478, 20);
+        this.ctx.lineTo(478, 84);
+        this.ctx.stroke();
+
+        // Group Section Captions
+        this.ctx.fillStyle = '#fbbf24';
+        this.ctx.font = 'bold 9px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('SIGNAL GEN (AC)', 395, 24);
+        this.ctx.fillStyle = '#38bdf8';
+        this.ctx.fillText('DC POWER SUPPLY', 625, 24);
+
+        const formatFgReadout = (fg) => {
+            if (!fg || !fg.enabled) return 'OFF';
+            const f = fg.frequency || 1000;
+            const fStr = f >= 1000 ? `${(f / 1000).toFixed(f % 1000 === 0 ? 0 : 1)}k` : `${Math.round(f)}Hz`;
+            const wSym = fg.waveform === 'SQUARE' ? '⊓' : (fg.waveform === 'TRIANGLE' ? '△' : (fg.waveform === 'SAWTOOTH' ? '⩘' : '∿'));
+            return `${wSym}${fStr} ${(fg.vpp || 0).toFixed(0)}V`;
+        };
+
+        // 3. Dual Signal Generator + 4 DC Power Binding Posts
+        const fgPosts = [
+            { id: 'BINDING_FG1', label: 'FG1', color: (this.fg1 && this.fg1.enabled) ? '#f59e0b' : '#475569', x: 355, y: 48, valText: formatFgReadout(this.fg1), enabled: !!(this.fg1 && this.fg1.enabled) },
+            { id: 'BINDING_FG2', label: 'FG2', color: (this.fg2 && this.fg2.enabled) ? '#a855f7' : '#475569', x: 435, y: 48, valText: formatFgReadout(this.fg2), enabled: !!(this.fg2 && this.fg2.enabled) }
+        ];
+        fgPosts.forEach(bp => {
+            this.ctx.save();
+            if (bp.enabled) {
+                this.ctx.shadowColor = bp.color;
+                this.ctx.shadowBlur = 8;
+            }
+            this.ctx.fillStyle = bp.color;
+            this.ctx.beginPath();
+            this.ctx.arc(bp.x, bp.y, 14, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#f8fafc';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            this.ctx.restore();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(bp.label, bp.x, bp.y);
+            this.ctx.textBaseline = 'alphabetic';
+
+            this.ctx.fillStyle = bp.enabled ? '#fde68a' : '#64748b';
+            this.ctx.font = 'bold 9.5px monospace';
+            this.ctx.fillText(bp.valText, bp.x, 76);
+        });
+
         const bindingPosts = [
             { id: 'BINDING_Va', label: 'Va', color: '#ef4444', x: 520, y: 48, valText: `${(this.voltageVa || 12.0) > 0 ? '+' : ''}${(this.voltageVa || 12.0).toFixed(1)}V` },
             { id: 'BINDING_Vb', label: 'Vb', color: '#10b981', x: 590, y: 48, valText: `${(this.voltageVb || 0.0) > 0 ? '+' : ''}${(this.voltageVb || 0.0).toFixed(1)}V` },
@@ -546,7 +617,7 @@ export class BreadboardCanvas {
             this.ctx.fillStyle = '#facc15';
             this.ctx.font = 'bold 10px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bp.valText, bp.x, 74);
+            this.ctx.fillText(bp.valText, bp.x, 76);
         });
 
         // 4. Render Top 4 Horizontal Bus Lines Panel

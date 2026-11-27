@@ -7,7 +7,7 @@
 import { BreadboardGrid } from './src/engine/CircuitNode.js?v=27000';
 import { MNASolver } from './src/engine/MNASolver.js?v=27000';
 import { FFT } from './src/engine/FFT.js?v=27000';
-import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, FNDComponent, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=27000';
+import { Resistor, Capacitor, DCSource, SignalGeneratorSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, FNDComponent, IC_CATALOG, TRANSISTOR_CATALOG } from './src/components/ComponentModels.js?v=27000';
 import { BreadboardCanvas } from './src/ui/BreadboardCanvas.js?v=27000';
 import { OscilloscopeCanvas } from './src/ui/OscilloscopeCanvas.js?v=27000';
 import { ContinuityTester } from './src/ui/ContinuityTester.js?v=27000';
@@ -48,6 +48,14 @@ class AppController {
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
 
+        // Dual Function / Signal Generator State (FG1 & FG2)
+        this.fg1 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 0, duty: 50 };
+        this.fg2 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 90, duty: 50 };
+        if (this.breadboardCanvas) {
+            this.breadboardCanvas.fg1 = this.fg1;
+            this.breadboardCanvas.fg2 = this.fg2;
+        }
+
         // Selected Family Dropdown Values
         this.selectedResistorType = 'R';
         this.selectedCapacitorType = 'C_MYLAR';
@@ -65,6 +73,7 @@ class AppController {
         this.initPlacementEngine();
         this.initEmptyBoard(); // Start with a Clean Empty Breadboard by Default
         this.setupUIEventListeners();
+        this.setupSignalGeneratorUI();
         this.setupSaveLoadHandlers();
         this.initFeedbackBoard();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
@@ -114,9 +123,12 @@ class AppController {
             let labelMsg = '';
 
             if (toolType === 'WIRE') {
+                const isFg1 = pinA === 'BINDING_FG1' || pinB === 'BINDING_FG1';
+                const isFg2 = pinA === 'BINDING_FG2' || pinB === 'BINDING_FG2';
                 const isPower = pinA.includes('VCC') || pinB.includes('VCC') || pinA.startsWith('BINDING_') || pinB.startsWith('BINDING_');
-                newComp = new Wire(id, pinA, pinB, isPower ? '#ef4444' : '#0984e3');
-                labelMsg = '점퍼 와이어';
+                const wireColor = isFg1 ? '#f59e0b' : (isFg2 ? '#a855f7' : (isPower ? '#ef4444' : '#0984e3'));
+                newComp = new Wire(id, pinA, pinB, wireColor);
+                labelMsg = isFg1 ? 'FG1 신호선' : (isFg2 ? 'FG2 신호선' : '점퍼 와이어');
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
                 const resType = this.selectedResistorType || 'R';
                 if (resType === 'POT_1M') {
@@ -297,6 +309,8 @@ class AppController {
                     this.breadboardCanvas.toastMsg = `🟢 Vb 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
                     this.renderAll();
                 }
+            } else if (bindingKey === 'BINDING_FG1' || bindingKey === 'BINDING_FG2') {
+                this.openFGModal();
             } else if (bindingKey === 'BINDING_Vc') {
                 const valStr = prompt(`🔵 Vc 바인딩 포스트 전압(V)을 입력하세요:`, this.voltageVc);
                 const parsed = parseFloat(valStr);
@@ -560,6 +574,7 @@ class AppController {
         if (this.solver) {
             this.solver.usePresetBehavioralModels = false;
             this.solver.lastVoltages = new Map();
+            this.solver.simTime = 0;
         }
         this.probeAPin = null;
         this.probeBPin = null;
@@ -581,12 +596,18 @@ class AppController {
         this.renderAll();
     }
 
-    warmupSimulationBuffer(steps = 60000) {
-        const bindingSources = [
+    getBindingSources() {
+        return [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
-            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
+            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true),
+            new SignalGeneratorSource('SRC_FG1', 'BINDING_FG1', 'BINDING_GND', this.fg1),
+            new SignalGeneratorSource('SRC_FG2', 'BINDING_FG2', 'BINDING_GND', this.fg2)
         ];
+    }
+
+    warmupSimulationBuffer(steps = 60000) {
+        const bindingSources = this.getBindingSources();
         const activeComps = [...this.components, ...bindingSources];
 
         this.components.forEach(c => {
@@ -1139,8 +1160,9 @@ class AppController {
 
                 const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
                 const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+                const sigGen = { fg1: { ...this.fg1 }, fg2: { ...this.fg2 } };
 
-                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title, sigGen);
                 const filename = `${title.replace(/[^a-zA-Z0-9가-힣_-]/g, '_')}.json`;
                 CircuitSerializer.saveToFile(dataObj, filename);
 
@@ -1158,8 +1180,9 @@ class AppController {
 
                 const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
                 const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+                const sigGen = { fg1: { ...this.fg1 }, fg2: { ...this.fg2 } };
 
-                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title, sigGen);
                 CircuitSerializer.saveToLocalStorage(dataObj);
 
                 saveModal.classList.add('hidden');
@@ -1233,6 +1256,11 @@ class AppController {
             this.breadboardCanvas.voltageVa = this.voltageVa;
             this.breadboardCanvas.voltageVb = this.voltageVb;
             this.breadboardCanvas.voltageVc = this.voltageVc;
+        }
+        if (restored.sigGen) {
+            if (restored.sigGen.fg1) Object.assign(this.fg1, restored.sigGen.fg1);
+            if (restored.sigGen.fg2) Object.assign(this.fg2, restored.sigGen.fg2);
+            this.syncFGModalUI();
         }
 
         // Auto-Probe Assignment Safety: Ensure Probe A is anchored to IC output if missing
@@ -2116,6 +2144,141 @@ class AppController {
         }
     }
 
+    openFGModal() {
+        this.syncFGModalUI();
+        const modal = document.getElementById('fgModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    syncFGModalUI() {
+        ['fg1', 'fg2'].forEach(ch => {
+            const cfg = this[ch];
+            if (!cfg) return;
+            const btnToggle = document.getElementById(`${ch}ToggleBtn`);
+            if (btnToggle) {
+                btnToggle.textContent = cfg.enabled ? '🟢 ON' : '⚫ OFF';
+                btnToggle.style.background = cfg.enabled ? '#16a34a' : '#475569';
+            }
+            const wf = document.getElementById(`${ch}Waveform`);
+            if (wf) wf.value = cfg.waveform || 'SINE';
+            const freq = document.getElementById(`${ch}Freq`);
+            if (freq) freq.value = cfg.frequency;
+            const vpp = document.getElementById(`${ch}Vpp`);
+            const vppR = document.getElementById(`${ch}VppRange`);
+            if (vpp) vpp.value = cfg.vpp;
+            if (vppR) vppR.value = cfg.vpp;
+            const off = document.getElementById(`${ch}Offset`);
+            const offR = document.getElementById(`${ch}OffsetRange`);
+            if (off) off.value = cfg.offset;
+            if (offR) offR.value = cfg.offset;
+            const ph = document.getElementById(`${ch}Phase`);
+            const phR = document.getElementById(`${ch}PhaseRange`);
+            if (ph) ph.value = cfg.phaseDeg;
+            if (phR) phR.value = cfg.phaseDeg;
+            const dtEl = document.getElementById(`${ch}Duty`);
+            const dtR = document.getElementById(`${ch}DutyRange`);
+            if (dtEl) dtEl.value = cfg.duty;
+            if (dtR) dtR.value = cfg.duty;
+        });
+    }
+
+    setupSignalGeneratorUI() {
+        const btnOpen = document.getElementById('btnOpenFGModal');
+        const btnClose = document.getElementById('btnCloseFGModal');
+        const modal = document.getElementById('fgModal');
+
+        if (btnOpen) btnOpen.addEventListener('click', () => this.openFGModal());
+        if (btnClose && modal) btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+
+        const bindChannel = (ch) => {
+            const cfg = this[ch];
+            const btnToggle = document.getElementById(`${ch}ToggleBtn`);
+            if (btnToggle) {
+                btnToggle.addEventListener('click', () => {
+                    cfg.enabled = !cfg.enabled;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                });
+            }
+            const wf = document.getElementById(`${ch}Waveform`);
+            if (wf) {
+                wf.addEventListener('change', (e) => {
+                    cfg.waveform = e.target.value;
+                    this.renderAll();
+                });
+            }
+            const freq = document.getElementById(`${ch}Freq`);
+            if (freq) {
+                freq.addEventListener('input', (e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v >= 0.1) {
+                        cfg.frequency = Math.min(50000, v);
+                        this.renderAll();
+                    }
+                });
+            }
+            const bindPair = (numId, rangeId, prop, minV, maxV) => {
+                const numEl = document.getElementById(numId);
+                const rngEl = document.getElementById(rangeId);
+                const apply = (raw) => {
+                    const v = parseFloat(raw);
+                    if (!isNaN(v)) {
+                        const clamped = Math.max(minV, Math.min(maxV, v));
+                        cfg[prop] = clamped;
+                        if (numEl && document.activeElement !== numEl) numEl.value = clamped;
+                        if (rngEl && document.activeElement !== rngEl) rngEl.value = clamped;
+                        this.renderAll();
+                    }
+                };
+                if (numEl) numEl.addEventListener('input', (e) => apply(e.target.value));
+                if (rngEl) rngEl.addEventListener('input', (e) => apply(e.target.value));
+            };
+            bindPair(`${ch}Vpp`, `${ch}VppRange`, 'vpp', 0, 24);
+            bindPair(`${ch}Offset`, `${ch}OffsetRange`, 'offset', -12, 12);
+            bindPair(`${ch}Phase`, `${ch}PhaseRange`, 'phaseDeg', 0, 360);
+            bindPair(`${ch}Duty`, `${ch}DutyRange`, 'duty', 5, 95);
+        };
+
+        bindChannel('fg1');
+        bindChannel('fg2');
+
+        document.querySelectorAll('.fg-freq-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const ch = btn.getAttribute('data-ch');
+                const val = parseFloat(btn.getAttribute('data-val'));
+                if (this[ch] && !isNaN(val)) {
+                    this[ch].frequency = val;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                }
+            });
+        });
+
+        document.querySelectorAll('.fg-phase-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const ch = btn.getAttribute('data-ch');
+                const val = parseFloat(btn.getAttribute('data-val'));
+                if (this[ch] && !isNaN(val)) {
+                    this[ch].phaseDeg = val;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                }
+            });
+        });
+
+        const btnSync = document.getElementById('btnFGPhaseSync');
+        if (btnSync) {
+            btnSync.addEventListener('click', () => {
+                this.simTime = 0;
+                if (this.solver) this.solver.simTime = 0;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(1200);
+                this.breadboardCanvas.toastMsg = '🔄 FG1 / FG2 위상 동기가 리셋되었습니다!';
+                this.renderAll();
+            });
+        }
+    }
+
     loadUserPreset(presetKey) {
         const preset = USER_PRESETS[presetKey];
         if (!preset || !preset.data) return;
@@ -2169,11 +2332,7 @@ class AppController {
         let vC = 0;
         let vD = 0;
 
-        const bindingSources = [
-            new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
-            new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
-            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
-        ];
+        const bindingSources = this.getBindingSources();
         const activeComps = [...this.components, ...bindingSources];
 
         for (let i = 0; i < stepsPerFrame; i++) {

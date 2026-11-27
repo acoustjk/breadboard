@@ -27,7 +27,9 @@ export class BreadboardGrid {
             }
         }
 
-        // 2. Power Supply Binding Posts (Va, Vb, Vc, GND)
+        // 2. Power Supply & Dual Function Generator Binding Posts (FG1, FG2, Va, Vb, Vc, GND)
+        this.nodeMap.set('BINDING_FG1', 'NODE_BINDING_FG1');
+        this.nodeMap.set('BINDING_FG2', 'NODE_BINDING_FG2');
         this.nodeMap.set('BINDING_Va', 'NODE_BINDING_VA');
         this.nodeMap.set('BINDING_Vb', 'NODE_BINDING_VB');
         this.nodeMap.set('BINDING_Vc', 'NODE_BINDING_VC');

@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=43000">
+    <link rel="stylesheet" href="./styles.css?v=44000">
 
     <!-- Google AdSense Main Auto-Ads Code (애드센스 승인 및 발급받으신 ca-pub-ID 입력) -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
@@ -212,6 +212,9 @@
                 <button id="btnOpenScopeModal" class="btn btn-primary" style="width: 100%;">
                     📊 오실로스코프 팝업 열기
                 </button>
+                <button id="btnOpenFGModal" class="btn btn-primary" style="width: 100%; margin-top: 6px; background: linear-gradient(135deg, #d97706, #7c3aed); border-color: #f59e0b;">
+                    📡 신호발생기 (FG1 / FG2)
+                </button>
             </div>
 
             <div style="display: flex; gap: 6px; margin-top: 6px;">
@@ -224,7 +227,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=43000</span>
+                <span class="logo-badge">v=44000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -793,6 +796,163 @@
 
 
 
+    <!-- Dual Channel Function / Signal Generator Modal (FG1 & FG2) -->
+    <div id="fgModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 780px;">
+            <div class="modal-header" style="border-bottom: 2px solid #f59e0b;">
+                <h3 style="color: #fbbf24;">📡 듀얼 신호발생기 (Dual Function Generator — FG1 / FG2)</h3>
+                <button id="btnCloseFGModal" class="btn">✖</button>
+            </div>
+            <div style="padding: 14px; color: #f8fafc;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+
+                    <!-- FG1 Channel Card (Amber/Orange) -->
+                    <div style="background: #0f172a; border: 1px solid #f59e0b; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">
+                            <span style="color: #fbbf24; font-weight: bold; font-size: 13px;">🟠 FG1 (채널 1 출력)</span>
+                            <button id="fg1ToggleBtn" class="btn" style="padding: 3px 10px; font-size: 11px; font-weight: bold; background: #16a34a; color: #fff;">🟢 ON</button>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">파형:</label>
+                            <select id="fg1Waveform" class="select-input" style="flex: 1; padding: 4px 6px; font-size: 12px;">
+                                <option value="SINE" selected>∿ 정현파 (Sine)</option>
+                                <option value="SQUARE">⊓ 구형파 (Square)</option>
+                                <option value="TRIANGLE">△ 삼각파 (Triangle)</option>
+                                <option value="SAWTOOTH">⩘ 톱니파 (Sawtooth)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="width: 68px; color: #94a3b8;">주파수(Hz):</label>
+                                <input type="number" id="fg1Freq" value="1000" min="1" max="50000" step="10" style="flex: 1; padding: 4px 6px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                                <span style="color: #94a3b8; font-size: 11px;">Hz</span>
+                            </div>
+                            <div style="display: flex; gap: 4px; padding-left: 74px;">
+                                <button class="btn fg-freq-preset" data-ch="fg1" data-val="100" style="padding: 2px 5px; font-size: 10px;">100Hz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg1" data-val="500" style="padding: 2px 5px; font-size: 10px;">500Hz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg1" data-val="1000" style="padding: 2px 5px; font-size: 10px;">1kHz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg1" data-val="5000" style="padding: 2px 5px; font-size: 10px;">5kHz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg1" data-val="10000" style="padding: 2px 5px; font-size: 10px;">10kHz</button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">진폭(Vpp):</label>
+                            <input type="range" id="fg1VppRange" min="0.1" max="24" step="0.1" value="5.0" style="flex: 1;">
+                            <input type="number" id="fg1Vpp" value="5.0" min="0" max="24" step="0.1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">V</span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">DC 오프셋:</label>
+                            <input type="range" id="fg1OffsetRange" min="-12" max="12" step="0.1" value="0.0" style="flex: 1;">
+                            <input type="number" id="fg1Offset" value="0.0" min="-12" max="12" step="0.1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">V</span>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="width: 68px; color: #94a3b8;">위상(Phase):</label>
+                                <input type="range" id="fg1PhaseRange" min="0" max="360" step="1" value="0" style="flex: 1;">
+                                <input type="number" id="fg1Phase" value="0" min="0" max="360" step="1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                                <span style="color: #94a3b8; font-size: 11px;">°</span>
+                            </div>
+                            <div style="display: flex; gap: 4px; padding-left: 74px;">
+                                <button class="btn fg-phase-preset" data-ch="fg1" data-val="0" style="padding: 2px 6px; font-size: 10px;">0°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg1" data-val="90" style="padding: 2px 6px; font-size: 10px;">90°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg1" data-val="180" style="padding: 2px 6px; font-size: 10px;">180°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg1" data-val="270" style="padding: 2px 6px; font-size: 10px;">270°</button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">듀티(구형파):</label>
+                            <input type="range" id="fg1DutyRange" min="5" max="95" step="1" value="50" style="flex: 1;">
+                            <input type="number" id="fg1Duty" value="50" min="5" max="95" step="1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">%</span>
+                        </div>
+                    </div>
+
+                    <!-- FG2 Channel Card (Purple) -->
+                    <div style="background: #0f172a; border: 1px solid #a855f7; border-left: 4px solid #a855f7; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 6px;">
+                            <span style="color: #c084fc; font-weight: bold; font-size: 13px;">🟣 FG2 (채널 2 출력)</span>
+                            <button id="fg2ToggleBtn" class="btn" style="padding: 3px 10px; font-size: 11px; font-weight: bold; background: #16a34a; color: #fff;">🟢 ON</button>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">파형:</label>
+                            <select id="fg2Waveform" class="select-input" style="flex: 1; padding: 4px 6px; font-size: 12px;">
+                                <option value="SINE" selected>∿ 정현파 (Sine)</option>
+                                <option value="SQUARE">⊓ 구형파 (Square)</option>
+                                <option value="TRIANGLE">△ 삼각파 (Triangle)</option>
+                                <option value="SAWTOOTH">⩘ 톱니파 (Sawtooth)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="width: 68px; color: #94a3b8;">주파수(Hz):</label>
+                                <input type="number" id="fg2Freq" value="1000" min="1" max="50000" step="10" style="flex: 1; padding: 4px 6px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                                <span style="color: #94a3b8; font-size: 11px;">Hz</span>
+                            </div>
+                            <div style="display: flex; gap: 4px; padding-left: 74px;">
+                                <button class="btn fg-freq-preset" data-ch="fg2" data-val="100" style="padding: 2px 5px; font-size: 10px;">100Hz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg2" data-val="500" style="padding: 2px 5px; font-size: 10px;">500Hz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg2" data-val="1000" style="padding: 2px 5px; font-size: 10px;">1kHz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg2" data-val="5000" style="padding: 2px 5px; font-size: 10px;">5kHz</button>
+                                <button class="btn fg-freq-preset" data-ch="fg2" data-val="10000" style="padding: 2px 5px; font-size: 10px;">10kHz</button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">진폭(Vpp):</label>
+                            <input type="range" id="fg2VppRange" min="0.1" max="24" step="0.1" value="5.0" style="flex: 1;">
+                            <input type="number" id="fg2Vpp" value="5.0" min="0" max="24" step="0.1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">V</span>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">DC 오프셋:</label>
+                            <input type="range" id="fg2OffsetRange" min="-12" max="12" step="0.1" value="0.0" style="flex: 1;">
+                            <input type="number" id="fg2Offset" value="0.0" min="-12" max="12" step="0.1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">V</span>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label style="width: 68px; color: #94a3b8;">위상(Phase):</label>
+                                <input type="range" id="fg2PhaseRange" min="0" max="360" step="1" value="90" style="flex: 1;">
+                                <input type="number" id="fg2Phase" value="90" min="0" max="360" step="1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                                <span style="color: #94a3b8; font-size: 11px;">°</span>
+                            </div>
+                            <div style="display: flex; gap: 4px; padding-left: 74px;">
+                                <button class="btn fg-phase-preset" data-ch="fg2" data-val="0" style="padding: 2px 6px; font-size: 10px;">0°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg2" data-val="90" style="padding: 2px 6px; font-size: 10px;">90°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg2" data-val="180" style="padding: 2px 6px; font-size: 10px;">180°</button>
+                                <button class="btn fg-phase-preset" data-ch="fg2" data-val="270" style="padding: 2px 6px; font-size: 10px;">270°</button>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                            <label style="width: 68px; color: #94a3b8;">듀티(구형파):</label>
+                            <input type="range" id="fg2DutyRange" min="5" max="95" step="1" value="50" style="flex: 1;">
+                            <input type="number" id="fg2Duty" value="50" min="5" max="95" step="1" style="width: 54px; padding: 3px 4px; background: #1e293b; color: #f8fafc; border: 1px solid #334155; border-radius: 4px; font-size: 12px;">
+                            <span style="color: #94a3b8; font-size: 11px;">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; padding: 8px 10px; background: #0b1120; border: 1px solid #1e293b; border-radius: 6px; font-size: 11.5px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center;">
+                    <span>💡 브레드보드 상단 <strong style="color:#fbbf24;">FG1</strong> / <strong style="color:#c084fc;">FG2</strong> 단자에서 점퍼선으로 원하는 핀에 연결하세요 (기준 접지는 공통 <strong>GND</strong>).</span>
+                    <button id="btnFGPhaseSync" class="btn" style="padding: 3px 8px; font-size: 11px; background: #334155; color: #f8fafc; white-space: nowrap;">🔄 위상 동기 리셋</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Qualification Exam Answer Sheet Grading Modal -->
     <div id="examModal" class="modal hidden">
         <div class="modal-content" style="max-width: 650px;">
@@ -822,6 +982,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=43000"></script>
+    <script src="./bundle.js?v=44000"></script>
 </body>
 </html>

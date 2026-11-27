@@ -32,7 +32,9 @@ class BreadboardGrid {
             }
         }
 
-        // 2. Power Supply Binding Posts (Va, Vb, Vc, GND)
+        // 2. Power Supply & Dual Function Generator Binding Posts (FG1, FG2, Va, Vb, Vc, GND)
+        this.nodeMap.set('BINDING_FG1', 'NODE_BINDING_FG1');
+        this.nodeMap.set('BINDING_FG2', 'NODE_BINDING_FG2');
         this.nodeMap.set('BINDING_Va', 'NODE_BINDING_VA');
         this.nodeMap.set('BINDING_Vb', 'NODE_BINDING_VB');
         this.nodeMap.set('BINDING_Vc', 'NODE_BINDING_VC');
@@ -98,9 +100,11 @@ class MNASolver {
         this.lastVoltages = new Map();
         this.lastCurrents = new Map();
         this.usePresetBehavioralModels = false;
+        this.simTime = 0;
     }
 
     solveStep(components, dt = 0.0001) {
+        this.simTime = (this.simTime || 0) + dt;
         const nodeSet = new Set();
         components.forEach(c => {
             const nA = this.grid.getNodeId(c.pinA);
@@ -242,6 +246,11 @@ class MNASolver {
             } else if (comp.type === 'VDC') {
                 const gSrc = 1000.0;
                 const vVal = comp.voltage !== undefined ? comp.voltage : 5.0;
+                addConductance(nA, nB, gSrc);
+                addCurrentSource(nA, nB, vVal * gSrc);
+            } else if (comp.type === 'FG') {
+                const gSrc = 1000.0;
+                const vVal = typeof comp.getVoltageAt === 'function' ? comp.getVoltageAt(this.simTime || 0) : 0.0;
                 addConductance(nA, nB, gSrc);
                 addCurrentSource(nA, nB, vVal * gSrc);
             } else if (comp.type === 'DIODE') {
@@ -2007,6 +2016,48 @@ class DCSource {
     }
 }
 
+class SignalGeneratorSource {
+    constructor(id, pinA, pinB, config = {}) {
+        this.id = id;
+        this.type = 'FG';
+        this.pinA = pinA;
+        this.pinB = pinB;
+        this.enabled = config.enabled !== undefined ? !!config.enabled : true;
+        this.waveform = config.waveform || 'SINE'; // 'SINE', 'SQUARE', 'TRIANGLE', 'SAWTOOTH'
+        this.frequency = config.frequency !== undefined ? Number(config.frequency) : 1000.0;
+        this.vpp = config.vpp !== undefined ? Number(config.vpp) : 5.0;
+        this.offset = config.offset !== undefined ? Number(config.offset) : 0.0;
+        this.phaseDeg = config.phaseDeg !== undefined ? Number(config.phaseDeg) : 0.0;
+        this.duty = config.duty !== undefined ? Number(config.duty) : 50.0; // percentage 5..95
+        this.isConfigured = true;
+    }
+
+    getVoltageAt(t) {
+        if (!this.enabled) return 0.0;
+        const amp = (this.vpp || 0.0) * 0.5;
+        const off = this.offset || 0.0;
+        const freq = Math.max(0.1, this.frequency || 1000.0);
+        const phaseRad = ((this.phaseDeg || 0.0) * Math.PI) / 180.0;
+        const cycRaw = t * freq + (this.phaseDeg || 0.0) / 360.0;
+        const cyc = ((cycRaw % 1.0) + 1.0) % 1.0;
+
+        if (this.waveform === 'SQUARE') {
+            const dutyFrac = Math.max(0.05, Math.min(0.95, (this.duty || 50.0) / 100.0));
+            return off + (cyc < dutyFrac ? amp : -amp);
+        } else if (this.waveform === 'TRIANGLE') {
+            let norm;
+            if (cyc < 0.25) norm = cyc * 4.0;
+            else if (cyc < 0.75) norm = 2.0 - cyc * 4.0;
+            else norm = cyc * 4.0 - 4.0;
+            return off + amp * norm;
+        } else if (this.waveform === 'SAWTOOTH') {
+            return off + amp * (2.0 * cyc - 1.0);
+        }
+        // Default: SINE
+        return off + amp * Math.sin(2.0 * Math.PI * freq * t + phaseRad);
+    }
+}
+
 class SwitchComponent {
     constructor(id, pinA, pinB, isOpen = false) {
         this.id = id;
@@ -2585,6 +2636,8 @@ class BreadboardCanvas {
         this.voltageVa = 12.0;
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
+        this.fg1 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 0, duty: 50 };
+        this.fg2 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 90, duty: 50 };
 
         this.selectedComponent = null;
         this.placementMode = 'SELECT'; // 'SELECT', 'WIRE', 'R', 'C', 'VDC', 'SWITCH', 'LED', 'DIODE', 'ZENER', 'POT', 'IC', 'TRANSISTOR_CATALOG', 'PROBE_A', 'PROBE_B', 'PROBE_C', 'PROBE_D'
@@ -2826,6 +2879,15 @@ class BreadboardCanvas {
                 } else {
                     this.showToast(`🔍 선택됨: [${foundComp.type}] ${foundComp.id}`);
                 }
+            } else {
+                // Single-click on FG1 / FG2 binding post in SELECT mode opens the Signal Generator modal
+                for (const fgKey of ['BINDING_FG1', 'BINDING_FG2']) {
+                    const pos = this.getPinPos(fgKey);
+                    if (Math.hypot(pos.x - worldX, pos.y - worldY) < 22) {
+                        if (this.onBindingPostDblClicked) this.onBindingPostDblClicked(fgKey);
+                        return;
+                    }
+                }
             }
             if (this.onNeedsRender) this.onNeedsRender();
         });
@@ -2834,8 +2896,8 @@ class BreadboardCanvas {
         this.canvas.addEventListener('dblclick', (e) => {
             const { worldX, worldY } = this.getMouseWorldPos(e);
 
-            // Check Binding Posts (Radius 30px tolerance at y = 72)
-            const bindingPosts = ['BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
+            // Check Binding Posts (Radius 30px tolerance at y = 48)
+            const bindingPosts = ['BINDING_FG1', 'BINDING_FG2', 'BINDING_Va', 'BINDING_Vb', 'BINDING_Vc', 'BINDING_GND'];
             for (const bpKey of bindingPosts) {
                 const pos = this.getPinPos(bpKey);
                 if (Math.hypot(pos.x - worldX, pos.y - worldY) < 30) {
@@ -2942,6 +3004,8 @@ class BreadboardCanvas {
         };
 
         // 1. Binding Posts (Centered exactly at y = 48 matching render())
+        setCoord('BINDING_FG1', 355, 48);
+        setCoord('BINDING_FG2', 435, 48);
         setCoord('BINDING_Va', 520, 48);
         setCoord('BINDING_Vb', 590, 48);
         setCoord('BINDING_Vc', 660, 48);
@@ -3088,9 +3152,67 @@ class BreadboardCanvas {
         this.ctx.fillStyle = '#f8fafc';
         this.ctx.font = 'bold 16px sans-serif';
         this.ctx.textAlign = 'left';
-        this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 36);
+        this.ctx.fillText('COMPANY-JK WORKBENCH', 30, 42);
+        this.ctx.fillStyle = '#94a3b8';
+        this.ctx.font = '10px sans-serif';
+        this.ctx.fillText('FG1/FG2 클릭 → 신호발생기 설정', 30, 62);
 
-        // 3. 4 Heavy Metal Binding Posts with Dynamic Voltage Values
+        // Divider between Dual Signal Generator & DC Power Supply
+        this.ctx.strokeStyle = '#334155';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(478, 20);
+        this.ctx.lineTo(478, 84);
+        this.ctx.stroke();
+
+        // Group Section Captions
+        this.ctx.fillStyle = '#fbbf24';
+        this.ctx.font = 'bold 9px monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('SIGNAL GEN (AC)', 395, 24);
+        this.ctx.fillStyle = '#38bdf8';
+        this.ctx.fillText('DC POWER SUPPLY', 625, 24);
+
+        const formatFgReadout = (fg) => {
+            if (!fg || !fg.enabled) return 'OFF';
+            const f = fg.frequency || 1000;
+            const fStr = f >= 1000 ? `${(f / 1000).toFixed(f % 1000 === 0 ? 0 : 1)}k` : `${Math.round(f)}Hz`;
+            const wSym = fg.waveform === 'SQUARE' ? '⊓' : (fg.waveform === 'TRIANGLE' ? '△' : (fg.waveform === 'SAWTOOTH' ? '⩘' : '∿'));
+            return `${wSym}${fStr} ${(fg.vpp || 0).toFixed(0)}V`;
+        };
+
+        // 3. Dual Signal Generator + 4 DC Power Binding Posts
+        const fgPosts = [
+            { id: 'BINDING_FG1', label: 'FG1', color: (this.fg1 && this.fg1.enabled) ? '#f59e0b' : '#475569', x: 355, y: 48, valText: formatFgReadout(this.fg1), enabled: !!(this.fg1 && this.fg1.enabled) },
+            { id: 'BINDING_FG2', label: 'FG2', color: (this.fg2 && this.fg2.enabled) ? '#a855f7' : '#475569', x: 435, y: 48, valText: formatFgReadout(this.fg2), enabled: !!(this.fg2 && this.fg2.enabled) }
+        ];
+        fgPosts.forEach(bp => {
+            this.ctx.save();
+            if (bp.enabled) {
+                this.ctx.shadowColor = bp.color;
+                this.ctx.shadowBlur = 8;
+            }
+            this.ctx.fillStyle = bp.color;
+            this.ctx.beginPath();
+            this.ctx.arc(bp.x, bp.y, 14, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#f8fafc';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            this.ctx.restore();
+
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 9px monospace';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(bp.label, bp.x, bp.y);
+            this.ctx.textBaseline = 'alphabetic';
+
+            this.ctx.fillStyle = bp.enabled ? '#fde68a' : '#64748b';
+            this.ctx.font = 'bold 9.5px monospace';
+            this.ctx.fillText(bp.valText, bp.x, 76);
+        });
+
         const bindingPosts = [
             { id: 'BINDING_Va', label: 'Va', color: '#ef4444', x: 520, y: 48, valText: `${(this.voltageVa || 12.0) > 0 ? '+' : ''}${(this.voltageVa || 12.0).toFixed(1)}V` },
             { id: 'BINDING_Vb', label: 'Vb', color: '#10b981', x: 590, y: 48, valText: `${(this.voltageVb || 0.0) > 0 ? '+' : ''}${(this.voltageVb || 0.0).toFixed(1)}V` },
@@ -3110,7 +3232,7 @@ class BreadboardCanvas {
             this.ctx.fillStyle = '#facc15';
             this.ctx.font = 'bold 10px monospace';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(bp.valText, bp.x, 74);
+            this.ctx.fillText(bp.valText, bp.x, 76);
         });
 
         // 4. Render Top 4 Horizontal Bus Lines Panel
@@ -5108,7 +5230,7 @@ class AICopilot {
 
 
 class CircuitSerializer {
-    static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
+    static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit', sigGen = null) {
         const serializedComps = components.map(comp => {
             const base = {
                 id: comp.id,
@@ -5156,14 +5278,14 @@ class CircuitSerializer {
             return base;
         });
 
-        return {
+        const out = {
             version: '1.0',
             savedAt: new Date().toISOString(),
             title: title,
             power: {
-                voltageVa: power.voltageVa || 12.0,
-                voltageVb: power.voltageVb || 0.0,
-                voltageVc: power.voltageVc || -12.0
+                voltageVa: power.voltageVa !== undefined ? power.voltageVa : 12.0,
+                voltageVb: power.voltageVb !== undefined ? power.voltageVb : 0.0,
+                voltageVc: power.voltageVc !== undefined ? power.voltageVc : -12.0
             },
             probes: {
                 probeAPin: probes.probeAPin || null,
@@ -5173,6 +5295,10 @@ class CircuitSerializer {
             },
             components: serializedComps
         };
+        if (sigGen) {
+            out.sigGen = sigGen;
+        }
+        return out;
     }
 
     static deserialize(data) {
@@ -5264,6 +5390,7 @@ class CircuitSerializer {
         return {
             title: data.title || '불러온 회로',
             power: data.power || { voltageVa: 12.0, voltageVb: 0.0, voltageVc: -12.0 },
+            sigGen: data.sigGen || null,
             probes: {
                 probeAPin: probeA,
                 probeBPin: (data.probes && data.probes.probeBPin) || 'B1_F16',
@@ -5344,6 +5471,14 @@ class AppController {
         this.voltageVb = 0.0;
         this.voltageVc = -12.0;
 
+        // Dual Function / Signal Generator State (FG1 & FG2)
+        this.fg1 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 0, duty: 50 };
+        this.fg2 = { enabled: true, waveform: 'SINE', frequency: 1000, vpp: 5.0, offset: 0.0, phaseDeg: 90, duty: 50 };
+        if (this.breadboardCanvas) {
+            this.breadboardCanvas.fg1 = this.fg1;
+            this.breadboardCanvas.fg2 = this.fg2;
+        }
+
         // Selected Family Dropdown Values
         this.selectedResistorType = 'R';
         this.selectedCapacitorType = 'C_MYLAR';
@@ -5361,6 +5496,7 @@ class AppController {
         this.initPlacementEngine();
         this.initEmptyBoard(); // Start with a Clean Empty Breadboard by Default
         this.setupUIEventListeners();
+        this.setupSignalGeneratorUI();
         this.setupSaveLoadHandlers();
         this.initFeedbackBoard();
         this.startSimulation(); // Auto-start live 60 FPS simulation on page load!
@@ -5410,9 +5546,12 @@ class AppController {
             let labelMsg = '';
 
             if (toolType === 'WIRE') {
+                const isFg1 = pinA === 'BINDING_FG1' || pinB === 'BINDING_FG1';
+                const isFg2 = pinA === 'BINDING_FG2' || pinB === 'BINDING_FG2';
                 const isPower = pinA.includes('VCC') || pinB.includes('VCC') || pinA.startsWith('BINDING_') || pinB.startsWith('BINDING_');
-                newComp = new Wire(id, pinA, pinB, isPower ? '#ef4444' : '#0984e3');
-                labelMsg = '점퍼 와이어';
+                const wireColor = isFg1 ? '#f59e0b' : (isFg2 ? '#a855f7' : (isPower ? '#ef4444' : '#0984e3'));
+                newComp = new Wire(id, pinA, pinB, wireColor);
+                labelMsg = isFg1 ? 'FG1 신호선' : (isFg2 ? 'FG2 신호선' : '점퍼 와이어');
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
                 const resType = this.selectedResistorType || 'R';
                 if (resType === 'POT_1M') {
@@ -5593,6 +5732,8 @@ class AppController {
                     this.breadboardCanvas.toastMsg = `🟢 Vb 전압이 [${parsed > 0 ? '+' : ''}${parsed}V]로 설정되었습니다!`;
                     this.renderAll();
                 }
+            } else if (bindingKey === 'BINDING_FG1' || bindingKey === 'BINDING_FG2') {
+                this.openFGModal();
             } else if (bindingKey === 'BINDING_Vc') {
                 const valStr = prompt(`🔵 Vc 바인딩 포스트 전압(V)을 입력하세요:`, this.voltageVc);
                 const parsed = parseFloat(valStr);
@@ -5856,6 +5997,7 @@ class AppController {
         if (this.solver) {
             this.solver.usePresetBehavioralModels = false;
             this.solver.lastVoltages = new Map();
+            this.solver.simTime = 0;
         }
         this.probeAPin = null;
         this.probeBPin = null;
@@ -5877,12 +6019,18 @@ class AppController {
         this.renderAll();
     }
 
-    warmupSimulationBuffer(steps = 60000) {
-        const bindingSources = [
+    getBindingSources() {
+        return [
             new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
             new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
-            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
+            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true),
+            new SignalGeneratorSource('SRC_FG1', 'BINDING_FG1', 'BINDING_GND', this.fg1),
+            new SignalGeneratorSource('SRC_FG2', 'BINDING_FG2', 'BINDING_GND', this.fg2)
         ];
+    }
+
+    warmupSimulationBuffer(steps = 60000) {
+        const bindingSources = this.getBindingSources();
         const activeComps = [...this.components, ...bindingSources];
 
         this.components.forEach(c => {
@@ -6435,8 +6583,9 @@ class AppController {
 
                 const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
                 const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+                const sigGen = { fg1: { ...this.fg1 }, fg2: { ...this.fg2 } };
 
-                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title, sigGen);
                 const filename = `${title.replace(/[^a-zA-Z0-9가-힣_-]/g, '_')}.json`;
                 CircuitSerializer.saveToFile(dataObj, filename);
 
@@ -6454,8 +6603,9 @@ class AppController {
 
                 const power = { voltageVa: this.voltageVa, voltageVb: this.voltageVb, voltageVc: this.voltageVc };
                 const probes = { probeAPin: this.probeAPin, probeBPin: this.probeBPin, probeCPin: this.probeCPin, probeDPin: this.probeDPin };
+                const sigGen = { fg1: { ...this.fg1 }, fg2: { ...this.fg2 } };
 
-                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title);
+                const dataObj = CircuitSerializer.serialize(this.components, power, probes, title, sigGen);
                 CircuitSerializer.saveToLocalStorage(dataObj);
 
                 saveModal.classList.add('hidden');
@@ -6529,6 +6679,11 @@ class AppController {
             this.breadboardCanvas.voltageVa = this.voltageVa;
             this.breadboardCanvas.voltageVb = this.voltageVb;
             this.breadboardCanvas.voltageVc = this.voltageVc;
+        }
+        if (restored.sigGen) {
+            if (restored.sigGen.fg1) Object.assign(this.fg1, restored.sigGen.fg1);
+            if (restored.sigGen.fg2) Object.assign(this.fg2, restored.sigGen.fg2);
+            this.syncFGModalUI();
         }
 
         // Auto-Probe Assignment Safety: Ensure Probe A is anchored to IC output if missing
@@ -7412,6 +7567,141 @@ class AppController {
         }
     }
 
+    openFGModal() {
+        this.syncFGModalUI();
+        const modal = document.getElementById('fgModal');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    syncFGModalUI() {
+        ['fg1', 'fg2'].forEach(ch => {
+            const cfg = this[ch];
+            if (!cfg) return;
+            const btnToggle = document.getElementById(`${ch}ToggleBtn`);
+            if (btnToggle) {
+                btnToggle.textContent = cfg.enabled ? '🟢 ON' : '⚫ OFF';
+                btnToggle.style.background = cfg.enabled ? '#16a34a' : '#475569';
+            }
+            const wf = document.getElementById(`${ch}Waveform`);
+            if (wf) wf.value = cfg.waveform || 'SINE';
+            const freq = document.getElementById(`${ch}Freq`);
+            if (freq) freq.value = cfg.frequency;
+            const vpp = document.getElementById(`${ch}Vpp`);
+            const vppR = document.getElementById(`${ch}VppRange`);
+            if (vpp) vpp.value = cfg.vpp;
+            if (vppR) vppR.value = cfg.vpp;
+            const off = document.getElementById(`${ch}Offset`);
+            const offR = document.getElementById(`${ch}OffsetRange`);
+            if (off) off.value = cfg.offset;
+            if (offR) offR.value = cfg.offset;
+            const ph = document.getElementById(`${ch}Phase`);
+            const phR = document.getElementById(`${ch}PhaseRange`);
+            if (ph) ph.value = cfg.phaseDeg;
+            if (phR) phR.value = cfg.phaseDeg;
+            const dtEl = document.getElementById(`${ch}Duty`);
+            const dtR = document.getElementById(`${ch}DutyRange`);
+            if (dtEl) dtEl.value = cfg.duty;
+            if (dtR) dtR.value = cfg.duty;
+        });
+    }
+
+    setupSignalGeneratorUI() {
+        const btnOpen = document.getElementById('btnOpenFGModal');
+        const btnClose = document.getElementById('btnCloseFGModal');
+        const modal = document.getElementById('fgModal');
+
+        if (btnOpen) btnOpen.addEventListener('click', () => this.openFGModal());
+        if (btnClose && modal) btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+
+        const bindChannel = (ch) => {
+            const cfg = this[ch];
+            const btnToggle = document.getElementById(`${ch}ToggleBtn`);
+            if (btnToggle) {
+                btnToggle.addEventListener('click', () => {
+                    cfg.enabled = !cfg.enabled;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                });
+            }
+            const wf = document.getElementById(`${ch}Waveform`);
+            if (wf) {
+                wf.addEventListener('change', (e) => {
+                    cfg.waveform = e.target.value;
+                    this.renderAll();
+                });
+            }
+            const freq = document.getElementById(`${ch}Freq`);
+            if (freq) {
+                freq.addEventListener('input', (e) => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v) && v >= 0.1) {
+                        cfg.frequency = Math.min(50000, v);
+                        this.renderAll();
+                    }
+                });
+            }
+            const bindPair = (numId, rangeId, prop, minV, maxV) => {
+                const numEl = document.getElementById(numId);
+                const rngEl = document.getElementById(rangeId);
+                const apply = (raw) => {
+                    const v = parseFloat(raw);
+                    if (!isNaN(v)) {
+                        const clamped = Math.max(minV, Math.min(maxV, v));
+                        cfg[prop] = clamped;
+                        if (numEl && document.activeElement !== numEl) numEl.value = clamped;
+                        if (rngEl && document.activeElement !== rngEl) rngEl.value = clamped;
+                        this.renderAll();
+                    }
+                };
+                if (numEl) numEl.addEventListener('input', (e) => apply(e.target.value));
+                if (rngEl) rngEl.addEventListener('input', (e) => apply(e.target.value));
+            };
+            bindPair(`${ch}Vpp`, `${ch}VppRange`, 'vpp', 0, 24);
+            bindPair(`${ch}Offset`, `${ch}OffsetRange`, 'offset', -12, 12);
+            bindPair(`${ch}Phase`, `${ch}PhaseRange`, 'phaseDeg', 0, 360);
+            bindPair(`${ch}Duty`, `${ch}DutyRange`, 'duty', 5, 95);
+        };
+
+        bindChannel('fg1');
+        bindChannel('fg2');
+
+        document.querySelectorAll('.fg-freq-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const ch = btn.getAttribute('data-ch');
+                const val = parseFloat(btn.getAttribute('data-val'));
+                if (this[ch] && !isNaN(val)) {
+                    this[ch].frequency = val;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                }
+            });
+        });
+
+        document.querySelectorAll('.fg-phase-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const ch = btn.getAttribute('data-ch');
+                const val = parseFloat(btn.getAttribute('data-val'));
+                if (this[ch] && !isNaN(val)) {
+                    this[ch].phaseDeg = val;
+                    this.syncFGModalUI();
+                    this.renderAll();
+                }
+            });
+        });
+
+        const btnSync = document.getElementById('btnFGPhaseSync');
+        if (btnSync) {
+            btnSync.addEventListener('click', () => {
+                this.simTime = 0;
+                if (this.solver) this.solver.simTime = 0;
+                this.oscilloscopeCanvas.resetBuffer();
+                this.warmupSimulationBuffer(1200);
+                this.breadboardCanvas.toastMsg = '🔄 FG1 / FG2 위상 동기가 리셋되었습니다!';
+                this.renderAll();
+            });
+        }
+    }
+
     loadUserPreset(presetKey) {
         const preset = USER_PRESETS[presetKey];
         if (!preset || !preset.data) return;
@@ -7465,11 +7755,7 @@ class AppController {
         let vC = 0;
         let vD = 0;
 
-        const bindingSources = [
-            new DCSource('SRC_VA', 'BINDING_Va', 'BINDING_GND', this.voltageVa, true),
-            new DCSource('SRC_VB', 'BINDING_Vb', 'BINDING_GND', this.voltageVb, true),
-            new DCSource('SRC_VC', 'BINDING_Vc', 'BINDING_GND', this.voltageVc, true)
-        ];
+        const bindingSources = this.getBindingSources();
         const activeComps = [...this.components, ...bindingSources];
 
         for (let i = 0; i < stepsPerFrame; i++) {

@@ -7,7 +7,7 @@
 import { Resistor, Capacitor, DCSource, SwitchComponent, LEDComponent, Wire, Diode, ZenerDiode, Potentiometer, DIPChip, BJTTransistor, FNDComponent, IC_CATALOG } from './ComponentModels.js?v=22000';
 
 export class CircuitSerializer {
-    static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit') {
+    static serialize(components, power = {}, probes = {}, title = 'My Breadboard Circuit', sigGen = null) {
         const serializedComps = components.map(comp => {
             const base = {
                 id: comp.id,
@@ -55,14 +55,14 @@ export class CircuitSerializer {
             return base;
         });
 
-        return {
+        const out = {
             version: '1.0',
             savedAt: new Date().toISOString(),
             title: title,
             power: {
-                voltageVa: power.voltageVa || 12.0,
-                voltageVb: power.voltageVb || 0.0,
-                voltageVc: power.voltageVc || -12.0
+                voltageVa: power.voltageVa !== undefined ? power.voltageVa : 12.0,
+                voltageVb: power.voltageVb !== undefined ? power.voltageVb : 0.0,
+                voltageVc: power.voltageVc !== undefined ? power.voltageVc : -12.0
             },
             probes: {
                 probeAPin: probes.probeAPin || null,
@@ -72,6 +72,10 @@ export class CircuitSerializer {
             },
             components: serializedComps
         };
+        if (sigGen) {
+            out.sigGen = sigGen;
+        }
+        return out;
     }
 
     static deserialize(data) {
@@ -163,6 +167,7 @@ export class CircuitSerializer {
         return {
             title: data.title || '불러온 회로',
             power: data.power || { voltageVa: 12.0, voltageVb: 0.0, voltageVc: -12.0 },
+            sigGen: data.sigGen || null,
             probes: {
                 probeAPin: probeA,
                 probeBPin: (data.probes && data.probes.probeBPin) || 'B1_F16',
