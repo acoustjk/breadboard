@@ -138,6 +138,7 @@ class MNASolver {
         const Z = new Float64Array(N);
         const physicalOpAmps = [];
         const nonlinearDevices = [];
+        const logicGates = [];
 
         // Add default 1e-9 S (1GΩ) SPICE GMIN pull-down leakage to GND for all non-power-rail active nodes
         // Keeps floating nodes cleanly at 0V without loading down high-impedance (150kΩ–1MΩ) RC timing networks!
@@ -174,6 +175,52 @@ class MNASolver {
             const vDrive = isHigh ? vHigh : vLow;
             if (vDrive !== 0.0) {
                 addCurrentSource(n, '0', vDrive * gDriver);
+            }
+        };
+
+        // Helper: Register combinational CMOS/TTL logic gates into implicit Round-Robin Gauss-Seidel solver
+        // Supports 2-gate RC relaxation oscillators, SR latches, and multi-gate cascades with zero 1-step phase lockstep!
+        const registerLogicGates = (comp, vccPin, gndPin, op, gateDefs) => {
+            const readPinV = (pKey, fb) => {
+                const n = getNode(pKey);
+                if (!n) return fb;
+                if (n === '0') return 0.0;
+                return (this.lastVoltages && this.lastVoltages.has(n)) ? this.lastVoltages.get(n) : fb;
+            };
+            let vHigh = 5.0, vLow = 0.0, vTh = 2.5, isPowered = true;
+            if (this.usePresetBehavioralModels !== true) {
+                const vVdd = readPinV(vccPin, 0.0);
+                const vGnd = readPinV(gndPin, 0.0);
+                isPowered = (vVdd - vGnd) > 2.0;
+                vHigh = isPowered ? vVdd : 0.0;
+                vLow = isPowered ? vGnd : 0.0;
+                vTh = isPowered ? ((vVdd + vGnd) * 0.5) : 2.5;
+            }
+            if (!comp._gateStates || comp._gateStates.length !== gateDefs.length) {
+                comp._gateStates = new Array(gateDefs.length).fill(false);
+            }
+            for (let gi = 0; gi < gateDefs.length; gi++) {
+                const gd = gateDefs[gi];
+                const nOut = getNode(gd.out);
+                const iOut = nOut ? nodeIndexMap.get(nOut) : -1;
+                if (iOut === undefined || iOut < 0) continue;
+                const inputIdxs = gd.ins.map(pK => {
+                    const n = getNode(pK);
+                    const idx = n ? nodeIndexMap.get(n) : -1;
+                    return idx !== undefined ? idx : -1;
+                });
+                logicGates.push({
+                    comp,
+                    gi,
+                    op,
+                    inputs: inputIdxs,
+                    iOut,
+                    vHigh,
+                    vLow,
+                    vTh,
+                    isPowered,
+                    gOut: 100.0
+                });
             }
         };
 
@@ -580,36 +627,26 @@ class MNASolver {
                     });
 
                 } else if (icType === 'CD4049') {
-                    // CD4049 (DIP-16) Hex Inverting Buffer
-                    const pairs = [
-                        { in: pins.pin3, out: pins.pin2 },
-                        { in: pins.pin5, out: pins.pin4 },
-                        { in: pins.pin7, out: pins.pin6 },
-                        { in: pins.pin9, out: pins.pin10 },
-                        { in: pins.pin11, out: pins.pin12 },
-                        { in: pins.pin14, out: pins.pin15 }
-                    ];
-                    pairs.forEach(pair => {
-                        const nIn = getNode(pair.in);
-                        const vIn = (nIn && this.lastVoltages) ? (this.lastVoltages.get(nIn) || 0) : 0;
-                        driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
-                    });
+                    // CD4049 (DIP-16) Hex Inverting Buffer (pin1=VDD, pin8=VSS)
+                    registerLogicGates(comp, pins.pin1, pins.pin8, 'NOT', [
+                        { ins: [pins.pin3], out: pins.pin2 },
+                        { ins: [pins.pin5], out: pins.pin4 },
+                        { ins: [pins.pin7], out: pins.pin6 },
+                        { ins: [pins.pin9], out: pins.pin10 },
+                        { ins: [pins.pin11], out: pins.pin12 },
+                        { ins: [pins.pin14], out: pins.pin15 }
+                    ]);
 
                 } else if (icType === 'CD4069' || icType === '74HC04') {
-                    // CD4069 / 74HC04 (DIP-14) Hex Inverter
-                    const pairs = [
-                        { in: pins.pin1, out: pins.pin2 },
-                        { in: pins.pin3, out: pins.pin4 },
-                        { in: pins.pin5, out: pins.pin6 },
-                        { in: pins.pin9, out: pins.pin8 },
-                        { in: pins.pin11, out: pins.pin10 },
-                        { in: pins.pin13, out: pins.pin12 }
-                    ];
-                    pairs.forEach(pair => {
-                        const nIn = getNode(pair.in);
-                        const vIn = (nIn && this.lastVoltages) ? (this.lastVoltages.get(nIn) || 0) : 0;
-                        driveDigitalPin(pair.out, vIn <= 2.5, 100.0);
-                    });
+                    // CD4069 / 74HC04 (DIP-14) Hex Inverter (pin14=VCC, pin7=GND)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'NOT', [
+                        { ins: [pins.pin1], out: pins.pin2 },
+                        { ins: [pins.pin3], out: pins.pin4 },
+                        { ins: [pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9], out: pins.pin8 },
+                        { ins: [pins.pin11], out: pins.pin10 },
+                        { ins: [pins.pin13], out: pins.pin12 }
+                    ]);
 
                 } else if (icType === 'CD4518') {
                     // CD4518 (DIP-16) Dual BCD Up Counter (Datasheet pinout: pin1=CLK1, pin2=EN1, pin7=RST1, pin8=VSS, pin9=CLK2, pin10=EN2, pin15=RST2, pin16=VDD)
@@ -829,48 +866,56 @@ class MNASolver {
 
                 } else if (icType === '74LS86' || icType === '74HC86') {
                     // Quad 2-Input Exclusive-OR Gate (DIP-14)
-                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
-                    const gates = [
-                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
-                        { inA: pins.pin4, inB: pins.pin5, out: pins.pin6 },
-                        { inA: pins.pin9, inB: pins.pin10, out: pins.pin8 },
-                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
-                    ];
-                    gates.forEach(g => {
-                        const hA = getV(g.inA) > 2.5;
-                        const hB = getV(g.inB) > 2.5;
-                        driveDigitalPin(g.out, hA !== hB, 100.0);
-                    });
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'XOR', [
+                        { ins: [pins.pin1, pins.pin2], out: pins.pin3 },
+                        { ins: [pins.pin4, pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9, pins.pin10], out: pins.pin8 },
+                        { ins: [pins.pin12, pins.pin13], out: pins.pin11 }
+                    ]);
 
                 } else if (icType === '74HC00' || icType === '7400' || icType === '74LS00') {
                     // Quad 2-Input NAND Gate (DIP-14)
-                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
-                    const gates = [
-                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
-                        { inA: pins.pin4, inB: pins.pin5, out: pins.pin6 },
-                        { inA: pins.pin9, inB: pins.pin10, out: pins.pin8 },
-                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
-                    ];
-                    gates.forEach(g => {
-                        const hA = getV(g.inA) > 2.5;
-                        const hB = getV(g.inB) > 2.5;
-                        driveDigitalPin(g.out, !(hA && hB), 100.0);
-                    });
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'NAND', [
+                        { ins: [pins.pin1, pins.pin2], out: pins.pin3 },
+                        { ins: [pins.pin4, pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9, pins.pin10], out: pins.pin8 },
+                        { ins: [pins.pin12, pins.pin13], out: pins.pin11 }
+                    ]);
+
+                } else if (icType === '74HC02' || icType === '7402' || icType === '74LS02') {
+                    // Quad 2-Input NOR Gate (DIP-14)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'NOR', [
+                        { ins: [pins.pin2, pins.pin3], out: pins.pin1 },
+                        { ins: [pins.pin5, pins.pin6], out: pins.pin4 },
+                        { ins: [pins.pin8, pins.pin9], out: pins.pin10 },
+                        { ins: [pins.pin11, pins.pin12], out: pins.pin13 }
+                    ]);
+
+                } else if (icType === '74HC08' || icType === '7408' || icType === '74LS08') {
+                    // Quad 2-Input AND Gate (DIP-14)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'AND', [
+                        { ins: [pins.pin1, pins.pin2], out: pins.pin3 },
+                        { ins: [pins.pin4, pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9, pins.pin10], out: pins.pin8 },
+                        { ins: [pins.pin12, pins.pin13], out: pins.pin11 }
+                    ]);
+
+                } else if (icType === '74HC32' || icType === '7432' || icType === '74LS32') {
+                    // Quad 2-Input OR Gate (DIP-14)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'OR', [
+                        { ins: [pins.pin1, pins.pin2], out: pins.pin3 },
+                        { ins: [pins.pin4, pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9, pins.pin10], out: pins.pin8 },
+                        { ins: [pins.pin12, pins.pin13], out: pins.pin11 }
+                    ]);
 
                 } else if (icType === '74LS10' || icType === '7410') {
                     // Triple 3-Input NAND Gate (DIP-14)
-                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
-                    const gates = [
-                        { inA: pins.pin1, inB: pins.pin2, inC: pins.pin13, out: pins.pin12 },
-                        { inA: pins.pin3, inB: pins.pin4, inC: pins.pin5,  out: pins.pin6 },
-                        { inA: pins.pin9, inB: pins.pin10, inC: pins.pin11, out: pins.pin8 }
-                    ];
-                    gates.forEach(g => {
-                        const hA = getV(g.inA) > 2.5;
-                        const hB = getV(g.inB) > 2.5;
-                        const hC = getV(g.inC) > 2.5;
-                        driveDigitalPin(g.out, !(hA && hB && hC), 100.0);
-                    });
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'NAND', [
+                        { ins: [pins.pin1, pins.pin2, pins.pin13], out: pins.pin12 },
+                        { ins: [pins.pin3, pins.pin4, pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9, pins.pin10, pins.pin11], out: pins.pin8 }
+                    ]);
 
                 } else if (icType === '74LS48' || icType === '7448' || icType === '74LS47' || icType === '7447') {
                     // BCD-to-7-Segment Decoder / Driver IC (DIP-16)
@@ -1012,18 +1057,12 @@ class MNASolver {
 
                 } else if (icType === 'CD4081') {
                     // Quad 2-Input AND Gate (DIP-14)
-                    const getV = p => { const n = getNode(p); return (n && this.lastVoltages) ? (this.lastVoltages.get(n) || 0) : 0; };
-                    const gates = [
-                        { inA: pins.pin1, inB: pins.pin2, out: pins.pin3 },
-                        { inA: pins.pin5, inB: pins.pin6, out: pins.pin4 },
-                        { inA: pins.pin8, inB: pins.pin9, out: pins.pin10 },
-                        { inA: pins.pin12, inB: pins.pin13, out: pins.pin11 }
-                    ];
-                    gates.forEach(g => {
-                        const hA = getV(g.inA) > 2.5;
-                        const hB = getV(g.inB) > 2.5;
-                        driveDigitalPin(g.out, hA && hB, 100.0);
-                    });
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'AND', [
+                        { ins: [pins.pin1, pins.pin2], out: pins.pin3 },
+                        { ins: [pins.pin5, pins.pin6], out: pins.pin4 },
+                        { ins: [pins.pin8, pins.pin9], out: pins.pin10 },
+                        { ins: [pins.pin12, pins.pin13], out: pins.pin11 }
+                    ]);
                 }
             }
         });
@@ -1080,16 +1119,17 @@ class MNASolver {
             });
         }
 
-        // 3. Solve Linear System A * V = Z (Priority Implicit Active-Set Iteration for Diodes, Zeners, BJTs & Physical Op-Amps)
+        // 3. Solve Linear System A * V = Z (Priority Implicit Active-Set Iteration for Diodes, Zeners, BJTs, Logic Gates & Physical Op-Amps)
         let V;
-        if (physicalOpAmps.length === 0 && nonlinearDevices.length === 0) {
-            V = this.gaussianSolve(A, Z, N, null, null);
+        if (physicalOpAmps.length === 0 && nonlinearDevices.length === 0 && logicGates.length === 0) {
+            V = this.gaussianSolve(A, Z, N, null, null, null);
         } else {
             const triedLinear = new Array(physicalOpAmps.length).fill(false);
             const leftFromSat = new Array(physicalOpAmps.length).fill(0);
+            let gateStartIdx = 0;
 
-            for (let iter = 0; iter < 10; iter++) {
-                V = this.gaussianSolve(A, Z, N, physicalOpAmps, nonlinearDevices);
+            for (let iter = 0; iter < 12; iter++) {
+                V = this.gaussianSolve(A, Z, N, physicalOpAmps, nonlinearDevices, logicGates);
 
                 // Phase A: Settle nonlinear diodes / zeners / BJTs first (eliminates 1-step-delay clamp spikes!)
                 let nlChanged = false;
@@ -1154,7 +1194,65 @@ class MNASolver {
                     continue;
                 }
 
-                // Phase B: All nonlinear clamps are consistent; now update physical Op-Amp saturation states
+                // Phase B: Round-Robin Gauss-Seidel combinational logic gate propagation
+                // Breaks synchronous lockstep in 2-gate CMOS RC oscillators (74HC00/02/04/CD4049/4069) & SR latches!
+                let gateChanged = false;
+                const nGates = logicGates.length;
+                for (let off = 0; off < nGates; off++) {
+                    const idx = (gateStartIdx + off) % nGates;
+                    const g = logicGates[idx];
+                    let outVal = false;
+                    if (g.isPowered) {
+                        const ins = g.inputs;
+                        const h0 = (ins[0] >= 0 ? V[ins[0]] : 0.0) > g.vTh;
+                        if (g.op === 'NOT') {
+                            outVal = !h0;
+                        } else if (g.op === 'NAND') {
+                            let allH = h0;
+                            for (let m = 1; m < ins.length; m++) {
+                                if (!((ins[m] >= 0 ? V[ins[m]] : 0.0) > g.vTh)) { allH = false; break; }
+                            }
+                            outVal = !allH;
+                        } else if (g.op === 'AND') {
+                            let allH = h0;
+                            for (let m = 1; m < ins.length; m++) {
+                                if (!((ins[m] >= 0 ? V[ins[m]] : 0.0) > g.vTh)) { allH = false; break; }
+                            }
+                            outVal = allH;
+                        } else if (g.op === 'NOR') {
+                            let anyH = h0;
+                            for (let m = 1; m < ins.length; m++) {
+                                if ((ins[m] >= 0 ? V[ins[m]] : 0.0) > g.vTh) { anyH = true; break; }
+                            }
+                            outVal = !anyH;
+                        } else if (g.op === 'OR') {
+                            let anyH = h0;
+                            for (let m = 1; m < ins.length; m++) {
+                                if ((ins[m] >= 0 ? V[ins[m]] : 0.0) > g.vTh) { anyH = true; break; }
+                            }
+                            outVal = anyH;
+                        } else if (g.op === 'XOR') {
+                            const h1 = (ins[1] >= 0 ? V[ins[1]] : 0.0) > g.vTh;
+                            outVal = (h0 !== h1);
+                        }
+                    }
+                    if (outVal !== g.comp._gateStates[g.gi]) {
+                        g.comp._gateStates[g.gi] = outVal;
+                        gateStartIdx = (idx + 1) % nGates;
+                        gateChanged = true;
+                        break;
+                    }
+                }
+
+                if (gateChanged) {
+                    for (let k = 0; k < physicalOpAmps.length; k++) {
+                        triedLinear[k] = false;
+                        leftFromSat[k] = 0;
+                    }
+                    continue;
+                }
+
+                // Phase C: All nonlinear clamps & logic gates are consistent; now update physical Op-Amp saturation states
                 let oaChanged = false;
                 for (let k = 0; k < physicalOpAmps.length; k++) {
                     const op = physicalOpAmps[k];
@@ -1298,7 +1396,7 @@ class MNASolver {
         return newVoltages;
     }
 
-    gaussianSolve(A, Z, N, physicalOpAmps = null, nonlinearDevices = null) {
+    gaussianSolve(A, Z, N, physicalOpAmps = null, nonlinearDevices = null, logicGates = null) {
         if (!this._mBuf || this._mBufN !== N) {
             this._mBuf = Array.from({ length: N }, () => new Float64Array(N + 1));
             this._xBuf = new Float64Array(N);
@@ -1397,6 +1495,21 @@ class MNASolver {
                             stampG(d.iC, d.iB, 1e-6);
                         }
                         stampG(d.iE, d.iC, beOn ? 0.2 : 1e-6);
+                    }
+                }
+            }
+        }
+
+        // Stamp implicit combinational logic gates directly into M
+        if (logicGates && logicGates.length > 0) {
+            for (let k = 0; k < logicGates.length; k++) {
+                const g = logicGates[k];
+                const io = g.iOut;
+                if (io >= 0) {
+                    M[io][io] += g.gOut;
+                    const vDrive = g.comp._gateStates[g.gi] ? g.vHigh : g.vLow;
+                    if (vDrive !== 0.0) {
+                        M[io][N] += vDrive * g.gOut;
                     }
                 }
             }
