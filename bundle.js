@@ -6241,7 +6241,82 @@ class AppController {
         ];
     }
 
+    updateAdaptiveTimestep() {
+        let targetDt = 0.000005; // Default 5us (200 kSPS)
+        if (!this.solver || this.solver.usePresetBehavioralModels !== true) {
+            const parent = new Map();
+            const find = (x) => {
+                if (!x) return null;
+                let cur = x;
+                while (parent.has(cur) && parent.get(cur) !== cur) {
+                    const p = parent.get(cur);
+                    parent.set(cur, parent.get(p) || p);
+                    cur = p;
+                }
+                return cur;
+            };
+            const unite = (a, b) => {
+                const ra = find(a), rb = find(b);
+                if (ra && rb && ra !== rb) parent.set(rb, ra);
+            };
+            for (let i = 0; i < this.components.length; i++) {
+                const c = this.components[i];
+                if (c.type === 'WIRE') {
+                    unite(this.grid.getNodeId(c.pinA), this.grid.getNodeId(c.pinB));
+                }
+            }
+
+            const netMinR = new Map();
+            const recordR = (pinKey, rVal) => {
+                if (!pinKey || !rVal || rVal < 200) return;
+                const root = find(this.grid.getNodeId(pinKey));
+                if (!root || root === '0') return;
+                const prev = netMinR.get(root);
+                if (prev === undefined || rVal < prev) netMinR.set(root, rVal);
+            };
+            for (let i = 0; i < this.components.length; i++) {
+                const c = this.components[i];
+                if (c.type === 'R' && c.resistance > 0) {
+                    recordR(c.pinA, c.resistance);
+                    recordR(c.pinB, c.resistance);
+                } else if (c.type === 'POT') {
+                    const rAW = c.getEffectiveResistance ? c.getEffectiveResistance() : (c.totalResistance * (c.ratio || 0.5));
+                    const rWB = c.pinWiper && c.getResistanceWB ? c.getResistanceWB() : rAW;
+                    recordR(c.pinA, rAW);
+                    recordR(c.pinB, rWB);
+                    if (c.pinWiper) recordR(c.pinWiper, Math.min(rAW, rWB));
+                }
+            }
+
+            let minTau = Infinity;
+            for (let i = 0; i < this.components.length; i++) {
+                const c = this.components[i];
+                if (c.type === 'C' && c.capacitance > 0 && c.capacitance < 1e-6) {
+                    const rA = netMinR.get(find(this.grid.getNodeId(c.pinA)));
+                    const rB = netMinR.get(find(this.grid.getNodeId(c.pinB)));
+                    if (rA !== undefined) minTau = Math.min(minTau, rA * c.capacitance);
+                    if (rB !== undefined) minTau = Math.min(minTau, rB * c.capacitance);
+                }
+            }
+
+            let maxFgFreq = 0;
+            if (this.fg1 && this.fg1.enabled) maxFgFreq = Math.max(maxFgFreq, this.fg1.frequency || 0);
+            if (this.fg2 && this.fg2.enabled) maxFgFreq = Math.max(maxFgFreq, this.fg2.frequency || 0);
+
+            if (minTau < 5e-6 || maxFgFreq > 40000) {
+                targetDt = 0.0000005; // 0.5us (2 MSPS) for 50kHz ~ 250kHz HF oscillators (ASK carrier, etc.)
+            } else if (minTau < 25e-6 || maxFgFreq > 15000) {
+                targetDt = 0.000001; // 1.0us (1 MSPS) for 10kHz ~ 50kHz circuits
+            }
+        }
+        this.dt = targetDt;
+        if (this.oscilloscopeCanvas) {
+            this.oscilloscopeCanvas.dt = targetDt;
+        }
+    }
+
     warmupSimulationBuffer(steps = 60000) {
+        this.updateAdaptiveTimestep();
         const bindingSources = this.getBindingSources();
         const activeComps = [...this.components, ...bindingSources];
 
@@ -6252,8 +6327,11 @@ class AppController {
             }
         });
 
+        const dtScale = Math.min(4, Math.max(1, Math.round(0.000005 / this.dt)));
+        const runSteps = Math.min(6000, Math.round(steps * dtScale));
+
         this.oscilloscopeCanvas.resetBuffer();
-        for (let i = 0; i < steps; i++) {
+        for (let i = 0; i < runSteps; i++) {
             const nodeVoltages = this.solver.solveStep(activeComps, this.dt);
             this.simTime += this.dt;
 
@@ -7961,6 +8039,10 @@ class AppController {
             stepsPerFrame = 10;
         } else if (maxTimeDiv >= 0.002) {
             stepsPerFrame = 5;
+        }
+        const dtScale = Math.max(1, Math.round(0.000005 / (this.dt || 0.000005)));
+        if (dtScale > 1) {
+            stepsPerFrame = Math.min(120, stepsPerFrame * dtScale);
         }
         let vA = 0;
         let vB = 0;

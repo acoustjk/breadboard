@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=47000">
+    <link rel="stylesheet" href="./styles.css?v=48000">
 
     <!-- Google AdSense Main Auto-Ads Code (애드센스 승인 및 발급받으신 ca-pub-ID 입력) -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
@@ -233,7 +233,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=47000</span>
+                <span class="logo-badge">v=48000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -267,6 +267,8 @@
                         <div style="display: flex; gap: 2px; align-items: center; background: #1e293b; padding: 1px 4px; border-radius: 4px; border: 1px solid #334155;">
                             <span style="color: #38bdf8; font-weight: bold; font-size: 9px;">Time/Div:</span>
                             <select id="timeDivSelect" class="select-input-sm" style="padding: 0px 1px; width: 65px; font-size: 9px;">
+                                <option value="0.000002">0.002 ms</option>
+                                <option value="0.000005">0.005 ms</option>
                                 <option value="0.00001">0.01 ms</option>
                                 <option value="0.00002">0.02 ms</option>
                                 <option value="0.00005">0.05 ms</option>
@@ -326,6 +328,8 @@
                             <div style="display: flex; gap: 1px; align-items: center;">
                                 <label style="color: #38bdf8; font-size: 8px;">T/Div:</label>
                                 <select id="timeDivChA" class="select-input-sm" style="padding: 0px; width: 44px; font-size: 8px;">
+                                    <option value="0.000002">2µs</option>
+                                    <option value="0.000005">5µs</option>
                                     <option value="0.00001">0.01ms</option>
                                     <option value="0.00002">0.02ms</option>
                                     <option value="0.00005">0.05ms</option>
@@ -375,6 +379,8 @@
                             <div style="display: flex; gap: 1px; align-items: center;">
                                 <label style="color: #38bdf8; font-size: 8px;">T/Div:</label>
                                 <select id="timeDivChB" class="select-input-sm" style="padding: 0px; width: 44px; font-size: 8px;">
+                                    <option value="0.000002">2µs</option>
+                                    <option value="0.000005">5µs</option>
                                     <option value="0.00001">0.01ms</option>
                                     <option value="0.00002">0.02ms</option>
                                     <option value="0.00005">0.05ms</option>
@@ -424,6 +430,8 @@
                             <div style="display: flex; gap: 1px; align-items: center;">
                                 <label style="color: #38bdf8; font-size: 8px;">T/Div:</label>
                                 <select id="timeDivChC" class="select-input-sm" style="padding: 0px; width: 44px; font-size: 8px;">
+                                    <option value="0.000002">2µs</option>
+                                    <option value="0.000005">5µs</option>
                                     <option value="0.00001">0.01ms</option>
                                     <option value="0.00002">0.02ms</option>
                                     <option value="0.00005">0.05ms</option>
@@ -473,6 +481,8 @@
                             <div style="display: flex; gap: 1px; align-items: center;">
                                 <label style="color: #38bdf8; font-size: 8px;">T/Div:</label>
                                 <select id="timeDivChD" class="select-input-sm" style="padding: 0px; width: 44px; font-size: 8px;">
+                                    <option value="0.000002">2µs</option>
+                                    <option value="0.000005">5µs</option>
                                     <option value="0.00001">0.01ms</option>
                                     <option value="0.00002">0.02ms</option>
                                     <option value="0.00005">0.05ms</option>
@@ -760,6 +770,8 @@
 
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <select id="timeDivSelect" class="select-input-sm" style="padding: 2px; width: 85px; font-size: 11px;">
+                        <option value="0.000002">0.002 ms</option>
+                        <option value="0.000005">0.005 ms</option>
                         <option value="0.00001">0.01 ms</option>
                         <option value="0.00002">0.02 ms</option>
                         <option value="0.00005">0.05 ms</option>
@@ -988,6 +1000,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=47000"></script>
+    <script src="./bundle.js?v=48000"></script>
 </body>
 </html>
