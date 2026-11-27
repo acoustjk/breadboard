@@ -1435,11 +1435,12 @@ export class MNASolver {
                         stampG(d.iA, d.iB, 1e-6);
                     }
                 } else if (d.kind === 'BJT') {
-                    // 3-Region Physical BJT Model: Cutoff (OFF), Linear Active (Ic = beta*Ib, supports push-pull/CE amps), Saturated (5Ω switch for PAM/PNM)
+                    // 4-Region Physical BJT Model: Cutoff, Forward Active, Reverse Active (bidirectional AC shunt switching), Saturated (5Ω switch)
                     const beOn = !!d.comp._beOn;
                     const bcOn = !!d.comp._bcOn;
-                    const gBE = 0.005; // 200Ω base-emitter forward dynamic resistance
-                    const gm = 0.5;    // beta=100 * gBE = 0.5 S transconductance in active region
+                    const gBE = 0.005;  // 200Ω base-emitter forward dynamic resistance
+                    const gm = 0.5;     // Forward transconductance (beta_F = 100)
+                    const gmRev = 0.015; // Reverse-active transconductance (beta_R ≈ 7.5 for bipolar AC shunt switches like ASK)
                     if (d.polarity === 'NPN') {
                         if (beOn) {
                             stampG(d.iB, d.iE, gBE);
@@ -1456,7 +1457,7 @@ export class MNASolver {
                         if (beOn && bcOn) {
                             stampG(d.iC, d.iE, 0.2); // Saturated 5Ω bidirectional switch
                         } else if (beOn) {
-                            // Linear active region: I_C = gm * (vB - vE - vbeThresh) from C to E
+                            // Forward active region: I_C = gm * (vB - vE - vbeThresh) from C to E
                             if (d.iC >= 0) {
                                 if (d.iB >= 0) M[d.iC][d.iB] += gm;
                                 if (d.iE >= 0) M[d.iC][d.iE] -= gm;
@@ -1468,6 +1469,19 @@ export class MNASolver {
                                 M[d.iE][N] -= gm * d.vbeThresh;
                             }
                             stampG(d.iC, d.iE, 1e-5); // Early output conductance
+                        } else if (bcOn) {
+                            // Reverse active region: I_EC = gmRev * (vB - vC - vbeThresh) from E to C
+                            if (d.iE >= 0) {
+                                if (d.iB >= 0) M[d.iE][d.iB] += gmRev;
+                                if (d.iC >= 0) M[d.iE][d.iC] -= gmRev;
+                                M[d.iE][N] += gmRev * d.vbeThresh;
+                            }
+                            if (d.iC >= 0) {
+                                if (d.iB >= 0) M[d.iC][d.iB] -= gmRev;
+                                M[d.iC][d.iC] += gmRev;
+                                M[d.iC][N] -= gmRev * d.vbeThresh;
+                            }
+                            stampG(d.iC, d.iE, 1e-5);
                         } else {
                             stampG(d.iC, d.iE, 1e-6);
                         }
@@ -1487,7 +1501,7 @@ export class MNASolver {
                         if (beOn && bcOn) {
                             stampG(d.iE, d.iC, 0.2); // Saturated 5Ω bidirectional switch
                         } else if (beOn) {
-                            // Linear active region: I_EC = gm * (vE - vB - vbeThresh) from E to C
+                            // Forward active region: I_EC = gm * (vE - vB - vbeThresh) from E to C
                             if (d.iE >= 0) {
                                 M[d.iE][d.iE] += gm;
                                 if (d.iB >= 0) M[d.iE][d.iB] -= gm;
@@ -1499,6 +1513,19 @@ export class MNASolver {
                                 M[d.iC][N] -= gm * d.vbeThresh;
                             }
                             stampG(d.iE, d.iC, 1e-5); // Early output conductance
+                        } else if (bcOn) {
+                            // Reverse active region: I_CE = gmRev * (vC - vB - vbeThresh) from C to E
+                            if (d.iC >= 0) {
+                                M[d.iC][d.iC] += gmRev;
+                                if (d.iB >= 0) M[d.iC][d.iB] -= gmRev;
+                                M[d.iC][N] += gmRev * d.vbeThresh;
+                            }
+                            if (d.iE >= 0) {
+                                if (d.iC >= 0) M[d.iE][d.iC] -= gmRev;
+                                if (d.iB >= 0) M[d.iE][d.iB] += gmRev;
+                                M[d.iE][N] -= gmRev * d.vbeThresh;
+                            }
+                            stampG(d.iE, d.iC, 1e-5);
                         } else {
                             stampG(d.iE, d.iC, 1e-6);
                         }
