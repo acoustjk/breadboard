@@ -1031,11 +1031,28 @@ class MNASolver {
                     driveDigitalPin(pins.pin1, q1, 100.0);
                     driveDigitalPin(pins.pin2, q1Bar, 100.0);
 
-                    // Flip-Flop 2
+                    // Flip-Flop 2 (propagate intra-IC ripple clock pin1/pin2 -> pin11 in same step to eliminate 5µs decoding glitch spikes)
                     const vSet2 = getV(pins.pin8);
                     const vData2 = getV(pins.pin9);
                     const vRst2 = getV(pins.pin10);
-                    const vClk2 = getV(pins.pin11);
+                    const nClk2 = getNode(pins.pin11);
+                    const nQ1 = getNode(pins.pin1);
+                    const nQ1Bar = getNode(pins.pin2);
+                    const isWired = (na, nb) => {
+                        if (!na || !nb) return false;
+                        if (na === nb) return true;
+                        for (let w = 0; w < components.length; w++) {
+                            const c = components[w];
+                            if (c.type !== 'WIRE') continue;
+                            const wa = getNode(c.pinA);
+                            const wb = getNode(c.pinB);
+                            if ((wa === na && wb === nb) || (wa === nb && wb === na)) return true;
+                        }
+                        return false;
+                    };
+                    let vClk2 = getV(pins.pin11);
+                    if (isWired(nQ1, nClk2)) vClk2 = q1 ? 5.0 : 0.0;
+                    else if (isWired(nQ1Bar, nClk2)) vClk2 = q1Bar ? 5.0 : 0.0;
 
                     if (vClk2 > 2.5 && comp.lastClk2 <= 2.5) {
                         comp.stateQ2 = (vData2 > 2.5);
