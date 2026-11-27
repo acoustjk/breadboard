@@ -206,9 +206,10 @@ export class MNASolver {
                 addConductance(nA, nB, 20.0);
 
             } else if (comp.type === 'BJT') {
-                // Check if 2-BJT Astable Multivibrator topology is present
+                // Only use legacy 2-NPN Astable Multivibrator behavioral shortcut in official presets
                 const bjts = components.filter(c => c.type === 'BJT');
-                if (bjts.length >= 2) {
+                const isPresetAstable = this.usePresetBehavioralModels === true && bjts.length === 2 && (bjts[0].polarity || 'NPN') === 'NPN' && (bjts[1].polarity || 'NPN') === 'NPN';
+                if (isPresetAstable) {
                     const q1 = bjts[0];
                     const q2 = bjts[1];
                     const rb1 = components.find(c => c.type === 'R' && c.resistance > 10000) || { resistance: 47000 };
@@ -1415,12 +1416,15 @@ export class MNASolver {
                         stampG(d.iA, d.iB, 1e-6);
                     }
                 } else if (d.kind === 'BJT') {
+                    // 3-Region Physical BJT Model: Cutoff (OFF), Linear Active (Ic = beta*Ib, supports push-pull/CE amps), Saturated (5Ω switch for PAM/PNM)
                     const beOn = !!d.comp._beOn;
                     const bcOn = !!d.comp._bcOn;
+                    const gBE = 0.005; // 200Ω base-emitter forward dynamic resistance
+                    const gm = 0.5;    // beta=100 * gBE = 0.5 S transconductance in active region
                     if (d.polarity === 'NPN') {
                         if (beOn) {
-                            stampG(d.iB, d.iE, 0.02);
-                            stampI(d.iB, d.iE, d.vbeThresh * 0.02);
+                            stampG(d.iB, d.iE, gBE);
+                            stampI(d.iB, d.iE, d.vbeThresh * gBE);
                         } else {
                             stampG(d.iB, d.iE, 1e-6);
                         }
@@ -1430,11 +1434,28 @@ export class MNASolver {
                         } else {
                             stampG(d.iB, d.iC, 1e-6);
                         }
-                        stampG(d.iC, d.iE, beOn ? 0.2 : 1e-6);
-                    } else {
+                        if (beOn && bcOn) {
+                            stampG(d.iC, d.iE, 0.2); // Saturated 5Ω bidirectional switch
+                        } else if (beOn) {
+                            // Linear active region: I_C = gm * (vB - vE - vbeThresh) from C to E
+                            if (d.iC >= 0) {
+                                if (d.iB >= 0) M[d.iC][d.iB] += gm;
+                                if (d.iE >= 0) M[d.iC][d.iE] -= gm;
+                                M[d.iC][N] += gm * d.vbeThresh;
+                            }
+                            if (d.iE >= 0) {
+                                if (d.iB >= 0) M[d.iE][d.iB] -= gm;
+                                M[d.iE][d.iE] += gm;
+                                M[d.iE][N] -= gm * d.vbeThresh;
+                            }
+                            stampG(d.iC, d.iE, 1e-5); // Early output conductance
+                        } else {
+                            stampG(d.iC, d.iE, 1e-6);
+                        }
+                    } else { // PNP (e.g., A562, A1015, 2N3906)
                         if (beOn) {
-                            stampG(d.iE, d.iB, 0.02);
-                            stampI(d.iE, d.iB, d.vbeThresh * 0.02);
+                            stampG(d.iE, d.iB, gBE);
+                            stampI(d.iE, d.iB, d.vbeThresh * gBE);
                         } else {
                             stampG(d.iE, d.iB, 1e-6);
                         }
@@ -1444,7 +1465,24 @@ export class MNASolver {
                         } else {
                             stampG(d.iC, d.iB, 1e-6);
                         }
-                        stampG(d.iE, d.iC, beOn ? 0.2 : 1e-6);
+                        if (beOn && bcOn) {
+                            stampG(d.iE, d.iC, 0.2); // Saturated 5Ω bidirectional switch
+                        } else if (beOn) {
+                            // Linear active region: I_EC = gm * (vE - vB - vbeThresh) from E to C
+                            if (d.iE >= 0) {
+                                M[d.iE][d.iE] += gm;
+                                if (d.iB >= 0) M[d.iE][d.iB] -= gm;
+                                M[d.iE][N] += gm * d.vbeThresh;
+                            }
+                            if (d.iC >= 0) {
+                                if (d.iE >= 0) M[d.iC][d.iE] -= gm;
+                                if (d.iB >= 0) M[d.iC][d.iB] += gm;
+                                M[d.iC][N] -= gm * d.vbeThresh;
+                            }
+                            stampG(d.iE, d.iC, 1e-5); // Early output conductance
+                        } else {
+                            stampG(d.iE, d.iC, 1e-6);
+                        }
                     }
                 }
             }

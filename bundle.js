@@ -296,9 +296,10 @@ class MNASolver {
                 addConductance(nA, nB, 20.0);
 
             } else if (comp.type === 'BJT') {
-                // Check if 2-BJT Astable Multivibrator topology is present
+                // Only use legacy 2-NPN Astable Multivibrator behavioral shortcut in official presets
                 const bjts = components.filter(c => c.type === 'BJT');
-                if (bjts.length >= 2) {
+                const isPresetAstable = this.usePresetBehavioralModels === true && bjts.length === 2 && (bjts[0].polarity || 'NPN') === 'NPN' && (bjts[1].polarity || 'NPN') === 'NPN';
+                if (isPresetAstable) {
                     const q1 = bjts[0];
                     const q2 = bjts[1];
                     const rb1 = components.find(c => c.type === 'R' && c.resistance > 10000) || { resistance: 47000 };
@@ -1505,12 +1506,15 @@ class MNASolver {
                         stampG(d.iA, d.iB, 1e-6);
                     }
                 } else if (d.kind === 'BJT') {
+                    // 3-Region Physical BJT Model: Cutoff (OFF), Linear Active (Ic = beta*Ib, supports push-pull/CE amps), Saturated (5Ω switch for PAM/PNM)
                     const beOn = !!d.comp._beOn;
                     const bcOn = !!d.comp._bcOn;
+                    const gBE = 0.005; // 200Ω base-emitter forward dynamic resistance
+                    const gm = 0.5;    // beta=100 * gBE = 0.5 S transconductance in active region
                     if (d.polarity === 'NPN') {
                         if (beOn) {
-                            stampG(d.iB, d.iE, 0.02);
-                            stampI(d.iB, d.iE, d.vbeThresh * 0.02);
+                            stampG(d.iB, d.iE, gBE);
+                            stampI(d.iB, d.iE, d.vbeThresh * gBE);
                         } else {
                             stampG(d.iB, d.iE, 1e-6);
                         }
@@ -1520,11 +1524,28 @@ class MNASolver {
                         } else {
                             stampG(d.iB, d.iC, 1e-6);
                         }
-                        stampG(d.iC, d.iE, beOn ? 0.2 : 1e-6);
-                    } else {
+                        if (beOn && bcOn) {
+                            stampG(d.iC, d.iE, 0.2); // Saturated 5Ω bidirectional switch
+                        } else if (beOn) {
+                            // Linear active region: I_C = gm * (vB - vE - vbeThresh) from C to E
+                            if (d.iC >= 0) {
+                                if (d.iB >= 0) M[d.iC][d.iB] += gm;
+                                if (d.iE >= 0) M[d.iC][d.iE] -= gm;
+                                M[d.iC][N] += gm * d.vbeThresh;
+                            }
+                            if (d.iE >= 0) {
+                                if (d.iB >= 0) M[d.iE][d.iB] -= gm;
+                                M[d.iE][d.iE] += gm;
+                                M[d.iE][N] -= gm * d.vbeThresh;
+                            }
+                            stampG(d.iC, d.iE, 1e-5); // Early output conductance
+                        } else {
+                            stampG(d.iC, d.iE, 1e-6);
+                        }
+                    } else { // PNP (e.g., A562, A1015, 2N3906)
                         if (beOn) {
-                            stampG(d.iE, d.iB, 0.02);
-                            stampI(d.iE, d.iB, d.vbeThresh * 0.02);
+                            stampG(d.iE, d.iB, gBE);
+                            stampI(d.iE, d.iB, d.vbeThresh * gBE);
                         } else {
                             stampG(d.iE, d.iB, 1e-6);
                         }
@@ -1534,7 +1555,24 @@ class MNASolver {
                         } else {
                             stampG(d.iC, d.iB, 1e-6);
                         }
-                        stampG(d.iE, d.iC, beOn ? 0.2 : 1e-6);
+                        if (beOn && bcOn) {
+                            stampG(d.iE, d.iC, 0.2); // Saturated 5Ω bidirectional switch
+                        } else if (beOn) {
+                            // Linear active region: I_EC = gm * (vE - vB - vbeThresh) from E to C
+                            if (d.iE >= 0) {
+                                M[d.iE][d.iE] += gm;
+                                if (d.iB >= 0) M[d.iE][d.iB] -= gm;
+                                M[d.iE][N] += gm * d.vbeThresh;
+                            }
+                            if (d.iC >= 0) {
+                                if (d.iE >= 0) M[d.iC][d.iE] -= gm;
+                                if (d.iB >= 0) M[d.iC][d.iB] += gm;
+                                M[d.iC][N] -= gm * d.vbeThresh;
+                            }
+                            stampG(d.iE, d.iC, 1e-5); // Early output conductance
+                        } else {
+                            stampG(d.iE, d.iC, 1e-6);
+                        }
                     }
                 }
             }
@@ -1836,6 +1874,8 @@ const TRANSISTOR_CATALOG = {
     '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, pinout: 'EBC', desc: '고전류 NPN 스위칭 트랜지스터 (EBC TO-92)' },
     'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, pinout: 'ECB', desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
     'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' },
+    'A562':   { name: '2SA562 / A562 (PNP)', polarity: 'PNP', beta: 150, pinout: 'ECB', desc: '오디오 출력·중전류 구동용 PNP 트랜지스터 (-30V, -500mA, ECB TO-92)' },
+    '2SA562': { name: '2SA562 / A562 (PNP)', polarity: 'PNP', beta: 150, pinout: 'ECB', desc: '오디오 출력·중전류 구동용 PNP 트랜지스터 (-30V, -500mA, ECB TO-92)' },
     '2S735':  { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SC735': { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SK30A': { name: '2SK30A / K30 (N-JFET)', polarity: 'N-JFET', beta: 200, pinout: 'SDG', desc: 'KCA PNM 통신실기 표준 N채널 JFET 아날로그 스위치 (SDG TO-92)' }

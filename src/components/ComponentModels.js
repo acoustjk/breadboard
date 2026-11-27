@@ -53,6 +53,8 @@ export const TRANSISTOR_CATALOG = {
     '2N2222': { name: '2N2222 (NPN)', polarity: 'NPN', beta: 150, pinout: 'EBC', desc: '고전류 NPN 스위칭 트랜지스터 (EBC TO-92)' },
     'C1815':  { name: 'KSC1815 (NPN)', polarity: 'NPN', beta: 200, pinout: 'ECB', desc: '아시아 표준 NPN 저소음 트랜지스터 (ECB TO-92)' },
     'A1015':  { name: 'KSA1015 (PNP)', polarity: 'PNP', beta: 200, pinout: 'ECB', desc: '아시아 표준 PNP 저소음 트랜지스터 (ECB TO-92)' },
+    'A562':   { name: '2SA562 / A562 (PNP)', polarity: 'PNP', beta: 150, pinout: 'ECB', desc: '오디오 출력·중전류 구동용 PNP 트랜지스터 (-30V, -500mA, ECB TO-92)' },
+    '2SA562': { name: '2SA562 / A562 (PNP)', polarity: 'PNP', beta: 150, pinout: 'ECB', desc: '오디오 출력·중전류 구동용 PNP 트랜지스터 (-30V, -500mA, ECB TO-92)' },
     '2S735':  { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SC735': { name: '2SC735 / 2S735 (NPN)', polarity: 'NPN', beta: 150, pinout: 'ECB', desc: '한국/일본 표준 NPN 범용 소신호/스위칭 트랜지스터 (ECB TO-92)' },
     '2SK30A': { name: '2SK30A / K30 (N-JFET)', polarity: 'N-JFET', beta: 200, pinout: 'SDG', desc: 'KCA PNM 통신실기 표준 N채널 JFET 아날로그 스위치 (SDG TO-92)' }
