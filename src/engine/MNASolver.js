@@ -105,7 +105,7 @@ export class MNASolver {
                 if (n === '0') return 0.0;
                 return (this.lastVoltages && this.lastVoltages.has(n)) ? this.lastVoltages.get(n) : fb;
             };
-            let vHigh = 5.0, vLow = 0.0, vTh = 2.5, isPowered = true;
+            let vHigh = 5.0, vLow = 0.0, vTh = 2.5, vThHigh = 2.9, vThLow = 2.1, isPowered = true;
             if (this.usePresetBehavioralModels !== true) {
                 const vVdd = readPinV(vccPin, 0.0);
                 const vGnd = readPinV(gndPin, 0.0);
@@ -113,6 +113,8 @@ export class MNASolver {
                 vHigh = isPowered ? vVdd : 0.0;
                 vLow = isPowered ? vGnd : 0.0;
                 vTh = isPowered ? ((vVdd + vGnd) * 0.5) : 2.5;
+                vThHigh = isPowered ? (vGnd + (vVdd - vGnd) * 0.58) : 2.9;
+                vThLow = isPowered ? (vGnd + (vVdd - vGnd) * 0.42) : 2.1;
             }
             if (!comp._gateStates || comp._gateStates.length !== gateDefs.length) {
                 comp._gateStates = new Array(gateDefs.length).fill(false);
@@ -136,6 +138,8 @@ export class MNASolver {
                     vHigh,
                     vLow,
                     vTh,
+                    vThHigh,
+                    vThLow,
                     isPowered,
                     gOut: 100.0
                 });
@@ -574,6 +578,17 @@ export class MNASolver {
                 } else if (icType === 'CD4069' || icType === '74HC04') {
                     // CD4069 / 74HC04 (DIP-14) Hex Inverter (pin14=VCC, pin7=GND)
                     registerLogicGates(comp, pins.pin14, pins.pin7, 'NOT', [
+                        { ins: [pins.pin1], out: pins.pin2 },
+                        { ins: [pins.pin3], out: pins.pin4 },
+                        { ins: [pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9], out: pins.pin8 },
+                        { ins: [pins.pin11], out: pins.pin10 },
+                        { ins: [pins.pin13], out: pins.pin12 }
+                    ]);
+
+                } else if (icType === 'CD4584' || icType === '4584') {
+                    // CD4584 / MC14584B (DIP-14) Hex Schmitt Trigger Inverter (pin14=VDD, pin7=VSS)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'SCHMITT_NOT', [
                         { ins: [pins.pin1], out: pins.pin2 },
                         { ins: [pins.pin3], out: pins.pin4 },
                         { ins: [pins.pin5], out: pins.pin6 },
@@ -1158,6 +1173,10 @@ export class MNASolver {
                         const h0 = (ins[0] >= 0 ? V[ins[0]] : 0.0) > g.vTh;
                         if (g.op === 'NOT') {
                             outVal = !h0;
+                        } else if (g.op === 'SCHMITT_NOT') {
+                            const vIn = ins[0] >= 0 ? V[ins[0]] : 0.0;
+                            const prevOut = g.comp._gateStates[g.gi];
+                            outVal = prevOut ? !(vIn > g.vThHigh) : (vIn < g.vThLow);
                         } else if (g.op === 'NAND') {
                             let allH = h0;
                             for (let m = 1; m < ins.length; m++) {

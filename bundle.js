@@ -195,7 +195,7 @@ class MNASolver {
                 if (n === '0') return 0.0;
                 return (this.lastVoltages && this.lastVoltages.has(n)) ? this.lastVoltages.get(n) : fb;
             };
-            let vHigh = 5.0, vLow = 0.0, vTh = 2.5, isPowered = true;
+            let vHigh = 5.0, vLow = 0.0, vTh = 2.5, vThHigh = 2.9, vThLow = 2.1, isPowered = true;
             if (this.usePresetBehavioralModels !== true) {
                 const vVdd = readPinV(vccPin, 0.0);
                 const vGnd = readPinV(gndPin, 0.0);
@@ -203,6 +203,8 @@ class MNASolver {
                 vHigh = isPowered ? vVdd : 0.0;
                 vLow = isPowered ? vGnd : 0.0;
                 vTh = isPowered ? ((vVdd + vGnd) * 0.5) : 2.5;
+                vThHigh = isPowered ? (vGnd + (vVdd - vGnd) * 0.58) : 2.9;
+                vThLow = isPowered ? (vGnd + (vVdd - vGnd) * 0.42) : 2.1;
             }
             if (!comp._gateStates || comp._gateStates.length !== gateDefs.length) {
                 comp._gateStates = new Array(gateDefs.length).fill(false);
@@ -226,6 +228,8 @@ class MNASolver {
                     vHigh,
                     vLow,
                     vTh,
+                    vThHigh,
+                    vThLow,
                     isPowered,
                     gOut: 100.0
                 });
@@ -664,6 +668,17 @@ class MNASolver {
                 } else if (icType === 'CD4069' || icType === '74HC04') {
                     // CD4069 / 74HC04 (DIP-14) Hex Inverter (pin14=VCC, pin7=GND)
                     registerLogicGates(comp, pins.pin14, pins.pin7, 'NOT', [
+                        { ins: [pins.pin1], out: pins.pin2 },
+                        { ins: [pins.pin3], out: pins.pin4 },
+                        { ins: [pins.pin5], out: pins.pin6 },
+                        { ins: [pins.pin9], out: pins.pin8 },
+                        { ins: [pins.pin11], out: pins.pin10 },
+                        { ins: [pins.pin13], out: pins.pin12 }
+                    ]);
+
+                } else if (icType === 'CD4584' || icType === '4584') {
+                    // CD4584 / MC14584B (DIP-14) Hex Schmitt Trigger Inverter (pin14=VDD, pin7=VSS)
+                    registerLogicGates(comp, pins.pin14, pins.pin7, 'SCHMITT_NOT', [
                         { ins: [pins.pin1], out: pins.pin2 },
                         { ins: [pins.pin3], out: pins.pin4 },
                         { ins: [pins.pin5], out: pins.pin6 },
@@ -1248,6 +1263,10 @@ class MNASolver {
                         const h0 = (ins[0] >= 0 ? V[ins[0]] : 0.0) > g.vTh;
                         if (g.op === 'NOT') {
                             outVal = !h0;
+                        } else if (g.op === 'SCHMITT_NOT') {
+                            const vIn = ins[0] >= 0 ? V[ins[0]] : 0.0;
+                            const prevOut = g.comp._gateStates[g.gi];
+                            outVal = prevOut ? !(vIn > g.vThHigh) : (vIn < g.vThLow);
                         } else if (g.op === 'NAND') {
                             let allH = h0;
                             for (let m = 1; m < ins.length; m++) {
@@ -1906,6 +1925,8 @@ const IC_CATALOG = {
     'CD4069': { name: 'CD4069 Hex Inverter', pins: 14, desc: '6채널 CMOS 반전 게이트 / 인버터 (DIP-14)' },
     'CD4510': { name: 'CD4510 BCD Up/Down Counter', pins: 16, desc: 'BCD 10진 업/다운 프리셋 카운터 (DIP-16)' },
     'CD4518': { name: 'CD4518 Dual BCD Up Counter', pins: 16, desc: '듀얼 BCD 10진 업 카운터 (DIP-16)' },
+    'CD4584': { name: 'CD4584 Hex Schmitt Trigger Inverter', pins: 14, desc: '6채널 CMOS 슈미트 트리거 인버터 (히스테리시스 파형정형·RC발진용, DIP-14)' },
+    '4584':   { name: 'CD4584 Hex Schmitt Trigger Inverter', pins: 14, desc: '6채널 CMOS 슈미트 트리거 인버터 (히스테리시스 파형정형·RC발진용, DIP-14)' },
     'XR2206': { name: 'XR-2206 Function Generator', pins: 16, desc: '고정밀 함수발진기 (정현파/삼각파/구형파 DIP-16)' },
     'CD4027': { name: 'CD4027 Dual J-K Flip-Flop', pins: 16, desc: '듀얼 J-K 플립플롭 (Set/Reset 포함 DIP-16)' },
     '74LS393': { name: '74LS393 Dual 4-Bit Binary Counter', pins: 14, desc: '듀얼 4비트 이진 리플 카운터 (DIP-14)' },
