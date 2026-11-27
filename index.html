@@ -7,7 +7,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>🍞 빵판시뮬레이터 (Company-JK Workbench)</title>
-    <link rel="stylesheet" href="./styles.css?v=44000">
+    <link rel="stylesheet" href="./styles.css?v=45000">
 
     <!-- Google AdSense Main Auto-Ads Code (애드센스 승인 및 발급받으신 ca-pub-ID 입력) -->
     <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
@@ -77,9 +77,13 @@
                 <div class="palette-block-vertical">
                     <select id="resistorTypeSelect" class="select-input">
                         <option value="R" selected>⚡ 고정 저항 (Resistor)</option>
-                        <option value="POT">🎛️ 가변 저항 10kΩ</option>
-                        <option value="POT_50K">🎛️ 가변 저항 50kΩ</option>
-                        <option value="POT_1M">🎛️ 가변 저항 1MΩ</option>
+                        <option value="POT">🎛️ 2핀 가변 저항 10kΩ</option>
+                        <option value="POT_50K">🎛️ 2핀 가변 저항 50kΩ</option>
+                        <option value="POT_1M">🎛️ 2핀 가변 저항 1MΩ</option>
+                        <option value="VR3_10K">🎚️ 3핀 VR 10kΩ (1-W-3 분압)</option>
+                        <option value="VR3_50K">🎚️ 3핀 VR 50kΩ (1-W-3 분압)</option>
+                        <option value="VR3_100K">🎚️ 3핀 VR 100kΩ (1-W-3 분압)</option>
+                        <option value="VR3_1M">🎚️ 3핀 VR 1MΩ (1-W-3 분압)</option>
                     </select>
                     <button id="toolResistorCatalog" class="btn btn-primary">⚡ 저항 소자 배치</button>
                 </div>
@@ -227,7 +231,7 @@
         <section class="card breadboard-panel" style="overflow: hidden; display: flex; flex-direction: column;">
             <div class="card-title" style="flex-shrink: 0; display: flex; align-items: center; gap: 8px;">
                 <span>Company-JK Workbench</span>
-                <span class="logo-badge">v=44000</span>
+                <span class="logo-badge">v=45000</span>
                 <span style="font-weight: normal; font-size: 12px; color: var(--accent-silver); margin-left: auto;" id="circuitStatusText">상태: 3220핀 4CH 회로 실시간 연산 중 (60 FPS)</span>
             </div>
 
@@ -982,6 +986,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <!-- Application Script Entry Point (Supports both file:/// and http:// without CORS blocking) -->
-    <script src="./bundle.js?v=44000"></script>
+    <script src="./bundle.js?v=45000"></script>
 </body>
 </html>

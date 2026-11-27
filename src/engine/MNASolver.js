@@ -21,6 +21,10 @@ export class MNASolver {
             const nB = this.grid.getNodeId(c.pinB);
             if (nA && nA !== '0') nodeSet.add(nA);
             if (nB && nB !== '0') nodeSet.add(nB);
+            if (c.type === 'POT' && c.pinWiper) {
+                const nW = this.grid.getNodeId(c.pinWiper);
+                if (nW && nW !== '0') nodeSet.add(nW);
+            }
             if (c.type === 'BJT') {
                 [c.pinEmitter, c.pinBase, c.pinCollector].forEach(pK => {
                     const n = this.grid.getNodeId(pK);
@@ -148,7 +152,17 @@ export class MNASolver {
             } else if (comp.type === 'R') {
                 addConductance(nA, nB, comp.getConductance());
             } else if (comp.type === 'POT') {
-                addConductance(nA, nB, 1.0 / comp.getEffectiveResistance());
+                if (comp.pinWiper) {
+                    const nW = this.grid.getNodeId(comp.pinWiper);
+                    const rTotal = Math.max(10.0, comp.totalResistance || 10000.0);
+                    const ratio = Math.max(0.001, Math.min(0.999, comp.ratio !== undefined ? comp.ratio : 0.5));
+                    const rAW = Math.max(1.0, rTotal * ratio);
+                    const rWB = Math.max(1.0, rTotal * (1.0 - ratio));
+                    addConductance(nA, nW, 1.0 / rAW);
+                    addConductance(nW, nB, 1.0 / rWB);
+                } else {
+                    addConductance(nA, nB, 1.0 / comp.getEffectiveResistance());
+                }
             } else if (comp.type === 'C') {
                 const { Geq, Ieq } = comp.getCompanionModel(dt);
                 addConductance(nA, nB, Geq);

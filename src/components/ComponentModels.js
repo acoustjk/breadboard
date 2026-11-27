@@ -207,11 +207,12 @@ export class ZenerDiode {
 }
 
 export class Potentiometer {
-    constructor(id, pinA, pinB, totalResistance = 10000, ratio = 0.5) {
+    constructor(id, pinA, pinB, totalResistance = 10000, ratio = 0.5, pinWiper = null) {
         this.id = id;
         this.type = 'POT';
         this.pinA = pinA;
         this.pinB = pinB;
+        this.pinWiper = pinWiper || null; // Non-null for 3-pin VR (pinA=1, pinWiper=2/W, pinB=3)
         this.totalResistance = totalResistance;
         this.ratio = Math.max(0.01, Math.min(0.99, ratio));
         this.isConfigured = true;
@@ -219,6 +220,10 @@ export class Potentiometer {
 
     getEffectiveResistance() {
         return Math.max(1, this.totalResistance * this.ratio);
+    }
+
+    getResistanceWB() {
+        return Math.max(1, this.totalResistance * (1.0 - this.ratio));
     }
 }
 

@@ -244,11 +244,14 @@ export class BreadboardCanvas {
                     const pB = this.getPinPos(comp.pinB || comp.pinCollector);
                     const distA = Math.hypot(pA.x - worldX, pA.y - worldY);
                     const distB = Math.hypot(pB.x - worldX, pB.y - worldY);
-                    const midX = (pA.x + pB.x) / 2;
-                    const midY = (pA.y + pB.y) / 2;
+                    const pW = comp.pinWiper ? this.getPinPos(comp.pinWiper) : null;
+                    const distW = pW ? Math.hypot(pW.x - worldX, pW.y - worldY) : Infinity;
+                    const isVertVr = pW && Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                    const midX = pW ? (isVertVr ? pW.x - 16 : pW.x) : (pA.x + pB.x) / 2;
+                    const midY = pW ? (isVertVr ? pW.y : pW.y - 16) : (pA.y + pB.y) / 2;
                     const distMid = Math.hypot(midX - worldX, midY - worldY);
 
-                    if (distA < 20 || distB < 20 || distMid < 24) {
+                    if (distA < 20 || distB < 20 || distW < 22 || distMid < 24) {
                         foundComp = comp;
                         break;
                     }
@@ -320,9 +323,11 @@ export class BreadboardCanvas {
                     if (comp.type === 'POT') {
                         const pA = this.getPinPos(comp.pinA);
                         const pB = this.getPinPos(comp.pinB);
-                        const midX = (pA.x + pB.x) / 2;
-                        const midY = (pA.y + pB.y) / 2;
-                        if (Math.hypot(midX - worldX, midY - worldY) < 30) {
+                        const pW = comp.pinWiper ? this.getPinPos(comp.pinWiper) : null;
+                        const isVertVr = pW && Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                        const midX = pW ? (isVertVr ? pW.x - 16 : pW.x) : (pA.x + pB.x) / 2;
+                        const midY = pW ? (isVertVr ? pW.y : pW.y - 16) : (pA.y + pB.y) / 2;
+                        if (Math.hypot(midX - worldX, midY - worldY) < 30 || (pW && Math.hypot(pW.x - worldX, pW.y - worldY) < 25)) {
                             hoveredPot = comp;
                             break;
                         }
@@ -1122,52 +1127,126 @@ export class BreadboardCanvas {
             this.ctx.restore();
 
         } else if (comp.type === 'POT') {
-            this.ctx.strokeStyle = '#94a3b8';
-            this.ctx.lineWidth = 2.0;
-            this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
+            if (comp.pinWiper) {
+                // 3-Pin Trimmer VR (Pin 1 = pinA, Pin 2 = pinWiper [W], Pin 3 = pinB)
+                const pW = this.getPinPos(comp.pinWiper);
+                const isVertical = Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                const bodyX = isVertical ? (pW.x - 16) : pW.x;
+                const bodyY = isVertical ? pW.y : (pW.y - 16);
 
-            const midX = (pA.x + pB.x) / 2;
-            const midY = (pA.y + pB.y) / 2;
+                // 3 Metallic Silver Leads from Bourns Trimmer Body to Pins 1, W, 3
+                this.ctx.strokeStyle = '#94a3b8';
+                this.ctx.lineWidth = 2.0;
+                this.ctx.beginPath();
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pA.x, pA.y);
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pW.x, pW.y);
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pB.x, pB.y);
+                this.ctx.stroke();
 
-            // 3D Metallic Cermet Potentiometer Body
-            const potGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 15);
-            potGrad.addColorStop(0, '#38bdf8');
-            potGrad.addColorStop(0.7, '#0284c7');
-            potGrad.addColorStop(1, '#0369a1');
+                // Pin Solder Dots
+                [
+                    { pt: pA, col: '#ef4444', lbl: '1' },
+                    { pt: pW, col: '#facc15', lbl: 'W' },
+                    { pt: pB, col: '#38bdf8', lbl: '3' }
+                ].forEach(pinInfo => {
+                    this.ctx.fillStyle = pinInfo.col;
+                    this.ctx.beginPath();
+                    this.ctx.arc(pinInfo.pt.x, pinInfo.pt.y, 3.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.font = 'bold 9.5px monospace';
+                    this.ctx.textAlign = isVertical ? 'left' : 'center';
+                    this.ctx.textBaseline = 'middle';
+                    const ox = isVertical ? 6 : 0;
+                    const oy = isVertical ? 0 : 9;
+                    this.ctx.fillText(pinInfo.lbl, pinInfo.pt.x + ox, pinInfo.pt.y + oy);
+                });
+                this.ctx.textBaseline = 'alphabetic';
 
-            this.ctx.fillStyle = potGrad;
-            this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 15, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#1e293b';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+                // Classic Blue Square Bourns-Style 3-Pin Trimmer VR Body
+                const vrGrad = this.ctx.createLinearGradient(bodyX - 12, bodyY - 12, bodyX + 12, bodyY + 12);
+                vrGrad.addColorStop(0, '#0ea5e9');
+                vrGrad.addColorStop(0.6, '#0369a1');
+                vrGrad.addColorStop(1, '#0c4a6e');
+                this.ctx.fillStyle = vrGrad;
+                this.ctx.beginPath();
+                this.ctx.roundRect(bodyX - 12, bodyY - 12, 24, 24, 4);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isSelected ? '#facc15' : '#0f172a';
+                this.ctx.lineWidth = isSelected ? 2.2 : 1.4;
+                this.ctx.stroke();
 
-            // Inner Metallic Dial Ring
-            this.ctx.fillStyle = '#e2e8f0';
-            this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
-            this.ctx.fill();
+                // White Rotary Adjustment Dial
+                this.ctx.fillStyle = '#f8fafc';
+                this.ctx.beginPath();
+                this.ctx.arc(bodyX, bodyY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
 
-            // Knob Arrow Slot
-            const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
-            this.ctx.strokeStyle = '#0f172a';
-            this.ctx.lineWidth = 2.5;
-            this.ctx.beginPath();
-            this.ctx.moveTo(midX, midY);
-            this.ctx.lineTo(midX + Math.cos(knobAngle) * 8, midY + Math.sin(knobAngle) * 8);
-            this.ctx.stroke();
+                // Knob Pointer Slot
+                const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
+                this.ctx.strokeStyle = '#0f172a';
+                this.ctx.lineWidth = 2.4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(bodyX - Math.cos(knobAngle) * 3, bodyY - Math.sin(knobAngle) * 3);
+                this.ctx.lineTo(bodyX + Math.cos(knobAngle) * 7.5, bodyY + Math.sin(knobAngle) * 7.5);
+                this.ctx.stroke();
 
-            if (this.showValueBadges) {
-                const effRes = comp.getEffectiveResistance();
-                const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
-                this.ctx.fillStyle = '#f59e0b';
-                this.ctx.font = 'bold 9px monospace';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 18);
+                if (this.showValueBadges) {
+                    const fmtR = (r) => r >= 1e6 ? (r / 1e6).toFixed(1) + 'M' : (r >= 1e3 ? (r / 1e3).toFixed(1) + 'k' : r.toFixed(0));
+                    const r1w = comp.getEffectiveResistance();
+                    const rw3 = typeof comp.getResistanceWB === 'function' ? comp.getResistanceWB() : Math.max(1, comp.totalResistance * (1 - comp.ratio));
+                    this.ctx.fillStyle = '#facc15';
+                    this.ctx.font = 'bold 8.5px monospace';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(`VR3 ${fmtR(r1w)}/${fmtR(rw3)} (${(comp.ratio * 100).toFixed(0)}%)`, bodyX, bodyY - 16);
+                }
+            } else {
+                this.ctx.strokeStyle = '#94a3b8';
+                this.ctx.lineWidth = 2.0;
+                this.ctx.beginPath();
+                this.ctx.moveTo(pA.x, pA.y);
+                this.ctx.lineTo(pB.x, pB.y);
+                this.ctx.stroke();
+
+                const midX = (pA.x + pB.x) / 2;
+                const midY = (pA.y + pB.y) / 2;
+
+                // 3D Metallic Cermet Potentiometer Body
+                const potGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 15);
+                potGrad.addColorStop(0, '#38bdf8');
+                potGrad.addColorStop(0.7, '#0284c7');
+                potGrad.addColorStop(1, '#0369a1');
+
+                this.ctx.fillStyle = potGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 15, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#1e293b';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Inner Metallic Dial Ring
+                this.ctx.fillStyle = '#e2e8f0';
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Knob Arrow Slot
+                const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
+                this.ctx.strokeStyle = '#0f172a';
+                this.ctx.lineWidth = 2.5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(midX, midY);
+                this.ctx.lineTo(midX + Math.cos(knobAngle) * 8, midY + Math.sin(knobAngle) * 8);
+                this.ctx.stroke();
+
+                if (this.showValueBadges) {
+                    const effRes = comp.getEffectiveResistance();
+                    const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
+                    this.ctx.fillStyle = '#f59e0b';
+                    this.ctx.font = 'bold 9px monospace';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 18);
+                }
             }
 
         } else if (comp.type === 'C') {

@@ -111,6 +111,10 @@ class MNASolver {
             const nB = this.grid.getNodeId(c.pinB);
             if (nA && nA !== '0') nodeSet.add(nA);
             if (nB && nB !== '0') nodeSet.add(nB);
+            if (c.type === 'POT' && c.pinWiper) {
+                const nW = this.grid.getNodeId(c.pinWiper);
+                if (nW && nW !== '0') nodeSet.add(nW);
+            }
             if (c.type === 'BJT') {
                 [c.pinEmitter, c.pinBase, c.pinCollector].forEach(pK => {
                     const n = this.grid.getNodeId(pK);
@@ -238,7 +242,17 @@ class MNASolver {
             } else if (comp.type === 'R') {
                 addConductance(nA, nB, comp.getConductance());
             } else if (comp.type === 'POT') {
-                addConductance(nA, nB, 1.0 / comp.getEffectiveResistance());
+                if (comp.pinWiper) {
+                    const nW = this.grid.getNodeId(comp.pinWiper);
+                    const rTotal = Math.max(10.0, comp.totalResistance || 10000.0);
+                    const ratio = Math.max(0.001, Math.min(0.999, comp.ratio !== undefined ? comp.ratio : 0.5));
+                    const rAW = Math.max(1.0, rTotal * ratio);
+                    const rWB = Math.max(1.0, rTotal * (1.0 - ratio));
+                    addConductance(nA, nW, 1.0 / rAW);
+                    addConductance(nW, nB, 1.0 / rWB);
+                } else {
+                    addConductance(nA, nB, 1.0 / comp.getEffectiveResistance());
+                }
             } else if (comp.type === 'C') {
                 const { Geq, Ieq } = comp.getCompanionModel(dt);
                 addConductance(nA, nB, Geq);
@@ -1976,11 +1990,12 @@ class ZenerDiode {
 }
 
 class Potentiometer {
-    constructor(id, pinA, pinB, totalResistance = 10000, ratio = 0.5) {
+    constructor(id, pinA, pinB, totalResistance = 10000, ratio = 0.5, pinWiper = null) {
         this.id = id;
         this.type = 'POT';
         this.pinA = pinA;
         this.pinB = pinB;
+        this.pinWiper = pinWiper || null; // Non-null for 3-pin VR (pinA=1, pinWiper=2/W, pinB=3)
         this.totalResistance = totalResistance;
         this.ratio = Math.max(0.01, Math.min(0.99, ratio));
         this.isConfigured = true;
@@ -1988,6 +2003,10 @@ class Potentiometer {
 
     getEffectiveResistance() {
         return Math.max(1, this.totalResistance * this.ratio);
+    }
+
+    getResistanceWB() {
+        return Math.max(1, this.totalResistance * (1.0 - this.ratio));
     }
 }
 
@@ -2859,11 +2878,14 @@ class BreadboardCanvas {
                     const pB = this.getPinPos(comp.pinB || comp.pinCollector);
                     const distA = Math.hypot(pA.x - worldX, pA.y - worldY);
                     const distB = Math.hypot(pB.x - worldX, pB.y - worldY);
-                    const midX = (pA.x + pB.x) / 2;
-                    const midY = (pA.y + pB.y) / 2;
+                    const pW = comp.pinWiper ? this.getPinPos(comp.pinWiper) : null;
+                    const distW = pW ? Math.hypot(pW.x - worldX, pW.y - worldY) : Infinity;
+                    const isVertVr = pW && Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                    const midX = pW ? (isVertVr ? pW.x - 16 : pW.x) : (pA.x + pB.x) / 2;
+                    const midY = pW ? (isVertVr ? pW.y : pW.y - 16) : (pA.y + pB.y) / 2;
                     const distMid = Math.hypot(midX - worldX, midY - worldY);
 
-                    if (distA < 20 || distB < 20 || distMid < 24) {
+                    if (distA < 20 || distB < 20 || distW < 22 || distMid < 24) {
                         foundComp = comp;
                         break;
                     }
@@ -2935,9 +2957,11 @@ class BreadboardCanvas {
                     if (comp.type === 'POT') {
                         const pA = this.getPinPos(comp.pinA);
                         const pB = this.getPinPos(comp.pinB);
-                        const midX = (pA.x + pB.x) / 2;
-                        const midY = (pA.y + pB.y) / 2;
-                        if (Math.hypot(midX - worldX, midY - worldY) < 30) {
+                        const pW = comp.pinWiper ? this.getPinPos(comp.pinWiper) : null;
+                        const isVertVr = pW && Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                        const midX = pW ? (isVertVr ? pW.x - 16 : pW.x) : (pA.x + pB.x) / 2;
+                        const midY = pW ? (isVertVr ? pW.y : pW.y - 16) : (pA.y + pB.y) / 2;
+                        if (Math.hypot(midX - worldX, midY - worldY) < 30 || (pW && Math.hypot(pW.x - worldX, pW.y - worldY) < 25)) {
                             hoveredPot = comp;
                             break;
                         }
@@ -3737,52 +3761,126 @@ class BreadboardCanvas {
             this.ctx.restore();
 
         } else if (comp.type === 'POT') {
-            this.ctx.strokeStyle = '#94a3b8';
-            this.ctx.lineWidth = 2.0;
-            this.ctx.beginPath();
-            this.ctx.moveTo(pA.x, pA.y);
-            this.ctx.lineTo(pB.x, pB.y);
-            this.ctx.stroke();
+            if (comp.pinWiper) {
+                // 3-Pin Trimmer VR (Pin 1 = pinA, Pin 2 = pinWiper [W], Pin 3 = pinB)
+                const pW = this.getPinPos(comp.pinWiper);
+                const isVertical = Math.abs(pB.y - pA.y) >= Math.abs(pB.x - pA.x);
+                const bodyX = isVertical ? (pW.x - 16) : pW.x;
+                const bodyY = isVertical ? pW.y : (pW.y - 16);
 
-            const midX = (pA.x + pB.x) / 2;
-            const midY = (pA.y + pB.y) / 2;
+                // 3 Metallic Silver Leads from Bourns Trimmer Body to Pins 1, W, 3
+                this.ctx.strokeStyle = '#94a3b8';
+                this.ctx.lineWidth = 2.0;
+                this.ctx.beginPath();
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pA.x, pA.y);
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pW.x, pW.y);
+                this.ctx.moveTo(bodyX, bodyY); this.ctx.lineTo(pB.x, pB.y);
+                this.ctx.stroke();
 
-            // 3D Metallic Cermet Potentiometer Body
-            const potGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 15);
-            potGrad.addColorStop(0, '#38bdf8');
-            potGrad.addColorStop(0.7, '#0284c7');
-            potGrad.addColorStop(1, '#0369a1');
+                // Pin Solder Dots
+                [
+                    { pt: pA, col: '#ef4444', lbl: '1' },
+                    { pt: pW, col: '#facc15', lbl: 'W' },
+                    { pt: pB, col: '#38bdf8', lbl: '3' }
+                ].forEach(pinInfo => {
+                    this.ctx.fillStyle = pinInfo.col;
+                    this.ctx.beginPath();
+                    this.ctx.arc(pinInfo.pt.x, pinInfo.pt.y, 3.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.font = 'bold 9.5px monospace';
+                    this.ctx.textAlign = isVertical ? 'left' : 'center';
+                    this.ctx.textBaseline = 'middle';
+                    const ox = isVertical ? 6 : 0;
+                    const oy = isVertical ? 0 : 9;
+                    this.ctx.fillText(pinInfo.lbl, pinInfo.pt.x + ox, pinInfo.pt.y + oy);
+                });
+                this.ctx.textBaseline = 'alphabetic';
 
-            this.ctx.fillStyle = potGrad;
-            this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 15, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#1e293b';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
+                // Classic Blue Square Bourns-Style 3-Pin Trimmer VR Body
+                const vrGrad = this.ctx.createLinearGradient(bodyX - 12, bodyY - 12, bodyX + 12, bodyY + 12);
+                vrGrad.addColorStop(0, '#0ea5e9');
+                vrGrad.addColorStop(0.6, '#0369a1');
+                vrGrad.addColorStop(1, '#0c4a6e');
+                this.ctx.fillStyle = vrGrad;
+                this.ctx.beginPath();
+                this.ctx.roundRect(bodyX - 12, bodyY - 12, 24, 24, 4);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isSelected ? '#facc15' : '#0f172a';
+                this.ctx.lineWidth = isSelected ? 2.2 : 1.4;
+                this.ctx.stroke();
 
-            // Inner Metallic Dial Ring
-            this.ctx.fillStyle = '#e2e8f0';
-            this.ctx.beginPath();
-            this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
-            this.ctx.fill();
+                // White Rotary Adjustment Dial
+                this.ctx.fillStyle = '#f8fafc';
+                this.ctx.beginPath();
+                this.ctx.arc(bodyX, bodyY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
 
-            // Knob Arrow Slot
-            const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
-            this.ctx.strokeStyle = '#0f172a';
-            this.ctx.lineWidth = 2.5;
-            this.ctx.beginPath();
-            this.ctx.moveTo(midX, midY);
-            this.ctx.lineTo(midX + Math.cos(knobAngle) * 8, midY + Math.sin(knobAngle) * 8);
-            this.ctx.stroke();
+                // Knob Pointer Slot
+                const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
+                this.ctx.strokeStyle = '#0f172a';
+                this.ctx.lineWidth = 2.4;
+                this.ctx.beginPath();
+                this.ctx.moveTo(bodyX - Math.cos(knobAngle) * 3, bodyY - Math.sin(knobAngle) * 3);
+                this.ctx.lineTo(bodyX + Math.cos(knobAngle) * 7.5, bodyY + Math.sin(knobAngle) * 7.5);
+                this.ctx.stroke();
 
-            if (this.showValueBadges) {
-                const effRes = comp.getEffectiveResistance();
-                const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
-                this.ctx.fillStyle = '#f59e0b';
-                this.ctx.font = 'bold 9px monospace';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 18);
+                if (this.showValueBadges) {
+                    const fmtR = (r) => r >= 1e6 ? (r / 1e6).toFixed(1) + 'M' : (r >= 1e3 ? (r / 1e3).toFixed(1) + 'k' : r.toFixed(0));
+                    const r1w = comp.getEffectiveResistance();
+                    const rw3 = typeof comp.getResistanceWB === 'function' ? comp.getResistanceWB() : Math.max(1, comp.totalResistance * (1 - comp.ratio));
+                    this.ctx.fillStyle = '#facc15';
+                    this.ctx.font = 'bold 8.5px monospace';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(`VR3 ${fmtR(r1w)}/${fmtR(rw3)} (${(comp.ratio * 100).toFixed(0)}%)`, bodyX, bodyY - 16);
+                }
+            } else {
+                this.ctx.strokeStyle = '#94a3b8';
+                this.ctx.lineWidth = 2.0;
+                this.ctx.beginPath();
+                this.ctx.moveTo(pA.x, pA.y);
+                this.ctx.lineTo(pB.x, pB.y);
+                this.ctx.stroke();
+
+                const midX = (pA.x + pB.x) / 2;
+                const midY = (pA.y + pB.y) / 2;
+
+                // 3D Metallic Cermet Potentiometer Body
+                const potGrad = this.ctx.createRadialGradient(midX - 3, midY - 3, 2, midX, midY, 15);
+                potGrad.addColorStop(0, '#38bdf8');
+                potGrad.addColorStop(0.7, '#0284c7');
+                potGrad.addColorStop(1, '#0369a1');
+
+                this.ctx.fillStyle = potGrad;
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 15, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.strokeStyle = isSelected ? '#38bdf8' : '#1e293b';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Inner Metallic Dial Ring
+                this.ctx.fillStyle = '#e2e8f0';
+                this.ctx.beginPath();
+                this.ctx.arc(midX, midY, 9, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Knob Arrow Slot
+                const knobAngle = (comp.ratio - 0.5) * Math.PI * 1.5;
+                this.ctx.strokeStyle = '#0f172a';
+                this.ctx.lineWidth = 2.5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(midX, midY);
+                this.ctx.lineTo(midX + Math.cos(knobAngle) * 8, midY + Math.sin(knobAngle) * 8);
+                this.ctx.stroke();
+
+                if (this.showValueBadges) {
+                    const effRes = comp.getEffectiveResistance();
+                    const formatted = effRes >= 1000 ? (effRes / 1000) + 'k' : effRes.toFixed(0);
+                    this.ctx.fillStyle = '#f59e0b';
+                    this.ctx.font = 'bold 9px monospace';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(`${formatted}Ω (${(comp.ratio * 100).toFixed(0)}%)`, midX, midY - 18);
+                }
             }
 
         } else if (comp.type === 'C') {
@@ -5247,6 +5345,7 @@ class CircuitSerializer {
             } else if (comp.type === 'POT') {
                 base.totalResistance = comp.totalResistance;
                 base.ratio = comp.ratio;
+                if (comp.pinWiper) base.pinWiper = comp.pinWiper;
             } else if (comp.type === 'C') {
                 base.capacitance = comp.capacitance;
                 base.isConfigured = comp.isConfigured;
@@ -5332,7 +5431,7 @@ class CircuitSerializer {
                     comp = new Resistor(id, item.pinA, item.pinB, item.resistance || 1000, item.isConfigured ?? true);
                 }
             } else if (item.type === 'POT') {
-                comp = new Potentiometer(id, item.pinA, item.pinB, item.totalResistance || 10000, item.ratio ?? 0.5);
+                comp = new Potentiometer(id, item.pinA, item.pinB, item.totalResistance || 10000, item.ratio ?? 0.5, item.pinWiper || null);
             } else if (item.type === 'C') {
                 if (item.pinA === 'B1_F14' && item.pinB === 'B1_F18') {
                     comp = new Capacitor(id, 'B1_F16', 'B1_GND_L_16', item.capacitance || 1e-7, item.isConfigured ?? true, item.capType || 'MYLAR');
@@ -5554,7 +5653,53 @@ class AppController {
                 labelMsg = isFg1 ? 'FG1 신호선' : (isFg2 ? 'FG2 신호선' : '점퍼 와이어');
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
                 const resType = this.selectedResistorType || 'R';
-                if (resType === 'POT_1M') {
+                if (resType.startsWith('VR3_')) {
+                    const totalR = resType === 'VR3_1M' ? 1000000 : (resType === 'VR3_100K' ? 100000 : (resType === 'VR3_50K' ? 50000 : 10000));
+                    let p1 = pinA, pW = pinA, p3 = pinB;
+                    const mA = pinA.match(/^(B\d_)?([A-J])(\d+)$/);
+                    const mB = pinB.match(/^(B\d_)?([A-J])(\d+)$/);
+                    if (mA && mB && mA[1] === mB[1]) {
+                        const blk = mA[1] || 'B1_';
+                        const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                        const cA = cols.indexOf(mA[2]), cB = cols.indexOf(mB[2]);
+                        const rA = parseInt(mA[3], 10), rB = parseInt(mB[3], 10);
+                        if (cA === cB) {
+                            const minR = Math.min(rA, rB), maxR = Math.max(rA, rB);
+                            if (maxR - minR === 1) {
+                                p1 = `${blk}${mA[2]}${minR}`;
+                                pW = `${blk}${mA[2]}${minR + 1}`;
+                                p3 = `${blk}${mA[2]}${Math.min(60, minR + 2)}`;
+                            } else {
+                                const midR = Math.round((minR + maxR) / 2);
+                                p1 = `${blk}${mA[2]}${minR}`;
+                                pW = `${blk}${mA[2]}${midR}`;
+                                p3 = `${blk}${mA[2]}${maxR}`;
+                            }
+                        } else if (rA === rB) {
+                            const minC = Math.min(cA, cB), maxC = Math.max(cA, cB);
+                            if (maxC - minC === 1) {
+                                p1 = `${blk}${cols[minC]}${rA}`;
+                                pW = `${blk}${cols[Math.min(9, minC + 1)]}${rA}`;
+                                p3 = `${blk}${cols[Math.min(9, minC + 2)]}${rA}`;
+                            } else {
+                                const midC = Math.round((minC + maxC) / 2);
+                                p1 = `${blk}${cols[minC]}${rA}`;
+                                pW = `${blk}${cols[midC]}${rA}`;
+                                p3 = `${blk}${cols[maxC]}${rA}`;
+                            }
+                        } else {
+                            // Diagonal / triangular trimmer footprint: midpoint col & row
+                            const midC = Math.round((cA + cB) / 2);
+                            const midR = Math.round((rA + rB) / 2);
+                            p1 = pinA;
+                            pW = `${blk}${cols[midC]}${midR}`;
+                            p3 = pinB;
+                        }
+                    }
+                    newComp = new Potentiometer(id, p1, p3, totalR, 0.5, pW);
+                    const lblR = totalR >= 1e6 ? (totalR / 1e6) + 'MΩ' : (totalR / 1e3) + 'kΩ';
+                    labelMsg = `🎚️ 3핀 VR ${lblR} (1:${p1}, W:${pW}, 3:${p3})`;
+                } else if (resType === 'POT_1M') {
                     newComp = new Potentiometer(id, pinA, pinB, 1000000, 0.5);
                     labelMsg = '🎛️ 1MΩ 가변저항 (Potentiometer)';
                 } else if (resType === 'POT_50K') {
@@ -5872,11 +6017,17 @@ class AppController {
                 comp.ratio = Math.max(0.01, Math.min(0.99, parsedRatio / 100.0));
             }
             const effRes = comp.getEffectiveResistance();
-            const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
+            const fmtR = (r) => r >= 1000000 ? (r / 1000000).toFixed(2) + 'M' : (r >= 1000 ? (r / 1000).toFixed(1) + 'k' : r.toFixed(0));
+            const formattedEff = fmtR(effRes);
             const formattedTotal = comp.totalResistance >= 1000000 ? (comp.totalResistance / 1000000) + 'M' : (comp.totalResistance >= 1000 ? (comp.totalResistance / 1000) + 'k' : comp.totalResistance);
             this.oscilloscopeCanvas.resetBuffer();
             this.warmupSimulationBuffer(1200);
-            this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [최대 ${formattedTotal}Ω 중 ${formattedEff}Ω (${(comp.ratio * 100).toFixed(0)}%)]로 설정되었습니다!`;
+            if (comp.pinWiper) {
+                const rWB = typeof comp.getResistanceWB === 'function' ? comp.getResistanceWB() : Math.max(1, comp.totalResistance * (1 - comp.ratio));
+                this.breadboardCanvas.toastMsg = `🎚️ 3핀 VR [${formattedTotal}Ω → 1-W: ${formattedEff}Ω / W-3: ${fmtR(rWB)}Ω (${(comp.ratio * 100).toFixed(0)}%)] 설정 완료!`;
+            } else {
+                this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [최대 ${formattedTotal}Ω 중 ${formattedEff}Ω (${(comp.ratio * 100).toFixed(0)}%)]로 설정되었습니다!`;
+            }
             this.renderAll();
         } else if (comp.type === 'VDC') {
             const valStr = prompt(`🔴 DC 전압(V)을 입력하세요 (예: 5.0, 12.0, 3.3):`, comp.voltage || '5.0');

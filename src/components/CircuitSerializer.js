@@ -24,6 +24,7 @@ export class CircuitSerializer {
             } else if (comp.type === 'POT') {
                 base.totalResistance = comp.totalResistance;
                 base.ratio = comp.ratio;
+                if (comp.pinWiper) base.pinWiper = comp.pinWiper;
             } else if (comp.type === 'C') {
                 base.capacitance = comp.capacitance;
                 base.isConfigured = comp.isConfigured;
@@ -109,7 +110,7 @@ export class CircuitSerializer {
                     comp = new Resistor(id, item.pinA, item.pinB, item.resistance || 1000, item.isConfigured ?? true);
                 }
             } else if (item.type === 'POT') {
-                comp = new Potentiometer(id, item.pinA, item.pinB, item.totalResistance || 10000, item.ratio ?? 0.5);
+                comp = new Potentiometer(id, item.pinA, item.pinB, item.totalResistance || 10000, item.ratio ?? 0.5, item.pinWiper || null);
             } else if (item.type === 'C') {
                 if (item.pinA === 'B1_F14' && item.pinB === 'B1_F18') {
                     comp = new Capacitor(id, 'B1_F16', 'B1_GND_L_16', item.capacitance || 1e-7, item.isConfigured ?? true, item.capType || 'MYLAR');

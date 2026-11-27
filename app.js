@@ -131,7 +131,53 @@ class AppController {
                 labelMsg = isFg1 ? 'FG1 신호선' : (isFg2 ? 'FG2 신호선' : '점퍼 와이어');
             } else if (toolType === 'RESISTOR_CATALOG' || toolType === 'R') {
                 const resType = this.selectedResistorType || 'R';
-                if (resType === 'POT_1M') {
+                if (resType.startsWith('VR3_')) {
+                    const totalR = resType === 'VR3_1M' ? 1000000 : (resType === 'VR3_100K' ? 100000 : (resType === 'VR3_50K' ? 50000 : 10000));
+                    let p1 = pinA, pW = pinA, p3 = pinB;
+                    const mA = pinA.match(/^(B\d_)?([A-J])(\d+)$/);
+                    const mB = pinB.match(/^(B\d_)?([A-J])(\d+)$/);
+                    if (mA && mB && mA[1] === mB[1]) {
+                        const blk = mA[1] || 'B1_';
+                        const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                        const cA = cols.indexOf(mA[2]), cB = cols.indexOf(mB[2]);
+                        const rA = parseInt(mA[3], 10), rB = parseInt(mB[3], 10);
+                        if (cA === cB) {
+                            const minR = Math.min(rA, rB), maxR = Math.max(rA, rB);
+                            if (maxR - minR === 1) {
+                                p1 = `${blk}${mA[2]}${minR}`;
+                                pW = `${blk}${mA[2]}${minR + 1}`;
+                                p3 = `${blk}${mA[2]}${Math.min(60, minR + 2)}`;
+                            } else {
+                                const midR = Math.round((minR + maxR) / 2);
+                                p1 = `${blk}${mA[2]}${minR}`;
+                                pW = `${blk}${mA[2]}${midR}`;
+                                p3 = `${blk}${mA[2]}${maxR}`;
+                            }
+                        } else if (rA === rB) {
+                            const minC = Math.min(cA, cB), maxC = Math.max(cA, cB);
+                            if (maxC - minC === 1) {
+                                p1 = `${blk}${cols[minC]}${rA}`;
+                                pW = `${blk}${cols[Math.min(9, minC + 1)]}${rA}`;
+                                p3 = `${blk}${cols[Math.min(9, minC + 2)]}${rA}`;
+                            } else {
+                                const midC = Math.round((minC + maxC) / 2);
+                                p1 = `${blk}${cols[minC]}${rA}`;
+                                pW = `${blk}${cols[midC]}${rA}`;
+                                p3 = `${blk}${cols[maxC]}${rA}`;
+                            }
+                        } else {
+                            // Diagonal / triangular trimmer footprint: midpoint col & row
+                            const midC = Math.round((cA + cB) / 2);
+                            const midR = Math.round((rA + rB) / 2);
+                            p1 = pinA;
+                            pW = `${blk}${cols[midC]}${midR}`;
+                            p3 = pinB;
+                        }
+                    }
+                    newComp = new Potentiometer(id, p1, p3, totalR, 0.5, pW);
+                    const lblR = totalR >= 1e6 ? (totalR / 1e6) + 'MΩ' : (totalR / 1e3) + 'kΩ';
+                    labelMsg = `🎚️ 3핀 VR ${lblR} (1:${p1}, W:${pW}, 3:${p3})`;
+                } else if (resType === 'POT_1M') {
                     newComp = new Potentiometer(id, pinA, pinB, 1000000, 0.5);
                     labelMsg = '🎛️ 1MΩ 가변저항 (Potentiometer)';
                 } else if (resType === 'POT_50K') {
@@ -449,11 +495,17 @@ class AppController {
                 comp.ratio = Math.max(0.01, Math.min(0.99, parsedRatio / 100.0));
             }
             const effRes = comp.getEffectiveResistance();
-            const formattedEff = effRes >= 1000000 ? (effRes / 1000000).toFixed(2) + 'M' : (effRes >= 1000 ? (effRes / 1000).toFixed(1) + 'k' : effRes.toFixed(0));
+            const fmtR = (r) => r >= 1000000 ? (r / 1000000).toFixed(2) + 'M' : (r >= 1000 ? (r / 1000).toFixed(1) + 'k' : r.toFixed(0));
+            const formattedEff = fmtR(effRes);
             const formattedTotal = comp.totalResistance >= 1000000 ? (comp.totalResistance / 1000000) + 'M' : (comp.totalResistance >= 1000 ? (comp.totalResistance / 1000) + 'k' : comp.totalResistance);
             this.oscilloscopeCanvas.resetBuffer();
             this.warmupSimulationBuffer(1200);
-            this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [최대 ${formattedTotal}Ω 중 ${formattedEff}Ω (${(comp.ratio * 100).toFixed(0)}%)]로 설정되었습니다!`;
+            if (comp.pinWiper) {
+                const rWB = typeof comp.getResistanceWB === 'function' ? comp.getResistanceWB() : Math.max(1, comp.totalResistance * (1 - comp.ratio));
+                this.breadboardCanvas.toastMsg = `🎚️ 3핀 VR [${formattedTotal}Ω → 1-W: ${formattedEff}Ω / W-3: ${fmtR(rWB)}Ω (${(comp.ratio * 100).toFixed(0)}%)] 설정 완료!`;
+            } else {
+                this.breadboardCanvas.toastMsg = `🎛️ 가변저항이 [최대 ${formattedTotal}Ω 중 ${formattedEff}Ω (${(comp.ratio * 100).toFixed(0)}%)]로 설정되었습니다!`;
+            }
             this.renderAll();
         } else if (comp.type === 'VDC') {
             const valStr = prompt(`🔴 DC 전압(V)을 입력하세요 (예: 5.0, 12.0, 3.3):`, comp.voltage || '5.0');
